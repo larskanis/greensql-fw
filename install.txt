@@ -1,0 +1,133 @@
+Installation
+
+The are a number of steps to perform in order to install application.
+They are:
+
+1. Create dedicated user for greensql service
+2. Creating MySQL config db and a db user.
+3. Setting up configuration files.
+3. Setting log file.
+4. Configure start up scripts
+
+
+Creating greensql system group and user
+---------------------------------------
+
+In order to create greensql group and user run the following
+commands (run these commands as a root user):
+
+  groupadd greensql
+  useradd -M -g greensql -s /dev/null greensql
+
+Alternatively you can run the following commands:
+  
+  cd scripts/
+  ./setup_user.sh
+
+
+Creating MySQL DB and user
+--------------------------
+There are a number of steps in order to perform to create 
+MySQL DB and a user. Please run commands listed here as a root user.
+
+
+1. Firs of all  you need to creat GreenSQL DB. Run the following command:
+
+  mysqladmin create greendb
+
+2. After creating database, you can create tables by running the following
+command:
+  
+  cat db/mysql_create_tables.sql | mysql greendb 
+
+
+3. In order to add db user, run the following command in the shell:
+
+  echo "GRANT ALL PRIVILEGES ON greendb.* TO 'USER'@'%' IDENTIFIED BY 'PWD';" | mysql
+
+where:
+  USER - is a database user you wish to create.
+  PWD - is a password that will be used in order to access db.
+
+For example:
+  
+  echo "GRANT ALL PRIVILEGES  ON greendb.* TO 'green'@'%' IDENTIFIED BY 'pwd';" | mysql
+  
+
+4. Next, you need to sync new database setings. Run the following command:
+
+  mysqladmin flush-privileges
+
+
+Now everything must be setted up. In order to simplify mysql installation
+process, you can run setup_mysql.sh file located in the scripts directory.
+Please note, it will use a default password, which is not recomended.
+
+
+Setting up configuration files
+------------------------------
+
+You will find a number of configuration files in the ./conf/ directory.
+GreenSQL start up script expect to find configuration files in the
+following directory:
+
+/etc/greensql/
+
+Setting up configuration files is simple. Just run the following commands:
+
+mkdir -p /etc/greensql
+cp ./conf/* /etc/greensql/ -r
+chown greensql:greensql /etc/greensql -R
+chmod 700 /etc/greensql
+
+Alternativly you can run setup_conf.sh file located in the scripts 
+directory.
+
+You need to alter greensql.conf file and specify db settings.
+
+
+Setting log file
+----------------
+
+By default greensql expects to find log file in:
+
+/var/log/greensql.log
+
+In addition log file rotation must be configured.
+Run the following commands:
+
+touch /var/log/greensql.log
+chown greensql:greensql /var/log/greensql.log
+chmod 600 /var/log/greensql.log
+cp greensql.rotate /etc/logrotate.d/greensql
+
+Alternatively you can run ./setup_log.sh script located
+in the scripts/ directory.
+
+
+Configure start up scripts
+--------------------------
+
+As a final step you need to copy greensql application to the /user/sbin 
+or /sbin directory, copy service initialization file to the /etc/init.d/
+directory.
+
+Please do the following:
+ 
+ cp greensql-fw /usr/sbin/
+ cd scripts
+ cp rc.greensql /etc/init.d/greensql
+
+Another alternative is to run ./setup_binary script located in the scripts/
+directory.
+
+
+After that you can start the application. Simply type:
+
+ /etc/init.d/greensql start
+
+In order to stop the application use the following command:
+
+ /etc/init.d/greensql stop
+
+

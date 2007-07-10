@@ -1,0 +1,89 @@
+#!/bin/sh
+
+# This script was initially built in debian
+# It might be possible to adopt it to other linuxes as well.
+
+PIDFILE="/var/run/greensql-fw.pid"
+GREENSQL_CONF="/etc/greensql/"
+GREENSQL_USER="greensql"
+GREENSQL_LOG="/var/log/greensql.log"
+
+if [ "$(id -u)" != "0" ]; then
+    echo
+    echo "Please run this script as root"
+    echo
+    exit 1
+fi
+
+if [ -x greensql-fw ] ; then
+    GREENSQL_BIN="greensql-fw"
+elif [ -x /sbin/greensql-fw ] ; then
+    GREENSQL_BIN="/sbin/greensql-fw"
+elif [ -x /usr/sbin/greensql-fw ] ; then
+    GREENSQL_BIN="/usr/sbin/greensql-fw"
+fi
+
+if [ ! -x "$GREENSQL_BIN" ] ; then
+    echo "greensql-fw binary was not found"
+    exit 0;
+fi
+
+greensql_stop() {
+    # check if PID file is found
+    if [ ! -e $PIDFILE ]; then
+        `killall greensql`
+        return
+    fi
+    
+    PID=`cat $PIDFILE`
+    if [ -d /proc/$PID ]; then
+        #echo "killing $PID"
+	`kill $PID`
+    else
+        #echo "pid file not found, running killall"
+	`killall greensql`
+    fi
+}
+
+greensql_start() {
+    if [ ! -d $GREENSQL_CONF ]; then
+        echo "greensql configuration directory not found in $GREENSQL_CONF"
+	exit 0
+    fi
+
+    # fixing permissions for the log file
+    `touch $GREENSQL_LOG`
+    `chown greensql:greensql $GREENSQL_LOG`
+    `chmod 600 $GREENSQL_LOG`
+
+    su - $GREENSQL_USER -c "exec $GREENSQL_BIN -p $GREENSQL_CONF >/dev/null 2>&1 & " -s /bin/sh >/dev/null 2>&1
+    PID=`pidof -x greensql-fw`
+    #echo "PID $PID"
+    if [ -d /proc/$PID ]; then
+        `echo $PID > $PIDFILE`
+    fi
+
+}
+
+case $1 in
+	start)
+	        echo -n "Starting SQL firewall: GreenSQL "
+		greensql_start
+		echo "."
+        ;;
+	stop)
+	        echo -n "Stoping SQL firewall: GreenSQL "
+		greensql_stop
+		echo "."
+	;;
+	restart)
+	        echo -n "Restarting SQL Firewall: GreenSQL "
+		greensql_stop
+		greensql_start
+		echo "."
+	;;
+        *)
+	        echo "Usage: /etc/init.d/greensql start|stop|restart"
+	;;
+esac
+				

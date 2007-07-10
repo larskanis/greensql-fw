@@ -1,0 +1,12 @@
+Looking for the following patterns in the select statemensts:
+
+1. Access to sensitive tables
+2. SQL comment
+3. Following SQL statement: or
+4. Part of the query contains:
+   abc = xyz ...... abc != xyz
+5. Following SQL expression: num SIGN num
+6. Following SQL expression: NNNid > num
+7. Empty password
+
+
