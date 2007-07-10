@@ -84,7 +84,7 @@ agroup_get(int proxy_id, std::string & dbname,std::string & pattern)
         return 0;
     }
     //my_ulonglong mysql_num_rows(MYSQL_RES *result)
-    logevent(STORAGE, "Records Found: %lld\n", mysql_num_rows(res) );
+    //logevent(STORAGE, "Records Found: %lld\n", mysql_num_rows(res) );
     if (mysql_num_rows(res) > 0)
     {
         row=mysql_fetch_row(res);
