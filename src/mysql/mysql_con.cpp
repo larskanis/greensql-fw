@@ -148,8 +148,9 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
         query = (char *)data+5;
         logevent(SQL_DEBUG, "QUERY command[%s]: %s\n", 
 			db_name.c_str(), data+5);
-
-	if (check_query(query) == false)
+        // query must not be empty
+	// otherwise system can crash
+	if (query[0] != '\0' && check_query(query) == false)
 	{
             // bad query - block it
 	    request = ""; // do not send it to backend server
