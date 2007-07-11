@@ -167,7 +167,7 @@ bool proxymap_reload()
         return false;
     }
     //my_ulonglong mysql_num_rows(MYSQL_RES *result)
-    logevent(STORAGE, "Records Found: %lld\n", mysql_num_rows(res) );
+    //logevent(STORAGE, "Records Found: %lld\n", mysql_num_rows(res) );
 
     /* Get a row from the results */
     while ((row=mysql_fetch_row(res)))
