@@ -11,6 +11,7 @@
 static bool fixNegativeNumbers(std::string & query);
 static bool removeNumbers(std::string & query);
 static bool removeHashComment(std::string & query);
+static bool removeDashComment(std::string & query);
 static bool removeCppComment(std::string & query);
 static int lookForChar(std::string & query, int start, char delimeter);
 
@@ -38,6 +39,7 @@ bool removeComments(std::string & query)
 {
     removeCppComment(query);
     removeHashComment(query);
+    removeDashComment(query);
     return true;
 }
 
@@ -68,6 +70,13 @@ bool removeSpaces(std::string & query)
                 query.erase(i+1, j-i-1);
             }
         }
+    }
+    // remove last space
+    j = query.size()-1;
+    if (query[j] == '\r' || query[j] == '\n' ||
+        query[j] == '\t' || query[j] == ' ')
+    {
+        query.erase(j,query.size());
     }
     return true;
 }
@@ -104,7 +113,7 @@ static bool removeCppComment(std::string & query)
 
 /*
  * The following function is used to remove comment starting from
- * the hash simbol till the end of the line.
+ * the hash symbol till the end of the line.
  */
 
 static bool removeHashComment(std::string & query)
@@ -122,6 +131,38 @@ static bool removeHashComment(std::string & query)
             {
 		    ;
 	    }
+            for (; j < query.size() &&
+                (query[j] == '\r' || query[j] == '\n'); j++)
+            {
+                    ;
+            }
+            query[i] = ' ';
+            query.erase(i+1, j-i-1);
+        }
+    }
+    return true;
+}
+
+/*
+ * The following function is used to remove comment starting from
+ * the 2 dahses (--) till the end of the line.
+ */
+
+static bool removeDashComment(std::string & query)
+{
+    unsigned int i;
+    unsigned int j;
+
+    for (i = 0; i< query.size()-1; i++)
+    {
+        // check for the start of the comment block
+        if (query[i] == '-' && query[i+1] == '-')
+        {
+            for (j=i+2; j < query.size() &&
+                (query[j] != '\r' && query[j] != '\n'); j++)
+            {
+                    ;
+            }
             for (; j < query.size() &&
                 (query[j] == '\r' || query[j] == '\n'); j++)
             {
