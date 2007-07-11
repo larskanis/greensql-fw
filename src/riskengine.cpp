@@ -128,7 +128,11 @@ static bool check_comments(std::string & query)
    } else if (  (p = temp.find("--",0)) != std::string::npos)
    {
        return true;
+   } else if ( (p = temp.find("#",0)) != std::string::npos)
+   {
+       return true;
    }
+   
    return false;
 }
 
