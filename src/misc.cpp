@@ -71,7 +71,7 @@ bool ParseConfLine(std::string & str, std::string & key, std::string & value)
              (str[i] >= '0' && str[i] <= '9') ||
 	     str[i] == '_' || str[i] == ':'   ||
 	     str[i] == '/' || str[i] == '\\'  ||
-	     str[i] == '.'                       ) )
+	     str[i] == '.' || str[i] == '-' ) )
     {
         v += str[i];
         i++;
