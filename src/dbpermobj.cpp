@@ -58,7 +58,7 @@ bool DBPermObj::LoadExceptions()
         return false;
     }
     //my_ulonglong mysql_num_rows(MYSQL_RES *result)
-    logevent(STORAGE, "SQL Exceptions Found: %lld\n", mysql_num_rows(res) );
+    //logevent(STORAGE, "SQL Exceptions Found: %lld\n", mysql_num_rows(res) );
 
     int perm = 0;
     std::string q_ex = "";
