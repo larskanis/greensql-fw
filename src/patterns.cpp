@@ -197,7 +197,7 @@ void SQLPatterns::LoadPattern(std::string & section, std::string & line)
 	s_tables_str += line;
     }
     empty_pwd_str = "((where\\s|and\\s|or\\s|not\\s|^)|(\\(\\s*))?"
-	    "(pass|password|pwd|passwd)\\s*\\=\\s*(\\'\\'|\\\"\\\")";
+	    "(pass|password|pwd|passwd)\\s*\\=\\s*(\\'\\')|(\\\"\\\")";
 
     var_cmp_str = "((where\\s|and\\s|or\\s|not\\s|^)|(\\(\\s*))?\\?\\s*(>|!)?\\=\\s*\\?";
 
