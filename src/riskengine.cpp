@@ -74,10 +74,10 @@ unsigned int calc_risk(std::string & query, std::string & pattern,
 	ret += conf->re_var_cmp_var;
     }
     if (conf->re_empty_password > 0 &&
-        check_empty_password(where_str) == true)
+        check_empty_password(query) == true)
     {
 	reason += "Query has empty password value\n";
-        logevent(DEBUG, "Query has empty password tokey\n");
+        logevent(DEBUG, "Query has empty password token\n");
 	ret += conf->re_empty_password;
     }
     if (conf->re_always_true > 0 &&
