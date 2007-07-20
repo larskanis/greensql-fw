@@ -100,12 +100,25 @@ static bool removeCppComment(std::string & query)
 	    {
 		    ;
 	    }
-	    // check if found end of comment block
-	    if (j != i+2)
+	    //check if found end of comment
+	    if (query[j] == '*' && query[j+1] == '/')
 	    {
-                query[i] = ' ';
-	        query.erase(i+1, j-i+1);
+                if (j != i+2)
+		{
+                     query[i+2] = ' ';
+		     query.erase(i+3, j-i-3);
+		} else {
+                     //nothing to do
+		}
+	    } else {
+                query.erase(i+2,j-i+2);
 	    }
+	    // check if found end of comment block
+	    //if (j != i+2)
+	    //{
+            //    query[i] = ' ';
+	    //    query.erase(i+1, j-i+1);
+	    //}
 	}
     }
     return true;
@@ -136,7 +149,7 @@ static bool removeHashComment(std::string & query)
             {
                     ;
             }
-            query[i] = ' ';
+            //query[i] = ' ';
             query.erase(i+1, j-i-1);
         }
     }
@@ -168,8 +181,11 @@ static bool removeDashComment(std::string & query)
             {
                     ;
             }
-            query[i] = ' ';
-            query.erase(i+1, j-i-1);
+            //query[i] = ' ';
+	    if (j != i+1)
+            {
+                query.erase(i+2, j-i-2);
+	    }
         }
     }
     return true;
