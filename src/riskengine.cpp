@@ -19,7 +19,7 @@ static bool check_or_token(std::string & query);
 static bool check_empty_password(std::string & query);
 static bool check_var_cmp_var(std::string & query);
 static bool check_always_true(std::string & query);
-
+static bool check_multiple_queries(std::string & pattern);
 //
 // This function calculates risk assosicated with specific SQL query.
 // For more information about this file, please check docs/tautology.txt
@@ -45,6 +45,14 @@ unsigned int calc_risk(std::string & query, std::string & pattern,
         logevent(DEBUG, "Query uses sensitive tables\n");
 	ret += conf->re_s_tables;
     }
+    if (conf->re_multiple_queries > 0 &&
+        check_multiple_queries(pattern) == true)
+    {
+        reason += "Multiple queries found\n";
+        logevent(DEBUG, "Multiple queries found\n");
+        ret += conf->re_multiple_queries;
+    }
+    
 
     size_t p = pattern.find(" where ", 0);
     if (p == std::string::npos)
@@ -238,69 +246,6 @@ static bool check_empty_password(std::string & query)
 
     GreenSQLConfig * conf = GreenSQLConfig::getInstance();
     return conf->mysql_patterns.Match( SQL_EMPTY_PWD,  temp );
-    
-    p = 1;
-    // ((and\s|or\s|not\s|)|(\(\s*))
-    // (password|pwd|pass)
-    // (\sand|\snot|\sor|\s?\))
-    // \s*=\s*(''|"")
-
-    while ( (p = temp.find("password", p)) != std::string::npos ||
-            (p = temp.find("pass", p)) != std::string::npos ||
-	    (p = temp.find("pwd", p)) != std::string::npos)
-    {
-        if (temp[p-1] != ' ' && temp[p-1] != ')')
-        {
-            p += 2;
-            continue;
-        }
-	// check if before password we got and/not/or/(
-	if (temp[p-1] == ' ' && 
-	    !(temp[p-2] == '(' || temp[p-2] == 'r' || 
-	     temp[p-2] == 't' || temp[p-2] == 'd') )
-	{
-            p+= 3;
-	    continue;
-	}
-	if (temp.find("password", p) == p)
-	{
-	    p += 8;
-	} else if (temp.find("pass", p) == p) {
-	    p += 4;
-	} else {
-            // pwd
-	    p += 3;
-	}
-	
-        if (temp[p] == ')')
-	{
-	    return true;
-	}
-	
-        if (temp[p] == ' ' && 
-            (temp[p] == ')' || temp[p] == 'a' ||
-             temp[p] == 'n' || temp[p] == 'o'))
-	{
-            return true;
-	}
-        while (temp[p] == ' ')
-            p++;
- 
-        if (temp[p] == '=')
-        {
-            p += 1;
-        }
-        while (temp[p] == ' ')
-            p++;
-
-        if (temp[p] == '\'' && temp[p+1] == '\'')
-            return true;
-        if (temp[p] == '\"' && temp[p+1] == '\"')
-            return true;
-
-    }
-    
-    return false;
 }
 
 static bool check_var_cmp_var(std::string & query)
@@ -313,4 +258,19 @@ static bool check_always_true(std::string & query)
 {
     GreenSQLConfig * conf = GreenSQLConfig::getInstance();
     return conf->mysql_patterns.Match( SQL_TRUE_VAR, query );
+}
+
+static bool check_multiple_queries(std::string & pattern)
+{
+   size_t p = 0;
+
+   // we need to check if query has semmy column
+   if ( (p = pattern.find(";",0)) == std::string::npos)
+   {
+       return false;
+   }
+   // check if ";" is located in the end of line
+   if (p == pattern.length()-1)
+       return false;
+   return true;
 }

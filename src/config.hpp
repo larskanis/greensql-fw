@@ -35,7 +35,8 @@ public:
         int re_var_cmp_var;
 	int re_always_true;
         int re_empty_password;
-	
+	int re_multiple_queries;
+
         int log_level;
 	std::string log_file;
 private:

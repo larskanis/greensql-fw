@@ -64,6 +64,7 @@ void GreenSQLConfig::init()
     re_var_cmp_var = 30;
     re_always_true = 30;
     re_empty_password = 30;
+    re_multiple_queries = 30;
     
     log_level = 3;
     log_file = "/var/log/greensql.log";
@@ -192,7 +193,10 @@ bool GreenSQLConfig::parse_re_setting(std::string & key, std::string & value)
     } else if (key == "risk_empty_password")
     {
         re_empty_password = atoi(value.c_str());
-    } 
+    }  else if (key == "risk_multiple_queries")
+    {
+        re_multiple_queries = atoi(value.c_str());
+    }
 
     return true;
 }
