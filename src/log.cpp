@@ -191,6 +191,6 @@ static void printline(const unsigned char * data, int max)
    temp[20+j*3] = '\n';
    temp[20+j*3+1] = 0;
 
-   fprintf(log_file, temp);
+   fprintf(log_file, "%s", temp);
 
 }
