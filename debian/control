@@ -1,0 +1,12 @@
+Source: greensql-fw
+Section: misc
+Priority: optional
+Maintainer: yuli <stremovsky@gmail.com>
+Build-Depends: debhelper (>= 4.0.0)
+Standards-Version: 3.6.2
+
+Package: greensql-fw
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Open Source Database Firewall.
+ Open Source Database firewall.

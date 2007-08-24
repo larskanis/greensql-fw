@@ -1,0 +1,6 @@
+greensql-fw for Debian
+----------------------
+
+If you are using Debian Sarge and you run 2.6 linux kernel please update libevent library. GreenSQL migh perform incorectly.
+
+ -- yuli <stremovsky@gmail.com>, Tue, 21 Aug 2007 19:16:38 +0300

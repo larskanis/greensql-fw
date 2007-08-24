@@ -1,0 +1,10 @@
+# Defaults for greensql-fw initscript
+# sourced by /etc/init.d/greensql-fw
+# installed at /etc/default/greensql-fw by the maintainer scripts
+
+#
+# This is a POSIX shell fragment
+#
+
+# Additional options that are passed to the Daemon.
+DAEMON_OPTS="-p /etc/greensql/"

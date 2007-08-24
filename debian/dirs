@@ -1,0 +1,4 @@
+usr/bin
+usr/sbin
+etc/greensql
+var/log
