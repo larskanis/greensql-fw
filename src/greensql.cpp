@@ -574,6 +574,11 @@ void GreenSQL::ProxyValidateServerResponse( Connection * conn )
     
         //try to write without polling
         int len = (int)response.size();
+	if (len == 0)
+	{
+            // need to read more data to decide
+	    return;
+	}
         if (socket_write(conn->proxy_event.ev_fd, response.c_str(), len) == true)
         {
             if (response.size() == (unsigned int)len)
