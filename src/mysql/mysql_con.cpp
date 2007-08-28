@@ -78,11 +78,6 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
 		db = dbmap_find(iProxyId, db_name);
 		
 	    }
-	    //else
-            //{
-		//return false;
-            //}
-	    //logevent(SQL_DEBUG, "DATABASE: %s\n", data+43);
 	}
 	else if (size > 10)
 	{
@@ -121,10 +116,6 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
 	    db_name.append((const char*)data+temp, end-temp);
             logevent(SQL_DEBUG, "DATABASE: %s\n", db_name.c_str());
 	}
-	//if (size > 43)
-	//{
-	//    logevent(SQL_DEBUG, "DATABASE: %s\n", data+43);
-	//}
         first_request = false;
     }
 
@@ -150,7 +141,8 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
 			db_name.c_str(), data+5);
         // query must not be empty
 	// otherwise system can crash
-	if (query[0] != '\0' && check_query(query) == false)
+	if (query[0] != '\0')
+          if ( check_query(query) == false)
 	{
             // bad query - block it
 	    request = ""; // do not send it to backend server
@@ -158,6 +150,8 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
             blockResponse(response);
 	    response_in.append(response.c_str(), response.size());
 	    hasResponse = true;
+	} else {
+	    hasResponse = false;
 	}
 
     } else if (data[4] == MYSQL_PREPARE) {
@@ -243,25 +237,6 @@ bool MySQLConnection::parseResponse(std::string & response)
         }
         temp = 0;
 
-//        while (n_fields != 0 && header_size + temp < size - 5)
-//    {
-//            header_size += temp;
-//            temp = (data[header_size+2] <<16 | 
-//                    data[header_size+1] << 8 | 
-//                    data[header_size+0]) + 4;
-//            n_fields--;
-//        logevent(NET_DEBUG, "Field size %d, type %d.\n", 
-//                     temp, data[header_size+4]);
-//    }
-//    if (n_fields !=0 || header_size + temp + 5 > size)
-//    {
-//            // read more data to decide
-//            logevent(NET_DEBUG, "n_fields = %d. (%d-%d)\n", 
-//                     n_fields, header_size + temp + 5, size);
-//            return false;
-//    }
-//    if (data[header_size+temp+4] != MYSQL_ENDROW)
-//
         if (header_size + temp + 5 < size &&
             data[header_size+temp+4] != MYSQL_ENDROW)
         {
@@ -284,7 +259,8 @@ bool MySQLConnection::parseResponse(std::string & response)
         if (header_size + temp + 5 > size)
         {
             // read more data to decide
-            logevent(NET_DEBUG, "Read more data to decide.\n");
+            logevent(NET_DEBUG, "Read more data to decide. (%d-%d)\n", 
+			    header_size + temp + 5, size);
             return false;
         }
         // now must go end of fields packet
