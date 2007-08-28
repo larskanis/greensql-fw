@@ -87,8 +87,9 @@ agroup_get(int proxy_id, std::string & dbname,std::string & pattern)
     //logevent(STORAGE, "Records Found: %lld\n", mysql_num_rows(res) );
     if (mysql_num_rows(res) > 0)
     {
-        unsigned int i = atoi(row[0]);	
         row=mysql_fetch_row(res);
+	unsigned int i = atoi(row[0]);
+	
 	/* Release memory used to store results. */
 	mysql_free_result(res);
         return i;
