@@ -1,3 +1,10 @@
+greensql-fw (0.6.5) unstable; urgency=low
+
+  * Fixed memory allocation bug
+  * Fixed bug with handling long SQL responses.
+
+ -- yuli <stremovsky@gmail.com>  Tue, 21 Aug 2007 19:16:38 +0300
+
 greensql-fw (0.6.4) unstable; urgency=low
 
   * Initial Release.
