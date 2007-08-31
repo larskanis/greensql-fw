@@ -28,7 +28,7 @@ case "$1" in
         echo
         echo "Now, you need to create database used to store GreenSQL configuration."
         echo "Run the following command (as a root) on the GreenSQL config server:"
-        echo "    cat /usr/share/doc/greensql-fw/greensql-mysql-db.txt | mysql"
+        echo "    cat /usr/share/doc/greensql-fw/greensql-mysql-db.txt | sudo mysql"
         echo
 
     ;;
