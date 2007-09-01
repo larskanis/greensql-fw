@@ -1,3 +1,9 @@
+greensql-fw (0.6.6) unstable; urgency=low
+
+  * Fixed number of tiny bugs found while performing clean installation.
+
+ -- yuli <stremovsky@gmail.com>  Tue, 21 Aug 2007 19:16:38 +0300
+
 greensql-fw (0.6.5) unstable; urgency=low
 
   * Fixed memory allocation bug
