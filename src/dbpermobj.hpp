@@ -29,7 +29,7 @@ public:
 		    bool _create, bool _drop,
 		    bool _alter, bool _info, bool _block_q);
     
-    bool DBPermObj::LoadExceptions();
+    bool LoadExceptions();
     int CheckQuery(std::string & q);
 	    
     bool CanCreate()

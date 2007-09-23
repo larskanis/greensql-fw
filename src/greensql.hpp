@@ -36,9 +36,9 @@ public:
     //proxy
     bool ProxyInit(int proxyId, std::string & proxyIp, int proxyPort,
                    std::string & backendIp, int backendPort);
-    bool GreenSQL::ProxyReInit(int proxyId, std::string & proxyIp, 
+    bool ProxyReInit(int proxyId, std::string & proxyIp, 
 		    int proxyPort, std::string & bIp, int bPort);
-    bool GreenSQL::ServerInitialized();	
+    bool ServerInitialized();	
     bool PrepareNewConn(int, int &, int &);
     virtual void Server_cb(int fd, short which, void * arg, 
     		Connection *, int, int);
