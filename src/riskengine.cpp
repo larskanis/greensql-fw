@@ -16,6 +16,7 @@ static bool check_comments(std::string & query);
 static bool check_sensitive_tables(std::string & query);
 static bool check_sensitive_table(std::string & table);
 static bool check_or_token(std::string & query);
+static bool check_union_token(std::string & query);
 static bool check_empty_password(std::string & query);
 static bool check_var_cmp_var(std::string & query);
 static bool check_always_true(std::string & query);
@@ -74,6 +75,13 @@ unsigned int calc_risk(std::string & query, std::string & pattern,
 	logevent(DEBUG, "Query has 'or' token\n");
 	ret += conf->re_or_token;
     }
+    if (conf->re_union_token > 0 &&
+        check_union_token(where_str) == true)
+    {
+        reason += "Query has 'union' statement\n";
+	logevent(DEBUG, "Query has 'union' statement\n");
+	ret += conf->re_union_token;
+    }
     if (conf->re_var_cmp_var > 0 && 
         check_var_cmp_var(where_str) == true)
     {
@@ -113,9 +121,31 @@ static bool check_or_token(std::string & query)
             p += 2;
 	    continue;
 	}
-	std::string test = query.substr(p-1, query.size() -p);
+	//std::string test = query.substr(p-1, query.size() -p);
 	//logevent(DEBUG, "OR Token: %s\n", test.c_str());
 	return true;
+    }
+    return false;
+}
+
+static bool check_union_token(std::string & query)
+{
+    size_t p = 1;
+    while ( (p = query.find("union", p)) != std::string::npos)
+    {
+        if (query[p-1] != ' ' && query[p-1] != ')')
+        {
+            p += 5;
+            continue;
+        }
+        if (query[p+5] != ' ')
+        {
+            p += 5;
+            continue;
+        }
+        //std::string test = query.substr(p-1, query.size() -p);
+        //logevent(DEBUG, "OR Token: %s\n", test.c_str());
+        return true;
     }
     return false;
 }

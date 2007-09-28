@@ -32,6 +32,7 @@ public:
         int re_sql_comments;
 	int re_s_tables;
 	int re_or_token;
+	int re_union_token;
         int re_var_cmp_var;
 	int re_always_true;
         int re_empty_password;

@@ -60,7 +60,8 @@ void GreenSQLConfig::init()
     re_warn_level = 20;
     re_sql_comments = 30;
     re_s_tables = 10;
-    re_or_token = 10;
+    re_or_token = 5;
+    re_union_token = 5;
     re_var_cmp_var = 30;
     re_always_true = 30;
     re_empty_password = 30;
@@ -184,6 +185,9 @@ bool GreenSQLConfig::parse_re_setting(std::string & key, std::string & value)
     } else if (key == "risk_or_token")
     {
         re_or_token = atoi(value.c_str());
+    } else if (key == "risk_union_token")
+    {
+        re_union_token = atoi(value.c_str());
     } else if (key == "risk_var_cmp_var")
     {
         re_var_cmp_var = atoi(value.c_str());
