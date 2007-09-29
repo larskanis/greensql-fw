@@ -7,7 +7,7 @@ queryid int unsigned NOT NULL auto_increment primary key,
 proxyid        int unsigned NOT NULL default '0',
 perm           smallint unsigned NOT NULL default 1,
 db_name        char(50) NOT NULL,
-query          text default '' not NULL,
+query          text NOT NULL,
 INDEX(proxyid,db_name)
 );
 
@@ -69,8 +69,8 @@ event_time          datetime NOT NULL,
 risk                smallint unsigned NOT NULL default '0',
 block               smallint unsigned NOT NULL default '0',
 user                varchar(50) NULL default '',
-query               text NOT NULL default '',
-reason              text NOT NULL default ''
+query               text NOT NULL,
+reason              text NOT NULL
 );
 
 drop table if exists alert_group;
@@ -82,7 +82,7 @@ proxyid             int unsigned NOT NULL default '1',
 db_name             char(50) NOT NULL default '',
 update_time         datetime NOT NULL,
 status              smallint NOT NULL default 0,
-pattern             text NOT NULL default '',
+pattern             text NOT NULL,
 INDEX(update_time)
 );
 
