@@ -42,80 +42,79 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
     
     if (first_request == true)
     {
-	loghex(SQL_DEBUG, data, request_size);
-	unsigned int type = (data[7] << 24 | data[6]<<16 | 
-			data[5] << 8 | data[4]);
-	if (size < 10)
-	    return false;
-	
-	if (type & 512)
-	    logevent(SQL_DEBUG, "PROTOCOL4.1\n");
-	if (type & 1)
+        loghex(SQL_DEBUG, data, request_size);
+        unsigned int type = (data[7] << 24 | data[6]<<16 | 
+            data[5] << 8 | data[4]);
+        if (size < 10)
+            return false;
+    
+        if (type & 512)
+            logevent(SQL_DEBUG, "PROTOCOL4.1\n");
+        if (type & 1)
             logevent(SQL_DEBUG, "LONG PWD\n");
 
         if ((type & 512) && size > 36)
-	{
+        {
             logevent(SQL_DEBUG, "USERNAME: %s\n", data+36);
-	    if (strlen((const char *)data+36) > 0)
-	    {
+            if (strlen((const char *)data+36) > 0)
+            {
                 db_user = (const char *)data+36;
-	    }
-	    int temp = 36 + strlen( (const char*)data+36);
-	    //check if we have space for dnbame and pwd
-	    if (temp+1 > size)
+            }
+            int temp = 36 + (int)strlen( (const char*)data+36);
+            //check if we have space for dnbame and pwd
+            if (temp+1 > size)
                 return false;
-	    int temp2 = data[temp+1];
-	    if (temp2 == 0)
-	    {
+            int temp2 = data[temp+1];
+            if (temp2 == 0)
+            {
                 logevent(SQL_DEBUG, "DATABASE: %s\n", data+temp+1);
-		db_name = (const char *)data+temp+1;
+                db_name = (const char *)data+temp+1;
                 db = dbmap_find(iProxyId, db_name);
-	    }
-	    else if (temp+temp2+2 < size)
-	    {
-		logevent(SQL_DEBUG, "DATABASE: %s\n", data+temp+temp2+2);
-		db_name = (const char *)data+temp+temp2+2;
-		db = dbmap_find(iProxyId, db_name);
-		
-	    }
-	}
-	else if (size > 10)
-	{
+            }
+            else if (temp+temp2+2 < size)
+            {
+                logevent(SQL_DEBUG, "DATABASE: %s\n", data+temp+temp2+2);
+                db_name = (const char *)data+temp+temp2+2;
+                db = dbmap_find(iProxyId, db_name);
+            }
+        }
+        else if (size > 10)
+        {
             logevent(SQL_DEBUG, "USERNAME: %s\n", data+9);
             if (strlen((const char *)data+9) > 0)
-	    {
+            {
                 db_user = (const char*)data+9;
-	    }
-	    
-            int temp= 9 + strlen((const char*)data+9) + 1;
-	    if (temp > size)
-	    {
-		request_in.pop(request, request_size);
-		first_request = false;
+            }
+            
+            int temp= 9 + (int)strlen((const char*)data+9) + 1;
+            if (temp > size)
+            {
+                request_in.pop(request, request_size);
+                first_request = false;
                 return false;
-	    }
+            }
             while(temp < size && data[temp] != '\0')
                 temp++;
             if (temp == size)
-	    {
-		request_in.pop(request, request_size);
-		first_request = false;
+            {
+                request_in.pop(request, request_size);
+                first_request = false;
                 return true;
-	    }
+            }
             temp++;
-	    if (temp == size)
-	    {
-		request_in.pop(request, request_size);
-		first_request = false;
+            if (temp == size)
+            {
+                request_in.pop(request, request_size);
+                first_request = false;
                 return true;
-	    }
+            }
             int end = temp;
-	    while (end < size && data[end] != '\0')
+            while (end < size && data[end] != '\0')
                 end++;
-	    db_name = "";
-	    db_name.append((const char*)data+temp, end-temp);
+            db_name = "";
+            db_name.append((const char*)data+temp, end-temp);
             logevent(SQL_DEBUG, "DATABASE: %s\n", db_name.c_str());
-	}
+        }
         first_request = false;
     }
 
@@ -138,32 +137,33 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
     } else if (data[4] == MYSQL_QUERY) {
         query = (char *)data+5;
         logevent(SQL_DEBUG, "QUERY command[%s]: %s\n", 
-			db_name.c_str(), data+5);
+            db_name.c_str(), data+5);
         // query must not be empty
-	// otherwise system can crash
-	if (query[0] != '\0')
-          if ( check_query(query) == false)
-	{
-            // bad query - block it
-	    request = ""; // do not send it to backend server
-	    std::string response = "";
-            blockResponse(response);
-	    response_in.append(response.c_str(), response.size());
-	    hasResponse = true;
-	} else {
-	    hasResponse = false;
-	}
-
+        // otherwise system can crash
+        if (query[0] != '\0')
+		{
+			if ( check_query(query) == false)
+            {
+                // bad query - block it
+                request = ""; // do not send it to backend server
+                std::string response = "";
+                blockResponse(response);
+                response_in.append(response.c_str(), response.size());
+                hasResponse = true;
+            } else {
+                hasResponse = false;
+            }
+		}
     } else if (data[4] == MYSQL_PREPARE) {
-        logevent(SQL_DEBUG, "PREPARE QUERY: %s\n", data+5);
+         logevent(SQL_DEBUG, "PREPARE QUERY: %s\n", data+5);
     } else if (data[4] == MYSQL_EXEC) {
-        logevent(SQL_DEBUG, "EXECUTE QUERY: %s\n", data+5);
+         logevent(SQL_DEBUG, "EXECUTE QUERY: %s\n", data+5);
     } else if (data[4] == MYSQL_DB) {
-        logevent(SQL_DEBUG, "DATABASE: %s\n", data+5);
-	db_new_name = (const char *)data+5;
+         logevent(SQL_DEBUG, "DATABASE: %s\n", data+5);
+         db_new_name = (const char *)data+5;
     } else {
-	logevent(SQL_DEBUG, "UNKNOWN COMMAND\n");
-	loghex(SQL_DEBUG, data, request_size);   
+        logevent(SQL_DEBUG, "UNKNOWN COMMAND\n");
+        loghex(SQL_DEBUG, data, request_size);   
     }
 
     return true;
@@ -186,7 +186,7 @@ bool MySQLConnection::parseResponse(std::string & response)
     unsigned int response_size = (data[2]<<16 | data[1] << 8 | data[0]) + 4;
 
     logevent(NET_DEBUG, "packet size expected %d bytes (received %d)\n", 
-    	    response_size, size);
+            response_size, size);
 
     if (response_size > size )
         return false;
@@ -260,7 +260,7 @@ bool MySQLConnection::parseResponse(std::string & response)
         {
             // read more data to decide
             logevent(NET_DEBUG, "Read more data to decide. (%d-%d)\n", 
-			    header_size + temp + 5, size);
+                header_size + temp + 5, size);
             return false;
         }
         // now must go end of fields packet
@@ -270,7 +270,7 @@ bool MySQLConnection::parseResponse(std::string & response)
             header_size += temp;
 
             logevent(NET_DEBUG, "End of fields packet %d-%d\n",
-    	    header_size, size);
+            header_size, size);
 
             temp = (data[header_size+2] <<16 |
                     data[header_size+1] << 8 |
