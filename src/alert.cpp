@@ -25,15 +25,15 @@ bool logalert(int proxy_id, std::string & dbname,  std::string & dbuser,
     MYSQL * dbConn = &conf->dbConn;
 
     char tmp_q[2048];
-    mysql_real_escape_string(dbConn, tmp_q, query.c_str(), query.length());
+    mysql_real_escape_string(dbConn, tmp_q, query.c_str(), (unsigned long) query.length());
     tmp_q[2047] = '\0';
     
     char tmp_u[2048];
-    mysql_real_escape_string(dbConn, tmp_u, dbuser.c_str(), dbuser.length());
+    mysql_real_escape_string(dbConn, tmp_u, dbuser.c_str(), (unsigned long) dbuser.length());
     tmp_u[2047] ='\0';
 	    
     char tmp_r[10240];
-    mysql_real_escape_string(dbConn, tmp_r, reason.c_str(), reason.length()); 
+    mysql_real_escape_string(dbConn, tmp_r, reason.c_str(), (unsigned long) reason.length()); 
     tmp_r[10239] = '\0';
 
     unsigned int agroupid = agroup_get(proxy_id, dbname, pattern);
@@ -55,7 +55,9 @@ bool logalert(int proxy_id, std::string & dbname,  std::string & dbuser,
 static unsigned int 
 agroup_get(int proxy_id, std::string & dbname,std::string & pattern)
 {
-    char q[pattern.length() + 1024];
+//    char q[pattern.length() + 1024];
+	char * q = new char[pattern.length() + 1024];
+
     GreenSQLConfig * conf = GreenSQLConfig::getInstance();
     MYSQL * dbConn = &conf->dbConn;
     MYSQL_RES *res; /* To be used to fetch information into */
@@ -72,8 +74,11 @@ agroup_get(int proxy_id, std::string & dbname,std::string & pattern)
     {
         /* Make query */
         logevent(STORAGE,"(%s) %s\n", q, mysql_error(dbConn));
+		delete [] q;
         return 0;
     }
+    delete [] q;
+	q = NULL;
 
     /* Download result from server */
     res=mysql_store_result(dbConn);
@@ -88,10 +93,10 @@ agroup_get(int proxy_id, std::string & dbname,std::string & pattern)
     if (mysql_num_rows(res) > 0)
     {
         row=mysql_fetch_row(res);
-	unsigned int i = atoi(row[0]);
+	    unsigned int i = atoi(row[0]);
 	
-	/* Release memory used to store results. */
-	mysql_free_result(res);
+	    /* Release memory used to store results. */
+	    mysql_free_result(res);
         return i;
     }
     /* Release memory used to store results. */
@@ -102,7 +107,8 @@ agroup_get(int proxy_id, std::string & dbname,std::string & pattern)
 static unsigned int
 agroup_add(int proxy_id, std::string & dbname, std::string & pattern)
 {
-    char q[pattern.length() + 1024];
+    //char q[pattern.length() + 1024];
+	char * q = new char [ pattern.length() + 1024 ];
     GreenSQLConfig * conf = GreenSQLConfig::getInstance();
     MYSQL * dbConn = &conf->dbConn;
 
@@ -116,9 +122,12 @@ agroup_add(int proxy_id, std::string & dbname, std::string & pattern)
     if( mysql_query(dbConn, q) )
     {
         /* Make query */
-        logevent(STORAGE,"(%s) %s\n",q, mysql_error(dbConn));
+        logevent(STORAGE,"(%s) %s\n", q, mysql_error(dbConn));
+		delete [] q;
         return 0;
     }
+    delete [] q;
+	q = NULL;
     if (!mysql_affected_rows(dbConn) )
     {
         return 0;
@@ -129,12 +138,13 @@ agroup_add(int proxy_id, std::string & dbname, std::string & pattern)
 static int alert_add(unsigned int agroupid, char * user,
 		char * query, char * reason, int risk, int block)
 {
-    char q[strlen(query) + strlen(reason) + 1024];
+    //char q[strlen(query) + strlen(reason) + 1024];
+	char * q = new char [ strlen(query) + strlen(reason) + 1024 ];
     GreenSQLConfig * conf = GreenSQLConfig::getInstance();
     MYSQL * dbConn = &conf->dbConn;
 
     snprintf(q, strlen(query) + strlen(reason) + 1024,
-		"INSERT into alert "
+                "INSERT into alert "
                 "(agroupid, event_time, risk, block, user, query, reason) "
                 "VALUES (%d,now(),%d,%d,'%s','%s','%s')",
                 agroupid, risk, block, user, query, reason);
@@ -144,8 +154,11 @@ static int alert_add(unsigned int agroupid, char * user,
     {
         /* Make query */
         logevent(STORAGE,"(%s) %s\n", q, mysql_error(dbConn));
+		delete [] q;
         return 0;
     }
+	delete [] q;
+	q = NULL;
     if (!mysql_affected_rows(dbConn) )
     {
         return 0;
@@ -162,7 +175,7 @@ agroup_update(unsigned int agroupid)
 
     snprintf(q, sizeof(q), 
                "UPDATE alert_group SET update_time=now() WHERE agroupid = %u",
-		agroupid);
+               agroupid);
 
     /* read new urls from the database */
     if( mysql_query(dbConn, q) )
