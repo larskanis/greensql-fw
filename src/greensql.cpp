@@ -163,7 +163,7 @@ int GreenSQL::client_socket(std::string & server, int port)
         }
 #endif
         socket_close(sfd);
-	return -1;
+	    return -1;
     }
     return sfd;
 }
@@ -196,7 +196,7 @@ int GreenSQL::socket_accept(int serverfd)
             perror("connect()");
         }
     #endif
-	socket_close(sfd);
+	    socket_close(sfd);
         return -1;
     }
     
@@ -206,7 +206,7 @@ int GreenSQL::socket_accept(int serverfd)
     {
         perror("setting O_NONBLOCK");
         socket_close(sfd);
-	return -1;
+	    return -1;
     }
     #else
     int flags;
@@ -214,7 +214,7 @@ int GreenSQL::socket_accept(int serverfd)
          fcntl(sfd, F_SETFL, flags | O_NONBLOCK) < 0) {
         perror("setting O_NONBLOCK");
         socket_close(sfd);
-	return -1;
+	    return -1;
     }
     #endif
     return sfd;
@@ -293,8 +293,8 @@ int GreenSQL::new_socket() {
     if (ioctlsocket(sock, FIONBIO, &nonblock) == SOCKET_ERROR)
     {
         perror("setting O_NONBLOCK");
-        socket_close(sock);
-	return -1;
+        socket_close((int)sock);
+	    return -1;
     }
     sfd = (int) sock;
 #else
@@ -355,8 +355,8 @@ bool GreenSQL::ProxyReInit(int proxyId, std::string & proxyIp, int proxyPort,
 // this function return true is server socket is established
 bool GreenSQL::ServerInitialized()
 {
-    if (serverEvent.ev_fd != 0 && 
-        event_initialized(&serverEvent))
+    if (serverEvent.ev_fd != 0 && serverEvent.ev_fd != -1 && 
+		serverEvent.ev_flags & EVLIST_INIT)
         return true;
     return false;
 }
@@ -443,10 +443,10 @@ void GreenSQL::ProxyValidateClientRequest(Connection * conn)
     try
     {
         if (conn->parseRequest(request, hasResponse) == false)
-	{
+	    {
             logevent(NET_DEBUG, "Failed to parse request, closing socket.\n");
             CloseConnection(conn);
-	}
+	    }
 
         int len = (int)request.size();
 
@@ -482,7 +482,7 @@ void GreenSQL::ProxyValidateClientRequest(Connection * conn)
                 wrap_Backend, (void *)conn);
                 event_add( &conn->client_event,0);
             }
-	}
+	    }
     }
     catch(char * str)
     {
@@ -574,11 +574,11 @@ void GreenSQL::ProxyValidateServerResponse( Connection * conn )
     
         //try to write without polling
         int len = (int)response.size();
-	if (len == 0)
-	{
+	    if (len == 0)
+	    {
             // need to read more data to decide
-	    return;
-	}
+	        return;
+	    }
         if (socket_write(conn->proxy_event.ev_fd, response.c_str(), len) == true)
         {
             if (response.size() == (unsigned int)len)
@@ -620,7 +620,7 @@ void GreenSQL::Close()
         conn = v_conn[i-1];
         conn->close();
         v_conn.pop_back();
-	delete conn;
+	    delete conn;
         i--;
     }
     v_conn.clear();

@@ -11,6 +11,10 @@
 #include "connection.hpp"
 #include "log.hpp"
 #include "config.hpp"
+#ifdef WIN32
+#include <winsock2.h>
+#endif
+
 #include <event.h>
 #include <string>
 #include <vector>
