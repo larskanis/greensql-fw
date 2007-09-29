@@ -9,7 +9,6 @@
 
 #include <stdio.h>
 #include <time.h>
-#include <event.h>
 
 #ifdef WIN32
 #include <winsock2.h>
@@ -19,6 +18,8 @@
 #else
 #include <signal.h>
 #endif
+
+#include <event.h>
 
 #include "config.hpp"
 #include "greensql.hpp"
@@ -56,7 +57,7 @@ BOOL Hook( DWORD dwType )
         case CTRL_C_EVENT:
         case CTRL_CLOSE_EVENT:
         case CTRL_BREAK_EVENT:
-        	Killer();
+        	Killer(1);
         	return TRUE;
         default:
         	return FALSE;
