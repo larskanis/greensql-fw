@@ -30,9 +30,11 @@ bool Connection::close()
     logevent(NET_DEBUG, "connection close()\n");
     GreenSQL::socket_close(proxy_event.ev_fd);
     GreenSQL::socket_close(client_event.ev_fd);
-    if (event_initialized(&proxy_event))
+    if (proxy_event.ev_fd != 0 && proxy_event.ev_fd != -1 && 
+		proxy_event.ev_flags & EVLIST_INIT)
         event_del(&proxy_event);
-    if (event_initialized(&client_event))
+    if (client_event.ev_fd != 0 && client_event.ev_fd != -1 && 
+		client_event.ev_flags & EVLIST_INIT)
         event_del(&client_event);
     return true;
 }
