@@ -15,7 +15,9 @@
 // for fstat
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifndef WIN32
 #include <unistd.h>
+#endif
 
 static bool log_reload();
 static void printline(const unsigned char * data, int max);
@@ -114,7 +116,7 @@ void loghex(ErrorType type, const unsigned char * data, int size)
     if (size == 0)
         return;
     if (log_level < (int) type)
-	return;
+	    return;
     
     switch (type)
     {
@@ -150,7 +152,7 @@ void loghex(ErrorType type, const unsigned char * data, int size)
     int ord = (((unsigned char)(size<<4)) >>4);
     if ( ord > 0)
     {
-	fprintf(log_file, error);
+        fprintf(log_file, error);
         printline(data+i*16, ord);
     }
     fflush(log_file);
