@@ -1,3 +1,11 @@
+greensql-fw (0.6.7) unstable; urgency=low
+
+  * Fixed Windows compilation errors.
+  * Fixed Debian compilation errors.
+  * Added calculation of the new risk factor - UNION sql statement.
+
+ -- yuli <stremovsky@gmail.com>   Sat, 29 Sep 2007 14:28:00 +300
+
 greensql-fw (0.6.6) unstable; urgency=low
 
   * Fixed number of tiny bugs found while performing clean installation.
