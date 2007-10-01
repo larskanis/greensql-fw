@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/bin/sh
 # postinst script for greensql-fw
 #
 # see: dh_installdeb(1)
@@ -20,7 +20,7 @@ set -e
 case "$1" in
     configure)
         groupadd -f greensql
-        if ! /usr/bin/id greensql &>/dev/null; then
+        if ! /usr/bin/id greensql > /dev/null 2>&1 ; then
             useradd -g greensql -s /dev/null greensql
         fi
         chown greensql:greensql /var/log/greensql.log
