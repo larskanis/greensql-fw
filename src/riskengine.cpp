@@ -66,7 +66,7 @@ unsigned int calc_risk(std::string & query, std::string & pattern,
     //std::string where_str = pattern.substr(p+1, pattern.size() - p -1);
     
     std::string where_str(pattern, p+1, pattern.size() - p -1);
-    //logevent(SQL_DEBUG, "WHERE: %s\n", where_str.c_str());
+    logevent(SQL_DEBUG, "WHERE: %s\n", where_str.c_str());
 
     if (conf->re_or_token > 0 &&
         check_or_token(where_str) == true)
@@ -111,12 +111,12 @@ static bool check_or_token(std::string & query)
     size_t p = 1;
     while ( (p = query.find("or", p)) != std::string::npos)
     {
-        if (query[p-1] != ' ' && query[p-1] != ')')
+        if (query[p-1] != ' ' && query[p-1] != ')' && query[p-1] != '?')
 	{
             p += 2;
             continue;
 	}
-	if (query[p+2] != ' ' && query[p+2] != '(')
+	if (query[p+2] != ' ' && query[p+2] != '(' && query[p+2] != '?')
 	{
             p += 2;
 	    continue;
@@ -133,7 +133,7 @@ static bool check_union_token(std::string & query)
     size_t p = 1;
     while ( (p = query.find("union", p)) != std::string::npos)
     {
-        if (query[p-1] != ' ' && query[p-1] != ')')
+        if (query[p-1] != ' ' && query[p-1] != ')' && query[p-1] != '?')
         {
             p += 5;
             continue;
