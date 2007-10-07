@@ -1,3 +1,10 @@
+greensql-fw (0.6.8) unstable; urgency=low
+
+  * Fixed potentially exploitable buffer overun bug.
+  * Fixed detection of the OR and UNION SQL tokens.
+
+ -- yuli <stremovsky@gmail.com>  Oct, 7 Sun 2007 06:48:38 +0300
+
 greensql-fw (0.6.7) unstable; urgency=low
 
   * Fixed Windows compilation errors.
