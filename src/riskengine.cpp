@@ -55,8 +55,23 @@ unsigned int calc_risk(std::string & query, std::string & pattern,
     }
     
 
-    size_t p = pattern.find(" where ", 0);
-    if (p == std::string::npos)
+    size_t p = 0;
+    bool where_found = false;
+    while (p != std::string::npos && where_found == false)
+    {
+        p = pattern.find(" where", p);
+        if (p != std::string::npos)
+	{
+            //logevent(SQL_DEBUG, "WHERE-debug: %c\n", pattern[p+6]);
+            if (pattern[p+6] == ' ' || pattern[p+6] == '?')
+	    {
+                where_found = true;
+	    } else {
+                p+6;
+	    }
+	}
+    }
+    if (p == std::string::npos && where_found == false)
     {
         return ret;
     }
