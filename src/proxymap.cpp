@@ -43,7 +43,7 @@ void wrap_Server(int fd, short which, void * arg)
 {
     long proxy_id;
     
-    proxy_id = (int) arg;
+    proxy_id = (long) arg;
     logevent(NET_DEBUG, "[%d]wrap_Server\n", proxy_id);
     GreenSQLConfig * conf = GreenSQLConfig::getInstance();
     
