@@ -59,7 +59,7 @@ void wrap_Server(int fd, short which, void * arg)
 
 void wrap_Proxy(int fd, short which, void * arg)
 {
-    void proxy_id;
+    int proxy_id;
     Connection * con = (Connection *) arg;
     proxy_id = con->iProxyId;
 
