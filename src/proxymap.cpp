@@ -41,7 +41,7 @@ static std::map<int, GreenMySQL * > proxies;
 
 void wrap_Server(int fd, short which, void * arg)
 {
-    int proxy_id;
+    long proxy_id;
     
     proxy_id = (int) arg;
     logevent(NET_DEBUG, "[%d]wrap_Server\n", proxy_id);
@@ -59,7 +59,7 @@ void wrap_Server(int fd, short which, void * arg)
 
 void wrap_Proxy(int fd, short which, void * arg)
 {
-    int proxy_id;
+    void proxy_id;
     Connection * con = (Connection *) arg;
     proxy_id = con->iProxyId;
 
