@@ -1,0 +1,326 @@
+%{
+/* C declarations */
+
+#include <stdio.h>
+#include <string.h> // for strcmp
+
+//#include <iostream>
+#include "expression.hpp"
+#include "parser.hpp"
+
+int yylex();
+int yyerror( char * s);
+int yy_scan_string ( char *yy_str  );
+int scan_buffer(const char * data);
+static void cmp_fn(Expression * xp1, Expression * xp2);
+
+%}
+
+/* BISON declarations */
+%union{
+  int int_val;
+  class SQLString * str_val;
+  class Expression * exp_val;
+}
+
+%start command
+%token SELECT DISTINCT SELECT_OPT FROM WHERE
+%token JOIN_TYPE JOIN STRAIGHT_JOIN
+%token INDEX
+%token USE ON USING IGNORE FORCE FOR
+%token GROUP
+%token ORDER BY
+%token ASC DESC
+%token INSERT UPDATE DELETE SHOW
+%token INTO
+%token AS IN ANY EXISTS
+%token IS NULLX
+%token EQUAL N_EQUAL PLUS MINUS MULTIPLY DIVIDE POWER NEWLINE 
+%token ACCENT
+%token REGEXP
+%token HAVING
+%token LIMIT OFFSET
+%token PROCEDURE
+%token UNION
+%token <int_val> INTEGER
+%token <str_val> STRING
+%token <str_val> Q_STRING
+%token <str_val> DQ_STRING
+%token <int_val> VARIABLE
+
+%type <str_val> alias
+%type <str_val> alias_str
+%type <exp_val> fn
+%type <exp_val> fn_args
+%type <exp_val> const_value
+%type <str_val> table_field
+%type <exp_val> field
+%type <exp_val> math_exp
+
+
+%left O_BRACE
+%left C_BRACE
+%left PLUS MINUS 
+%left MULTIPLY DIVIDE 
+%left NEG END COMMA AS DOT 
+%left AND
+%left OR
+%left NOT
+%left EQUAL N_EQUAL LIKE
+%left JOIN_TYPE 
+%left STRAIGHT_JOIN
+%left JOIN
+%right POWER
+
+%%
+/* BISON Rules */
+
+command:   
+            | select_cmd
+	    | insert_cmd
+	    | show_cmd
+	    | delete_cmd
+	    ;
+
+select_cmd:   SELECT select_options select_exps FROM table_references where_cond group_cond having_cond order_cond limit_cond procedure_cond union_cond end_cond
+            | SELECT select_options select_exps
+            ;
+
+insert_cmd:   INSERT INTO
+            ;
+
+show_cmd:     SHOW
+            ;
+
+delete_cmd:   DELETE
+            ;
+
+select_options: /* empty */
+            | select_opts
+            ;
+
+select_opts:  SELECT_OPT
+            | STRAIGHT_JOIN
+            | DISTINCT
+            | select_opts SELECT_OPT
+            | select_opts DISTINCT
+	    ;
+
+where_cond:  /* empty */
+            | WHERE where_exp_list
+	    ;
+
+select_exps: select_exp
+            | select_exps COMMA select_exps
+            ;
+
+select_exp:   math_op alias
+            | MULTIPLY
+            | table DOT MULTIPLY
+            | O_BRACE select_cmd C_BRACE alias
+            ;
+
+math_op:     math_exp
+            | math_exp REGEXP math_exp
+            | math_exp NOT REGEXP math_exp
+            | math_exp EQUAL math_exp
+            | math_exp N_EQUAL math_exp 
+            | math_exp IS NULLX
+            | math_exp IS NOT NULLX
+            ;
+
+math_exp:     field                           { $$=$1; }
+            | math_exp PLUS     math_exp      { $$->Add($3); }
+	    | math_exp MINUS    math_exp      { $$->Add($3); }
+	    | math_exp MULTIPLY math_exp      { $$->Add($3); }
+	    | math_exp DIVIDE   math_exp      { $$->Add($3); }
+	    | MINUS math_exp %prec NEG        { $$=$2; }
+	    | math_exp POWER math_exp         { $$->Add($3); }
+	    | O_BRACE math_exp C_BRACE        { $$=$2; }
+	    ;
+	    
+field:        table_field { $$=new Expression(); $$->AddField($1); }
+            | const_value { $$=$1; } // const is already converter to exp
+            | fn          { $$=$1; }
+	    ;
+
+table_field:  STRING               { $$=$1; /* printf("field: (s) %s\n", $1->Dump()); */ }
+            | ACCENT STRING ACCENT { $$=$2; /* printf("field: (s) %s\n", $2->Dump()); */ }
+            | STRING DOT STRING    { $$=$3; /* printf("field: (s) %s.%s\n", $1->Dump(), $3->Dump()); */ }
+	    | STRING DOT ACCENT STRING ACCENT { $$=$4; /* printf("field: (as) %s.%s\n", $1->Dump(),$4->Dump()); */ }
+	    ; 
+
+const_value:  INTEGER           { $$=new Expression(); $$->AddConst($1); /* printf("field: (n) %d\n", $1->Dump()); */ }
+	    | VARIABLE          { $$=new Expression(); $$->AddConst($1); /* printf("field: (v) %d\n", $1); */ }
+	    | Q_STRING          { $$=new Expression(); $$->AddConst($1); /* printf("field: (qs) %s\n", $1->Dump()); */ }
+	    | DQ_STRING         { $$=new Expression(); $$->AddConst($1); /* printf("field: (dqs) %s\n", $1->Dump()); */ }
+            | NULLX             { $$=new Expression(); $$->AddConst(0); /* printf("field: (null)\n"); */ }
+            ;
+
+table_references: table_reference
+            | table_references COMMA table_references
+            ;
+	    
+table_reference: table_factor
+            | join_table
+            ;
+
+join_table: table_reference join_ops table_factor join_cond
+	    ;
+
+join_ops:   join_types JOIN
+            | JOIN
+            | STRAIGHT_JOIN
+            ;
+
+join_types: join_types JOIN_TYPE
+            | JOIN_TYPE
+            ;
+
+join_cond:  /* empty */
+            | ON where_exp_list
+            | USING O_BRACE math_exp C_BRACE
+            ;
+
+table_factor: table alias index_hint
+            ;
+
+table:        STRING                 { clb_found_table($1); }
+            | ACCENT STRING ACCENT   { clb_found_table($2); }
+            | STRING DOT STRING      { clb_found_table($3); }
+            | STRING DOT ACCENT STRING ACCENT     { clb_found_table($4); }
+//            | ACCENT STRING ACCENT DOT ACCENT STRING ACCENT  { clb_found_table($6); }
+            | O_BRACE select_cmd C_BRACE
+	    ;
+
+alias:      /* empty */ { }
+            | alias_str { }
+            | AS alias_str { }
+            ;
+
+alias_str:    STRING                 { /* $$ = $1; printf("table: %s\n", $1); */ }
+            | ACCENT STRING ACCENT   { /* $$ = $2; printf("table: %s\n", $2); */ }
+            | Q_STRING
+            | DQ_STRING
+            ;
+
+
+index_hint: /* empty */
+            | index_use INDEX O_BRACE index_list C_BRACE
+            | index_use INDEX FOR JOIN O_BRACE index_list C_BRACE
+            ;
+index_use:    USE
+            | IGNORE
+            | FORCE
+            ;
+
+index_list:   STRING
+            | index_list COMMA index_list
+            ;
+	
+fn:           STRING O_BRACE fn_args C_BRACE { $$=$3; }
+            | STRING O_BRACE MULTIPLY C_BRACE { }
+            | STRING O_BRACE C_BRACE { }
+            | STRING O_BRACE DISTINCT fn_args order_cond C_BRACE { $$=$4; /* printf("fn\n"); */ } 
+            ;
+
+fn_args:       math_exp                  { $$=$1; }
+            | fn_args COMMA fn_args      { $$->Add($3); }
+            ;
+
+
+where_exp_list: where_exp_list OR where_exp_list
+	    | where_exp_list AND where_exp_list
+	    | O_BRACE where_exp_list C_BRACE
+	    | NOT where_exp_list
+	    | where_exp
+	    ;
+
+where_exp:    math_exp                     { if ($1->IsTrue()) clb_found_tautology(); }
+            | math_exp EQUAL    math_exp   { cmp_fn($1,$3); }
+	    | math_exp N_EQUAL  math_exp   { cmp_fn($1,$3); }
+	    | math_exp LIKE     math_exp   { cmp_fn($1,$3); }
+	    | math_exp NOT LIKE math_exp   { cmp_fn($1,$4); }
+            | math_exp REGEXP   math_exp   { cmp_fn($1,$3); }
+            | math_exp NOT REGEXP math_exp { cmp_fn($1,$4); }
+            | math_exp IS       math_exp   { cmp_fn($1,$3); }
+            | math_exp IS NOT   math_exp   { cmp_fn($1,$4); }
+            | math_exp IN O_BRACE fn_args C_BRACE { cmp_fn($1,$4); }
+            | math_exp IN O_BRACE select_cmd C_BRACE
+            | EXISTS O_BRACE select_cmd C_BRACE
+            ;
+
+group_cond: /* empty */
+            | GROUP BY groupby_column_list sort_order
+            ;
+
+groupby_column_list: table_field
+            | groupby_column_list COMMA groupby_column_list
+            ;
+
+sort_order: /* empty */
+            | ASC
+            | DESC
+            ;
+
+having_cond:  /* empty */
+            | HAVING where_exp_list
+            ;
+
+order_cond: /* empty */
+            | ORDER BY orderby_column_list sort_order
+            ;
+
+orderby_column_list: table_field
+            | fn
+            | NULLX
+            | orderby_column_list COMMA orderby_column_list
+            ;
+
+limit_cond: /* empty */
+            | LIMIT INTEGER
+            | LIMIT INTEGER COMMA INTEGER
+            | LIMIT INTEGER OFFSET INTEGER
+            ;
+
+procedure_cond: /* empty */
+            | PROCEDURE fn
+            ;
+
+union_cond: /* empty */
+            | UNION select_cmd
+            ;
+
+end_cond:  /* empty */
+            | END
+            ;
+%%
+/*
+int main()
+{
+  std::string s;
+  while (std::cin)
+  {
+    std::getline(std::cin, s);
+    //std::cout << "line: " << s << std::endl;
+    scan_buffer(s.c_str());
+  }
+  return 1;
+}
+
+*/
+int yyerror( char *s)
+{
+    extern char * yytext;
+    //printf("error at char %s\n", yytext);
+    //exit(1);
+    return 1;
+}
+
+static void cmp_fn(Expression * xp1, Expression * xp2)
+{
+  if (xp1->Comp(xp2))
+    clb_found_tautology();
+  else if (xp1->IsEmptyPwd(xp2))
+    clb_found_empty_pwd();
+}
