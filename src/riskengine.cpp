@@ -11,6 +11,7 @@
 #include "config.hpp"
 #include "misc.hpp"
 #include "log.hpp"
+#include "parser/parser.hpp"
 
 static bool check_comments(std::string & query);
 static bool check_sensitive_tables(std::string & query);
@@ -32,22 +33,25 @@ unsigned int calc_risk(std::string & query, std::string & pattern,
     GreenSQLConfig * conf = GreenSQLConfig::getInstance();
     unsigned int ret = 0;
 
+    struct query_risk risk;
+    query_parse(&risk, query.c_str());
+
     if (conf->re_sql_comments > 0 && 
-        check_comments(query) == true)
+        risk.has_comment == 1)
     {
 	reason += "Query has comments\n";
         logevent(DEBUG, "Query has comments\n");
 	ret += conf->re_sql_comments;
     }
     if (conf->re_s_tables > 0 && 
-        check_sensitive_tables(pattern) == true)
+        risk.has_s_table == 1)
     {
 	reason += "Query uses sensitive tables\n";
         logevent(DEBUG, "Query uses sensitive tables\n");
 	ret += conf->re_s_tables;
     }
     if (conf->re_multiple_queries > 0 &&
-        check_multiple_queries(pattern) == true)
+        risk.has_separator == 1)
     {
         reason += "Multiple queries found\n";
         logevent(DEBUG, "Multiple queries found\n");
@@ -55,68 +59,34 @@ unsigned int calc_risk(std::string & query, std::string & pattern,
     }
     
 
-    size_t p = 0;
-    bool where_found = false;
-    while (p != std::string::npos && where_found == false)
-    {
-        p = pattern.find(" where", p);
-        if (p != std::string::npos)
-	{
-            //logevent(SQL_DEBUG, "WHERE-debug: %c\n", pattern[p+6]);
-            if (pattern[p+6] == ' ' || pattern[p+6] == '?')
-	    {
-                where_found = true;
-	    } else {
-                p+6;
-	    }
-	}
-    }
-    if (p == std::string::npos && where_found == false)
-    {
-        return ret;
-    }
-
-    // query has WHERE statement
-    //pattern = pattern.substr(p+7, pattern.size() - p -7);
-    //std::string where_str = pattern.substr(p+1, pattern.size() - p -1);
-    
-    std::string where_str(pattern, p+1, pattern.size() - p -1);
-    logevent(SQL_DEBUG, "WHERE: %s\n", where_str.c_str());
-
     if (conf->re_or_token > 0 &&
-        check_or_token(where_str) == true)
+        risk.has_or == 1)
     {
 	reason += "Query has 'or' token\n";
 	logevent(DEBUG, "Query has 'or' token\n");
 	ret += conf->re_or_token;
     }
     if (conf->re_union_token > 0 &&
-        check_union_token(where_str) == true)
+        risk.has_union == 1)
     {
-        reason += "Query has 'union' statement\n";
-	logevent(DEBUG, "Query has 'union' statement\n");
+        reason += "Query has 'union' token\n";
+	logevent(DEBUG, "Query has 'union' token\n");
 	ret += conf->re_union_token;
     }
+    
     if (conf->re_var_cmp_var > 0 && 
-        check_var_cmp_var(where_str) == true)
+        risk.has_tautology == 1)
     {
 	reason += "Variable comparison only\n";
         logevent(DEBUG, "Variable comparison only\n");
 	ret += conf->re_var_cmp_var;
     }
     if (conf->re_empty_password > 0 &&
-        check_empty_password(query) == true)
+        risk.has_empty_pwd == 1)
     {
-	reason += "Query has empty password value\n";
-        logevent(DEBUG, "Query has empty password token\n");
+	reason += "Query has empty password expression\n";
+        logevent(DEBUG, "Query has empty password expression\n");
 	ret += conf->re_empty_password;
-    }
-    if (conf->re_always_true > 0 &&
-        check_always_true(where_str) == true)
-    {
-	reason += "Query can always return true\n";
-        logevent(DEBUG, "Query can always return true\n");
-	ret += conf->re_always_true;
     }
     return ret;
 }
