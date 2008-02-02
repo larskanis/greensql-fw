@@ -25,7 +25,7 @@ int main()
   snprintf(buf,sizeof(buf), "select 1 from user where t1 = 'string");
   scan_buffer(buf);
   exit;
-  snprintf(buf,sizeof(buf), "select 1 from user where 1");
+  snprintf(buf,sizeof(buf), "select 1 from user where 1 -- commnent");
   scan_buffer(buf);
       
   std::string s;

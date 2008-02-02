@@ -105,7 +105,7 @@ version\((\ |\t|\r|\n)*\) {
               }
             }
 
-\-\-[^\r\n]*(\r|\n|$)+ { clb_found_comment(); }
+\-\-[^\r\n]*(\r|\n)* { clb_found_comment(); }
 
 collate[ \t\r\n]+[a-z_][a-z0-9\._]* ; //ignore COLLATE language statement
 with[ \t\r\n]+rollup ; // group by modifier
