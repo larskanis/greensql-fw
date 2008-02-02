@@ -12,7 +12,7 @@ parser: $(FILES)
 	$(CXX) $(CXXFLAGS) -o parser $(FILES)
 
 sql.cpp:
-	flex -i -o sql.cpp sql.lex
+	flex -i -osql.cpp sql.lex
 	bison -d -v sql.ypp
 
 sql.tab.cpp:
