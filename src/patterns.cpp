@@ -201,7 +201,7 @@ void SQLPatterns::LoadPattern(std::string & section, std::string & line)
 
     var_cmp_str = "((where\\s|and\\s|or\\s|not\\s|^)|(\\(\\s*))?\\?\\s*(>|!)?\\=\\s*\\?";
 
-    true_str = "(where\\s|and\\s|or\\s|not\\s)\\?(\\sand|\\sor|\\snot|\\s*$)";
+    true_str = "(where|and|or|not)\\s*\\?(\\sand|\\sor|\\snot|\\s*$)";
 }
 
 bool SQLPatterns::CompilePatterns()
