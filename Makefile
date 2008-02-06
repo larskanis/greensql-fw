@@ -1,13 +1,14 @@
-
+MAINTAINER=stremovsky@gmail.com
 CPP=g++
 
 greensql-fw: 
-	rm greensql-fw src/greensql-fw; cd src; make; cp greensql-fw ../
+	rm -rf greensql-fw src/greensql-fw 
+	cd src; make; cp greensql-fw ../
 
 clean:
-	cd src; make clean; cd mysql; rm *.o -rf;
-	rm greensql-fw *.o -rf
-	rm src/greensql-fw -rf
+	cd src; make clean; cd mysql; rm -rf *.o;
+	rm -rf greensql-fw *.o 
+	rm -rf src/greensql-fw
 
 install:
 	cp greensql-fw ${DESTDIR}/usr/sbin
