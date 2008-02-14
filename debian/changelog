@@ -1,3 +1,10 @@
+greensql-fw (0.8.1) unstable; urgency=low
+
+  * Risk Engine was rewritten
+  * Debian support improved
+
+ -- yuli <stremovsky@gmail.com>  Feb, 13 Wed 2008 06:48:38 +0300
+
 greensql-fw (0.6.8) unstable; urgency=low
 
   * Fixed potentially exploitable buffer overun bug.
