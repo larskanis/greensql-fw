@@ -1,0 +1,74 @@
+Template: greensql/mysql_server
+Type: string
+Default: localhost
+Description: What is the name of the server used to store GreenSQL configuration db (MySQL server)?
+ Enter the name of the machine that will host the GreenSQL configuration.
+ If the MySQL port is not 3306 (standard), then you can enter it in the form:
+ host:port.
+
+Template: greensql/database
+Type: string
+Default: greendb
+Description: What is the database name for the GreenSQL configuration?
+ Enter the name for the database where GreenSQL will store configuration and logs.
+
+Template: greensql/setup
+Type: boolean
+Default: true
+Description: Would you like to set up the database and tables automatically?
+ GreenSQL could initialise and upgrade your database and tables automatically.
+ You'll need access to a MySQL root user for the script to work properly.
+
+Template: greensql/mysql_root_user
+Type: string
+Default: root
+Description: What is the username of the MySQL administrator?
+ You need to enter the username of a MySQL administrator in order to
+ create the GreenSQL configuration database.
+
+Template: greensql/mysql_root_passwd
+Type: password
+Description: Enter the MySQL administrator password
+ Type "none" if there is no password for MySQL administration.
+
+Template: greensql/mysql_user
+Type: string
+Default: green
+Description: What is the GreenSQL db username?
+ This is the username that GreenSQL uses to connect to the database.
+
+Template: greensql/mysql_passwd
+Type: password
+Default: pwd
+Description: What is the GreenSQL user password?
+ Hit "enter" for the default which is "pwd".
+
+Template: greensql/purge_db
+Type: boolean
+Default: true
+Description: Do you want to purge the database when you purge this package?
+ Accept here, if you want to drop the database and the associated user when you will purge the package.
+
+Template: greensql/confirm
+Type: password
+Description: Confirm this password
+ You have to confirm the password in order to continue the process.
+
+Template: greensql/mismatch
+Type: note
+Description: Password mismatch
+ The password and its confirmation do not match. You will have to
+ reenter the passwords.
+
+Template: greensql/no_mysql_message
+Type: note
+Description: No MySQL server found
+ You entered localhost as a MySQL server and I can't find any server
+ installed on localhost. Either install the "mysql-server" package or run
+ dpkg-reconfigure greensql-fw in order to change the MySQL server.
+
+Template: greensql/no_mysql
+Type: boolean
+Default: false
+Description: There is no MySQL server on localhost
+ No MySQL server found.
