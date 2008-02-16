@@ -1,53 +1,205 @@
 #!/bin/sh
-# postinst script for greensql-fw
-#
-# see: dh_installdeb(1)
 
 set -e
 
-# summary of how this script can be called:
-#        * <postinst> `configure' <most-recently-configured-version>
-#        * <old-postinst> `abort-upgrade' <new version>
-#        * <conflictor's-postinst> `abort-remove' `in-favour' <package>
-#          <new-version>
-#        * <deconfigured's-postinst> `abort-deconfigure' `in-favour'
-#          <failed-install-package> <version> `removing'
-#          <conflicting-package> <version>
-# for details, see http://www.debian.org/doc/debian-policy/ or
-# the debian-policy package
-#
+# Source debconf library.
+test -e /usr/share/debconf/confmodule && {
+  . /usr/share/debconf/confmodule
+  db_version 2.0
+}
+
+# Read the settings supplied by debconf.
+get_config() {
+  CONF='/etc/greensql/greensql.conf'
+
+  # * The port information could be encoded in the host configuration setting,
+  #   by using host:port as the syntax.
+  # * localhost => socket, 127.0.0.1 => TCP/IP
+  #   This is the default MySQL behaviour, but many people aren't used
+  #   to it. So this has to be documented somewhere.
+  db_get greensql/mysql_server
+  MYSQL_HOST="$RET"
+
+  db_get greensql/setup
+  if [ "x$RET" = "xtrue" ]; then SETUP=1; else SETUP=0; fi
+  if [ $SETUP -ne 0 ]
+  then
+    db_get greensql/mysql_root_user
+    MYSQL_ROOT_USER="$RET"
+    db_get greensql/mysql_root_passwd
+    MYSQL_ROOT_PASSWD="$RET"
+  fi
+
+  db_get greensql/database
+  DATABASE="$RET"
+  db_get greensql/mysql_user
+  MYSQL_USER="$RET"
+  db_get greensql/mysql_passwd
+  MYSQL_PASSWD="$RET"
+
+  db_stop
+
+  # Create a custom temporary MySQL configuration file for the root user.
+  if [ $SETUP -ne 0 ]
+  then
+    MY_CNF=`mktemp /tmp/greensql.my-cnf.XXXXXXXXXX`
+    chmod 0600 $MY_CNF
+
+    # Split MYSQL_HOST for the host:port pair, give an empty string for the
+    # port if it isn't specified, save it into MYSQL_PORT otherwise.
+    mysql_h="`echo $MYSQL_HOST|cut -d: -f1`"
+    mysql_p="`echo $MYSQL_HOST|cut -d: -f2`"
+    if [ "$mysql_h" != "$mysql_p" -a "x$mysql_p" != "x" ]; then
+      MYSQL_HOSTNAME="$mysql_h"
+      MYSQL_PORT="$mysql_p"
+    else
+      MYSQL_HOSTNAME="$MYSQL_HOST"
+      MYSQL_PORT=""
+    fi
+    
+    echo "[client]
+          host=${MYSQL_HOST}
+          port=${MYSQL_PORT}
+          user=${MYSQL_ROOT_USER}" > $MY_CNF
+    if [ "${MYSQL_ROOT_PASSWD}" != "none" ]; then
+      echo "password=${MYSQL_ROOT_PASSWD}" >> $MY_CNF
+    fi
+    MRO="--defaults-file=$MY_CNF"
+    MUO="${MRO} -u${MYSQL_USER} -p${MYSQL_PASSWD}"
+  fi
+}
+
+cleanup() {
+  if [ -n $MY_CNF ]; then rm -rf $MY_CNF; fi
+}
+
+create_db() {
+  # If we aren't responsible for the proper setup, just ignore this part.
+  if [ $SETUP -ne 0 ]
+  then
+    DBSETUP="0"
+    if mysql $MRO -BNe 'show databases' | grep -q "$DATABASE"; then
+      echo "Database already exists, doing nothing."
+    else
+      DBSETUP="1"
+      echo "Creating database..."
+      mysqladmin $MRO -f create $DATABASE > /dev/null
+      echo "Adding user..."
+      mysql $MRO $DATABASE -f -e \
+        "GRANT ALL ON * TO ${MYSQL_USER} IDENTIFIED BY '${MYSQL_PASSWD}'" \
+        > /dev/null
+      if [ "$MYSQL_HOSTNAME" = "localhost" -o "$MYSQL_HOSTNAME" = "127.0.0.1" ]
+      then
+        mysql $MRO $DATABASE -f -e \
+          "GRANT ALL ON * TO '${MYSQL_USER}'@'localhost'
+           IDENTIFIED BY '${MYSQL_PASSWD}'" > /dev/null
+      fi
+    fi
+  fi
+}
+
+create_tbls() {
+  # If we shouldn't create & upgrade the tables, we'll ignore this.
+  if [ $SETUP -ne 0 ]
+  then
+    # Execute the create SQL code only if the database was newly created.
+    if [ $DBSETUP -ne 0 ]
+    then
+      echo "Creating tables..."
+      #/usr/sbin/mydns --create-tables | mysql $MUO -f $DATABASE > /dev/null
+      /bin/cat /usr/share/doc/greensql-fw/greensql-mysql-db.txt | \
+       mysql $MUO -f $DATABASE > /dev/null
+    fi
+    
+    # Upgrade passes.
+    ## PASS 1: Converting PTR.
+    #if mysql $MRO -BNe 'show tables' $DATABASE | grep -q "ptr"; then
+    #  # Check if there are entries in the PTR table, otherwise do nothing.
+    #  if mysql $MRO -Be 'select * from ptr limit 0,1' $DATABASE | grep -q "id"
+    #  then
+    #    echo "Converting PTR records..."
+    #    /usr/bin/mydnsptrconvert -h $MYSQL_HOST --password=$MYSQL_PASSWD \
+    #      -u $MYSQL_USER -D $DATABASE > /dev/null
+    #  fi
+    #  # Finally drop the table.
+    #  if mysql $MRO -BNe 'DROP TABLE ptr' $DATABASE
+    #  then
+    #    echo "PTR table dropped."
+    #  else
+    #    echo "Failure on dropping PTR table!"
+    #  fi
+    #fi
+    ## END PASS
+  fi
+}
+
+setup_mysql() {
+  create_db
+  create_tbls
+}
+
+# This function dumps an actual version of the configuration into the file
+# specified in $CONF. 
+create_cfgfile() {
+  if test -f $CONF
+  then
+    cp -a $CONF ${CONF}.dpkg-old
+  else
+    cp /usr/share/doc/greensql-fw/greensql.conf $CONF
+  fi
+
+start_cfg=`perl -p0777 -e 's/\[database\].*$//s' $CONF`
+end_cfg=`perl -p0777 -e 's/^.*\[database\][^\[]*\[/\[/s' $CONF`
+
+  echo "## AUTOMATICALLY GENERATED BY DEBCONF. DO NOT MODIFY DATABASE
+## INFORMATION (database, db-*)...
+## PLEASE RUN 'dpkg-reconfigure greensql-fw' INSTEAD.
+$start_cfg
+
+[database]
+dbhost=$MYSQL_HOST
+dbport=$MYSQL_PORT
+dbname=$DATABASE
+dbuser=$MYSQL_USER
+dbpass=$MYSQL_PASSWD
+
+$end_cfg" > $CONF
+
+  echo "${CONF} created/modified. See greensql.conf(5) for details."
+  echo "A backup of the old config file is at ${CONF}.dpkg-old. Values"
+  echo "were preserved, except for database settings."
+}
+
+create_user() {
+  groupadd -f greensql
+  if ! /usr/bin/id greensql > /dev/null 2>&1 ; then
+    useradd -g greensql -s /dev/null greensql
+  fi
+}
+
+change_perms() {
+  chown greensql:greensql /var/log/greensql.log
+  chown greensql:greensql -R /etc/greensql
+  chmod 0600 $CONF
+}
 
 case "$1" in
-    configure)
-        groupadd -f greensql
-        if ! /usr/bin/id greensql > /dev/null 2>&1 ; then
-            useradd -g greensql -s /dev/null greensql
-        fi
-        chown greensql:greensql /var/log/greensql.log
-        chown greensql:greensql -R /etc/greensql
-        echo
-        echo "Now, you need to create database used to store GreenSQL configuration."
-        echo "Run the following command (as a root user) on the GreenSQL config server:"
-        echo "    cat /usr/share/doc/greensql-fw/greensql-mysql-db.txt | mysql"
-        echo
-
-    ;;
-
-    abort-upgrade|abort-remove|abort-deconfigure)
-
-    ;;
-
-    *)
-        echo "postinst called with unknown argument \`$1'" >&2
-        exit 1
-    ;;
+  configure)
+    create_user
+    get_config
+    create_cfgfile
+    setup_mysql
+    change_perms
+  ;;
+  upgrade|abort-upgrade|abort-remove|abort-deconfigure)
+  ;;
+  *)
+    echo "postinst called with unknown argument \`$1'" >&2
+  ;;
 esac
 
-# dh_installdeb will replace this with shell code automatically
-# generated by other debhelper scripts.
+cleanup
 
 #DEBHELPER#
 
-exit 0
-
-
+# vim:set et ts=2:
