@@ -1,22 +1,30 @@
 --
--- this is GreenSQL Configuration Database structure.
--- run this using the following command (using root)
+-- This file contains GreenSQL configuration database structure.
 --
---    cat greensql-mysql-db.txt | mysql
+-- Step 1 - Configuration database
+-- You can create configuration database using the following
+-- MySQL command:
+-- 
+-- mysql> create database greendb;
 --
--- first create greendb database
-create database greendb;
+-- Step 2 - Create MySQL user
+-- Second, create green user. It will be used to access configuration db.
 --
--- Second, create green user. It will be used to manage password.
--- IMPORTANT: change the next line to use password.
--- After that you need to update /etc/greensql/greensql.conf file
--- with the correct db parameters.
-GRANT ALL PRIVILEGES ON greendb.* TO 'green'@'%' IDENTIFIED BY 'pwd';
+-- mysql> GRANT ALL PRIVILEGES ON greendb.* TO 'green'@'%' IDENTIFIED BY 'pwd';
 --
--- flush all changes
-flush privileges;
-
--- now create all tables
+-- IMPORTANT: change "pwd" to other password. Don't forget to update
+-- /etc/greensql/greensql.conf file with new password value.
+--
+-- Step 3 - Flush privileges
+-- Run the following mysql command:
+--
+-- mysql> flush privileges;
+--
+-- Step 4- Create all tables
+-- Run the following shell command:
+--
+-- cat greensql-mysql-db.txt | mysql
+--
 
 use greendb;
  
