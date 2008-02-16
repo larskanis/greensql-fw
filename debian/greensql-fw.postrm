@@ -1,0 +1,130 @@
+#!/bin/sh -e
+
+set -e
+
+test -e /usr/share/debconf/confmodule && {
+	. /usr/share/debconf/confmodule
+	db_version 2.0
+}
+
+# This function is currently duplication and thus a violation of the DRY
+# principle -- please do not change it, change postinst and copy it from there.
+get_config() {
+  CONF='/etc/greensql/greensql.conf'
+
+  # * The port information could be encoded in the host configuration setting,
+  #   by using host:port as the syntax.
+  # * localhost => socket, 127.0.0.1 => TCP/IP
+  #   This is the default MySQL behaviour, but many people aren't used
+  #   to it. So this has to be documented somewhere.
+  db_get greensql/mysql_server
+  MYSQL_HOST="$RET"
+
+  db_get greensql/setup
+  if [ "x$RET" = "xtrue" ]; then SETUP=1; else SETUP=0; fi
+  if [ $SETUP -ne 0 ]
+  then
+    db_get greensql/mysql_root_user
+    MYSQL_ROOT_USER="$RET"
+    db_get greensql/mysql_root_passwd
+    MYSQL_ROOT_PASSWD="$RET"
+  fi
+
+  db_get greensql/database
+  DATABASE="$RET"
+  db_get greensql/mysql_user
+  MYSQL_USER="$RET"
+  db_get greensql/mysql_passwd
+  MYSQL_PASSWD="$RET"
+  #echo "db-stop"
+  #db_stop
+
+  # Create a custom temporary MySQL configuration file for the root user.
+  if [ $SETUP -ne 0 ]
+  then
+    MY_CNF=`mktemp /tmp/greensql.my-cnf.XXXXXXXXXX`
+    chmod 0600 $MY_CNF
+
+    # Split MYSQL_HOST for the host:port pair, give an empty string for the
+    # port if it isn't specified, save it into MYSQL_PORT otherwise.
+    mysql_h="`echo $MYSQL_HOST|cut -d: -f1`"
+    mysql_p="`echo $MYSQL_HOST|cut -d: -f2`"
+    if [ "$mysql_h" != "$mysql_p" -a "x$mysql_p" != "x" ]; then
+      MYSQL_HOSTNAME="$mysql_h"
+      MYSQL_PORT="$mysql_p"
+    else
+      MYSQL_HOSTNAME="$MYSQL_HOST"
+      MYSQL_PORT=""
+    fi
+    
+    echo "[client]
+          host=${MYSQL_HOST}
+          port=${MYSQL_PORT}
+          user=${MYSQL_ROOT_USER}
+          password=${MYSQL_ROOT_PASSWD}" > $MY_CNF
+    
+    MRO="--defaults-file=$MY_CNF"
+    MUO="${MRO} -u${MYSQL_USER} -p${MYSQL_PASSWD}"
+  fi
+}
+
+cleanup() {
+  echo "clean $MY_CNF"
+  #if [ -n $MY_CNF ]; then rm -rf $MY_CNF; fi
+}
+
+drop_mysql() {
+  echo "drop mysql $MRO"
+  mysql $MRO -f $DATABASE -e "REVOKE ALL ON * FROM ${MYSQL_USER}" \
+    &>/dev/null || true
+  mysql $MRO -f $DATABASE -e \
+    "REVOKE ALL ON * FROM '${MYSQL_USER}'@'localhost'" &>/dev/null || true
+  mysql $MRO -f mysql -e \
+    "DELETE FROM user WHERE User='${MYSQL_USER}'" &>/dev/null || true
+  mysqladmin $MRO -f drop $DATABASE &>/dev/null || true
+}
+
+drop_config() {
+  #rm -f $CONF
+  echo "removing $CONF"
+  if [ -n $CONF ]; then rm -rf $CONF; fi
+}
+
+case "$1" in
+  purge)
+    get_config
+    if [ $SETUP -ne 0 ]
+    then
+      echo "purge ?"
+#      db_purge
+      db_input critical greensql/purge_db || true
+      if db_go
+      then
+        db_get greensql/purge_db || true
+        if [ "x$RET" = "xtrue" ]; then drop_mysql; fi
+      fi
+    fi
+    echo "db_purge"
+    db_purge
+    echo "db_stop"
+    db_stop
+    echo "drop conf"
+    drop_config
+    echo "cleanup"
+    cleanup
+  ;;
+
+  remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+  ;;
+
+  *)
+    echo "postrm called with unknown argument '$1'" >&2
+  ;;
+esac
+echo end
+exit
+#DEBHELPER#
+
+#[ -e /usr/share/debconf/confmodule ] && db_stop
+
+# vim:set et ts=2:
