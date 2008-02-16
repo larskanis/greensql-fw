@@ -171,8 +171,8 @@ dbpass=$MYSQL_PASSWD" > $CONF
 echo "
 $end_cfg" >> $CONF
   echo "${CONF} created/modified. See greensql.conf(5) for details."
-  echo "A backup of the old config file is at ${CONF}.dpkg-old. Values"
-  echo "were preserved, except for database settings."
+  echo "A backup of the old config file is at ${CONF}.dpkg-old. "
+  echo "Values were preserved, except for database settings."
 }
 
 create_user() {
