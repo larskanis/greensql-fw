@@ -56,12 +56,14 @@ get_config() {
       MYSQL_HOSTNAME="$MYSQL_HOST"
       MYSQL_PORT=""
     fi
-    
+
     echo "[client]
           host=${MYSQL_HOST}
           port=${MYSQL_PORT}
-          user=${MYSQL_ROOT_USER}
-          password=${MYSQL_ROOT_PASSWD}" > $MY_CNF
+          user=${MYSQL_ROOT_USER}" > $MY_CNF
+    if [ "${MYSQL_ROOT_PASSWD}" != "none" ]; then
+      echo "password=${MYSQL_ROOT_PASSWD}" >> $MY_CNF
+    fi
     
     MRO="--defaults-file=$MY_CNF"
     MUO="${MRO} -u${MYSQL_USER} -p${MYSQL_PASSWD}"
@@ -69,12 +71,12 @@ get_config() {
 }
 
 cleanup() {
-  echo "clean $MY_CNF"
-  #if [ -n $MY_CNF ]; then rm -rf $MY_CNF; fi
+  #echo "clean $MY_CNF"
+  if [ -n $MY_CNF ]; then rm -rf $MY_CNF; fi
 }
 
 drop_mysql() {
-  echo "drop mysql $MRO"
+  #echo "drop mysql $MRO"
   mysql $MRO -f $DATABASE -e "REVOKE ALL ON * FROM ${MYSQL_USER}" \
     &>/dev/null || true
   mysql $MRO -f $DATABASE -e \
@@ -86,7 +88,7 @@ drop_mysql() {
 
 drop_config() {
   #rm -f $CONF
-  echo "removing $CONF"
+  #echo "removing $CONF"
   if [ -n $CONF ]; then rm -rf $CONF; fi
 }
 
@@ -95,7 +97,7 @@ case "$1" in
     get_config
     if [ $SETUP -ne 0 ]
     then
-      echo "purge ?"
+      #echo "purge ?"
 #      db_purge
       db_input critical greensql/purge_db || true
       if db_go
@@ -104,13 +106,13 @@ case "$1" in
         if [ "x$RET" = "xtrue" ]; then drop_mysql; fi
       fi
     fi
-    echo "db_purge"
+    #echo "db_purge"
     db_purge
-    echo "db_stop"
+    #echo "db_stop"
     db_stop
-    echo "drop conf"
+    #echo "drop conf"
     drop_config
-    echo "cleanup"
+    #echo "cleanup"
     cleanup
   ;;
 
