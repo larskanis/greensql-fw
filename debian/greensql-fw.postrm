@@ -78,12 +78,19 @@ cleanup() {
 drop_mysql() {
   #echo "drop mysql $MRO"
   mysql $MRO -f $DATABASE -e "REVOKE ALL ON * FROM ${MYSQL_USER}" \
-    &>/dev/null || true
+    > /dev/null 2>&1 || true
   mysql $MRO -f $DATABASE -e \
-    "REVOKE ALL ON * FROM '${MYSQL_USER}'@'localhost'" &>/dev/null || true
+    "REVOKE ALL ON * FROM '${MYSQL_USER}'@'localhost'" \
+    > /dev/null 2>&1 || true
   mysql $MRO -f mysql -e \
-    "DELETE FROM user WHERE User='${MYSQL_USER}'" &>/dev/null || true
-  mysqladmin $MRO -f drop $DATABASE &>/dev/null || true
+    "DELETE FROM user WHERE User='${MYSQL_USER}'" \
+    > /dev/null 2>&1 || true
+  mysqladmin $MRO -f drop $DATABASE > /dev/null 2>&1 || true
+}
+
+drop_user() {
+  userdel -r greensql > /dev/null 2>&1 || true
+  groupdel greensql > /dev/null 2>&1 || true
 }
 
 drop_config() {
@@ -112,6 +119,8 @@ case "$1" in
     db_stop
     #echo "drop conf"
     drop_config
+    #echo "drop user"
+    drop_user
     #echo "cleanup"
     cleanup
   ;;
@@ -123,7 +132,7 @@ case "$1" in
     echo "postrm called with unknown argument '$1'" >&2
   ;;
 esac
-echo end
+#echo end
 exit
 #DEBHELPER#
 

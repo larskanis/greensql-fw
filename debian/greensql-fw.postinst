@@ -70,6 +70,7 @@ get_config() {
 }
 
 cleanup() {
+  #echo "cleanup"
   if [ -n $MY_CNF ]; then rm -rf $MY_CNF; fi
 }
 
@@ -184,6 +185,7 @@ create_user() {
 
 change_perms() {
   chown greensql:greensql /var/log/greensql.log
+  #chmod 0600 /var/log/greensql.log
   chown greensql:greensql -R /etc/greensql
   chmod 0600 $CONF
 }
