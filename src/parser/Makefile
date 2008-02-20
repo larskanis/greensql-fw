@@ -2,9 +2,9 @@ FILES:= sql.o sql.tab.o parser.o
 
 CPP=g++
 CFLAGS:=-Wall -DPARSER_DEBUG -g
-ifndef CXXFLAGS
+#ifndef CXXFLAGS
 CXXFLAGS:=-DPARSER_DEBUG -g -Wno-deprecated -Wall
-endif
+#endif
 
 objs:	$(FILES)
 
@@ -19,4 +19,4 @@ sql.tab.cpp:
 	
 
 clean:
-	rm parser sql.tab.hpp sql.output sql.tab.cpp sql.cpp *.o -rf
+	rm -rf parser sql.tab.hpp sql.output sql.tab.cpp sql.cpp *.o
