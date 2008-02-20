@@ -4,13 +4,16 @@ OBJS:=main.o buffer.o greensql.o config.o connection.o normalization.o log.o pro
 CPP=g++
 
 CFLAGS:=-Wall -D_REENTRANT -O2
-CXXFLAGS:=-g -Wno-deprecated -Wall -I/usr/include/mysql/
-LIBS:=-L/usr/local/lib -lmysqlclient -levent -lpcre
+CXXFLAGS:=-g -Wno-deprecated -Wall -I/usr/include/mysql/ -I/usr/local/include/ -I/usr/local/include/mysql/
+LIBS:=-L/usr/local/lib -L/usr/local/lib/mysql -lmysqlclient -levent -lpcre
 
 greensql-fw: $(OBJS)
 	cd parser; make CXXFLAGS="$(CXXFLAGS)"
 	$(CXX) $(CXXFLAGS) $(LIBS) -o greensql-fw $(OBJS) parser/parser.o parser/sql.o parser/sql.tab.o
 
+mysql/mysql_con.o:
+	$(CXX) $(CXXFLAGS) -o greensql-fw -c mysql/mysql_con.cpp -o mysql/mysql_con.o
+
 clean:
-	rm greensql-fw *.o -rf
+	rm -rf greensql-fw *.o mysql/*.o
 	cd parser; make clean; cd ..
