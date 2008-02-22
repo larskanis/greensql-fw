@@ -1,0 +1,11 @@
+@comment PKG_FORMAT_REVISION:1.1
+@name greensql-fw-0.8.1
+@comment ORIGIN:sysutils/greensql-fw
+@cwd /usr/local
+sbin/greensql-fw
+etc/greensql/greensql.conf
+etc/greensql/mysql.conf
+share/greensql-fw/greensql-mysql-db.txt
+share/greensql-fw/install.txt
+share/greensql-fw/license.txt
+share/greensql-fw/tautology.txt
