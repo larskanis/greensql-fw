@@ -23,7 +23,7 @@
 -- Step 4- Create all tables
 -- Run the following shell command:
 --
--- cat greensql-mysql-db.txt | mysql
+-- cat greensql-mysql-db.txt | mysql greendb
 --
 
 use greendb;
