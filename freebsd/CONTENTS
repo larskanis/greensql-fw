@@ -5,7 +5,7 @@
 sbin/greensql-fw
 etc/greensql/greensql.conf
 etc/greensql/mysql.conf
-etc/rc.d/greensql
+etc/rc.d/greensql-fw
 share/doc/greensql-fw/greensql-mysql-db.txt
 share/doc/greensql-fw/install.txt
 share/doc/greensql-fw/license.txt
