@@ -23,6 +23,8 @@ build_deb()
   debuild --linda -us -uc
   rm -rf debian/greensql-fw
   cd ../../
+  echo
+  echo "package created ../ directory"
   exit
 }
 
