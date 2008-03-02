@@ -53,7 +53,8 @@ build_bsd()
   mv greensql-fw.tbz ../../
   cd ../../
   echo
-  echo "package created ../greensql-fw.tbz"
+  echo "Package created in ../ directory !!!"
+  echo "Package file name is ../greensql-fw.tbz"
   exit
 }
 
