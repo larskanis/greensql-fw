@@ -34,5 +34,26 @@ POST-INSTALL)
 			exit 1
 		fi
 	fi
-	;;
+
+        # change file permissions
+        chown -R greensql:greensql /usr/local/etc/greensql/
+        chmod 0400 /usr/local/etc/greensql/*.conf 
+        chmod 0700 /usr/local/etc/greensql/
+
+        # configure log rotation
+        if `/usr/bin/grep "^/var/log/greensql.log" /etc/newsyslog.conf >/dev/null 2>&1`
+        then
+          echo "Log rotation for /var/log/greensql.log is already enabled."
+        else
+          echo "Enabling log rotation for /var/log/greensql.log"
+          echo "/var/log/greensql.log	greensql:greensql 644 5 1000 * JCB" >> /etc/newsyslog.conf
+        fi
+        echo
+        echo "GreenSQL database firewall is almost installed."
+        echo "The last step is to configure configuration db."
+        echo "Please follow instructions found in the following file:"
+        echo
+        echo "/usr/local/share/doc/greensql-fw/greensql-mysql-db.txt"
+        echo
+        ;;
 esac

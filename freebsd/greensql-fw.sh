@@ -10,6 +10,11 @@
 # greensql_enable (bool):	Set to "NO" by default.
 #			Set it to "YES" to enable greensql.
 #
+GREENSQL_LOG=/var/log/greensql.log
+touch $GREENSQL_LOG
+chmod 0644 $GREENSQL_LOG
+chown greensql:greensql $GREENSQL_LOG
+
 greensql_user=${greensql_user:-"greensql"}
 greensql_group=${greensql_group:-"greensql"}
 
