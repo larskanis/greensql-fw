@@ -50,14 +50,23 @@ bool log_close()
 
 static bool log_reload()
 {
-    return true;
-
     GreenSQLConfig * cfg = GreenSQLConfig::getInstance();
     struct stat f_stat;
-
-    if (stat(cfg->log_file.c_str(), &f_stat) == 0)
-        return true;
-
+  
+    if (log_file != stdout) 
+    {
+      // check if file was deleted 
+      if ( fstat(fileno(log_file), &f_stat) == 0 )
+      {
+        // check number of har links, 0 - deleted
+        if (f_stat.st_nlink != 0)
+          return true; 
+      }
+    }
+    //if (stat(cfg->log_file.c_str(), &f_stat) == 0)
+    //  return true;
+    
+    
     // log file was not found. reload it
     log_close();
     log_init(cfg->log_file, cfg->log_level);
