@@ -1,9 +1,10 @@
-In order to compile this application you need the following development 
-libraries:
+In order to compile this application you need the following packages:
 
 libpcre
 libmysqlclient
 libevent
+flex
+bison
 
 For example in Debian Oldstable you will need:
 libpcre3
