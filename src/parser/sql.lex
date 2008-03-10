@@ -4,6 +4,7 @@
 #include "parser.hpp"
 static int get_q_string(int delimeter);
 int yyparse();
+static YY_BUFFER_STATE buf;
 %}
 
 %%
@@ -101,7 +102,11 @@ version\((\ |\t|\r|\n)*\) {
                     break;
                 } 
                 if (c == EOF)
+                {
+                  // fix of some strange bug that make application to hang
+                  buf->yy_buffer_status = YY_BUFFER_EOF_PENDING;
                   break;
+                }
               }
             }
 
@@ -152,8 +157,6 @@ binaary       ; // ignore binary statement
 %%
 //<<EOF>>      return END;
 
-
-static YY_BUFFER_STATE buf;
 
 static int get_q_string(int delimeter)
 {
