@@ -15,9 +15,6 @@
 // for fstat
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifndef WIN32
-#include <unistd.h>
-#endif
 
 static bool log_reload();
 static void printline(const unsigned char * data, int max);
