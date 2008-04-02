@@ -7,6 +7,6 @@
         delaycompress
 	copytruncate
         notifempty
-        #create 600 greensql greensql
+        create 666 greensql greensql
 }
 
