@@ -1,0 +1,75 @@
+#!/bin/sh
+#
+# greensql-fw This script starts and stops the GreenSQL-FW daemon
+#
+# chkconfig: - 78 30
+# processname: greensql-fw
+# description: GreenSQL Database Firewall
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+prog="greensql-fw"
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+# Check that networking is up.
+[ ${NETWORKING} = "no" ] && exit 0
+
+# Set default greensql-fw configuration.
+GREENSQLFW_CONF="/etc/greensql/"
+
+# Source greensql-fw configuration.
+if [ -f /etc/sysconfig/greensql-fw ] ; then
+	. /etc/sysconfig/greensql-fw
+fi
+
+[ -f /usr/sbin/greensql-fw -o -f /usr/bin/greensql-fw ] || exit 0
+PATH=$PATH:/usr/bin:/usr/local/bin
+
+# By default it's all good
+RETVAL=0
+
+# See how we were called.
+case "$1" in
+  start)
+	# Start daemon.
+	echo -n $"Starting $prog: "
+	#daemon $NICELEVEL greensql-fw -p $GREENSQLFW_CONF
+        /sbin/runuser -s /bin/sh -c "$prog -p $GREENSQLFW_CONF" greensql > /dev/null 2>&1 &
+        disown -ar
+        usleep 500000
+        status greensql-fw &> /dev/null && echo_success || echo_failure
+         RETVAL=$?
+        [ $RETVAL -eq 0 ] && touch /var/lock/subsys/greensql
+        echo
+        ;;
+  stop)
+        # Stop daemons.
+        echo -n $"Stopping $prog: "
+        killproc greensql-fw
+        RETVAL=$?
+        echo
+	if [ $RETVAL = 0 ]; then
+		rm -f /var/lock/subsys/greensql-fw
+	fi
+        ;;
+  restart)
+        $0 stop
+        $0 start
+        ;;
+  condrestart)
+       [ -e /var/lock/subsys/greensql ] && $0 restart
+       ;;
+  status)
+	status greensql-fw
+	RETVAL=$?
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart|status|condrestart}"
+	RETVAL=1
+	;;
+esac
+
+exit $RETVAL
