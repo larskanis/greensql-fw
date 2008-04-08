@@ -1,13 +1,16 @@
 Summary: GreenSQL open source database firewall solution.
 Name: greensql-fw
 Version: 0.8.2
-Release: 1
+Release: 2
 License: GPL
 Group: Applications/Databases
 URL: http://www.greensql.net/
 Source: http://easynews.dl.sourceforge.net/sourceforge/greensql/%{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-buildroot
 BuildRequires: mysql-devel, pcre-devel, libevent, flex, bison
+%if "%{_vendor}" == "redhat"
+BuildRequires: libevent-devel
+%endif
 
 %description
 GreenSQL is an Open Source database firewall used to protect
@@ -27,14 +30,25 @@ make RPM_OPT_FLAGS="$RPM_OPT_FLAGS"
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/etc/greensql
 mkdir -p $RPM_BUILD_ROOT/etc/logrotate.d
-mkdir -p $RPM_BUILD_ROOT/etc/init.d
 mkdir -p $RPM_BUILD_ROOT/usr/sbin
 
 install -s -m 755 greensql-fw $RPM_BUILD_ROOT/usr/sbin/greensql-fw
 install -m 0644 conf/greensql.conf $RPM_BUILD_ROOT/etc/greensql/greensql.conf
 install -m 0644 conf/mysql.conf $RPM_BUILD_ROOT/etc/greensql/mysql.conf
 install -m 0644 scripts/greensql.rotate $RPM_BUILD_ROOT/etc/logrotate.d/greensql
-install -m 0755 rpm/greensql-fw.init $RPM_BUILD_ROOT/etc/init.d/greensql-fw
+
+%if "%{_vendor}" == "redhat"
+mkdir -p $RPM_BUILD_ROOT/etc/rc.d/init.d/
+install -m 0755 rpm/greensql-fw.redhat.init $RPM_BUILD_ROOT/etc/rc.d/init.d/greensql-fw
+%endif
+
+%if "%{_vendor}" == "suse"
+mkdir -p $RPM_BUILD_ROOT/etc/init.d/
+install -m 0755 rpm/greensql-fw.suse.init $RPM_BUILD_ROOT/etc/init.d/greensql-fw
+%endif
+
+/sbin/chkconfig --add greensql-fw
+
 #make DESTDIR=$RPM_BUILD_ROOT
 
 %clean
@@ -48,9 +62,17 @@ install -m 0755 rpm/greensql-fw.init $RPM_BUILD_ROOT/etc/init.d/greensql-fw
 %config /etc/logrotate.d/greensql
 
 /usr/sbin/greensql-fw
+
+%if "%{_vendor}" == "redhat"
+/etc/rc.d/init.d/greensql-fw
+%endif
+
+%if "%{_vendor}" == "suse"
 /etc/init.d/greensql-fw
+%endif
 
 %post
+/sbin/chkconfig --del greensql-fw
 groupadd greensql > /dev/null 2>&1
 if ! /usr/bin/id greensql > /dev/null 2>&1 ; then
     useradd -g greensql -s /dev/null greensql
@@ -66,6 +88,8 @@ chmod 0600 /var/log/greensql.log > /dev/null 2>&1
 chown root:root /var/log/greensql.log > /dev/null 2>&1
 chmod 0700 /etc/greensql > /dev/null 2>&1
 chown root:root /etc/greensql > /dev/null 2>&1
-userdel -f greensql > /dev/null 2>&1
-groupdel greensql > /dev/null 2>&1
+/usr/sbin/userdel -f greensql > /dev/null 2>&1
+/usr/sbin/groupdel greensql > /dev/null 2>&1
+true
+
 %changelog
