@@ -58,6 +58,28 @@ build_bsd()
   exit
 }
 
+build_rpm()
+{
+  if `which rpmbuild >/dev/null 2>&1`
+  then
+    echo "rpmbuild ok"
+  else
+    echo "rpmbuild not found. This application is used during package creation."
+    exit
+  fi
+
+  GREEN_VER=`grep Version rpm/greensql-fw.spec | sed -e "s/^[a-zA-Z]*:\s*//"`
+  cp -r ./ ../greensql-fw-$GREEN_VER
+  cd ..
+  rm -rf greensql-fw-$GREEN_VER.tar.gz 
+  tar -czf greensql-fw-$GREEN_VER.tar.gz greensql-fw-$GREEN_VER/
+  rm -rf greensql-fw-$GREEN_VER 
+  rpmbuild -ta greensql-fw-$GREEN_VER.tar.gz
+  echo ""
+  #echo "Look for packages in the following directory /usr/src/packages"
+  exit
+}
+
 if `grep -i ubuntu /etc/issue >/dev/null 2>&1`
 then
   echo "Building Ubuntu package"
@@ -70,14 +92,22 @@ then
   build_deb
 fi
 
+if `grep -i -E "suse|fedora|redhat|centos" /etc/issue >/dev/null 2>&1`
+then
+  echo "Building rpm package (for SuSe/Fedora/Redhat/Centos)"
+  build_rpm
+fi
+
 if `uname | grep -i freebsd >/dev/null 2>&1`
 then
   echo "Building FreeBSD package"
   build_bsd
 fi
 
-echo "This script could be used to build GreenSQL for Debian/Ubuntu/FreeBSD"
-echo "For other OSes you will have to do some hacking"
+
+echo "This script could be used to build greensql-fw package for:
+echo "Debian/Ubuntu/FreeBSD/RedHat/CentOS/Fedora/Suse"
+echo "For other systems you have to do some hacking"
 echo
 echo "You can start by running \"make\""
 echo
