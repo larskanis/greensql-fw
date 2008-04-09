@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # This script was initially built in debian
-# It might be possible to adopt it to other linuxes as well.
+# It might be possible to adopt it to other systems as well.
 
 PIDFILE="/var/run/greensql-fw.pid"
 GREENSQL_CONF="/etc/greensql/"
