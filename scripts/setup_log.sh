@@ -9,6 +9,6 @@ fi
 
 touch /var/log/greensql.log
 chown greensql:greensql /var/log/greensql.log
-chmod 600 /var/log/greensql.log
+chmod 666 /var/log/greensql.log
 cp greensql.rotate /etc/logrotate.d/greensql
 echo "done..."
