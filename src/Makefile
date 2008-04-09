@@ -5,7 +5,7 @@ CPP=g++
 
 CFLAGS:=-Wall -D_REENTRANT -O2
 CXXFLAGS:=-g -Wno-deprecated -Wall -I/usr/include/mysql/ -I/usr/local/include/ -I/usr/local/include/mysql/
-LIBS:=-L/usr/local/lib -L/usr/local/lib/mysql -lmysqlclient -levent -lpcre
+LIBS:=-L/usr/local/lib -L/usr/local/lib/mysql -L/usr/lib/mysql -lmysqlclient -levent -lpcre
 
 greensql-fw: $(OBJS)
 	cd parser; make CXXFLAGS="$(CXXFLAGS)"
