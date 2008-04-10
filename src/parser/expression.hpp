@@ -9,6 +9,10 @@
 #include <iterator>   //ostream_iterator
 #include <list>
 
+#ifdef WIN32
+#define strcasecmp _stricmp
+#endif
+
 class SQLString {
 public:
   SQLString(char * str)
@@ -103,7 +107,7 @@ public:
     while (itr != xp2->fields.end())
     {
         fields.insert(*itr);
-	itr++;
+        itr++;
     }
     //fields = set_union(fields, xp2.fields);
     if (xp2->has_const == 1)
@@ -169,7 +173,7 @@ public:
       const char * str = (*(fields.begin())).c_str();
       if (strcasecmp(str, "pwd") == 0 ||
           strcasecmp(str, "pass") == 0 ||
-	  strcasecmp(str, "password") == 0)
+	      strcasecmp(str, "password") == 0)
       {
         return true;
       }

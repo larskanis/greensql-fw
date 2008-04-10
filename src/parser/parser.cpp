@@ -45,7 +45,8 @@ int main()
 bool query_parse(struct query_risk * q_risk, const char * q)
 {
   p_risk = q_risk;
-  bzero(q_risk, sizeof(struct query_risk));
+  //bzero(q_risk, sizeof(struct query_risk));
+  memset(q_risk, sizeof(struct query_risk), 0);
   scan_buffer(q);
   free_sql_strings();
   free_expressions();
