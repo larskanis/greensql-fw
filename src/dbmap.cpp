@@ -142,7 +142,6 @@ bool dbmap_reload()
             // default db
 	    default_db->Init(db_name, proxy_id, create_b, drop_b,
 			     alter_b, info_b, block_q_b);
-            default_db->LoadExceptions();
 	}
 	else if (itr == dbs.end())
         {
