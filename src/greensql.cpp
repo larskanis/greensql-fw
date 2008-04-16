@@ -42,7 +42,7 @@ GreenSQL::~GreenSQL(void)
 
 bool GreenSQL::PrepareNewConn(int fd, int & sfd, int & cfd)
 {
-    logevent(NET_DEBUG, "server socket fired, fd=%d\n",fd);
+    //logevent(NET_DEBUG, "server socket fired, fd=%d\n",fd);
     sfd = socket_accept(fd);
     if (sfd == -1)
         return false;
@@ -51,11 +51,11 @@ bool GreenSQL::PrepareNewConn(int fd, int & sfd, int & cfd)
     if (cfd == -1)
     {
         socket_close(sfd);
-	logevent(NET_DEBUG, "Failed to open client socket\n");
+	logevent(NET_DEBUG, "Failed to connect to backend db server (%s:%d)\n", sBackendName.c_str(), iBackendPort);
 	return false;
     }
     
-    logevent(NET_DEBUG, "client (to mysql backend) connection established\n");
+    //logevent(NET_DEBUG, "client (to mysql backend) connection established\n");
     return true;
 }
 
@@ -195,7 +195,7 @@ int GreenSQL::socket_accept(int serverfd)
             perror("connect()");
         }
     #endif
-	    socket_close(sfd);
+	socket_close(sfd);
         return -1;
     }
     
@@ -205,7 +205,7 @@ int GreenSQL::socket_accept(int serverfd)
     {
         perror("setting O_NONBLOCK");
         socket_close(sfd);
-	    return -1;
+	return -1;
     }
     #else
     int flags;
@@ -213,7 +213,7 @@ int GreenSQL::socket_accept(int serverfd)
          fcntl(sfd, F_SETFL, flags | O_NONBLOCK) < 0) {
         perror("setting O_NONBLOCK");
         socket_close(sfd);
-	    return -1;
+	return -1;
     }
     #endif
     return sfd;
@@ -293,7 +293,7 @@ int GreenSQL::new_socket() {
     {
         perror("setting O_NONBLOCK");
         socket_close((int)sock);
-	    return -1;
+	return -1;
     }
     sfd = (int) sock;
 #else
@@ -619,7 +619,7 @@ void GreenSQL::Close()
         conn = v_conn[i-1];
         conn->close();
         v_conn.pop_back();
-	    delete conn;
+	delete conn;
         i--;
     }
     v_conn.clear();
