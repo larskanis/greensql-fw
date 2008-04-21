@@ -162,7 +162,7 @@ int GreenSQL::client_socket(std::string & server, int port)
         }
 #endif
         socket_close(sfd);
-	    return -1;
+	return -1;
     }
     return sfd;
 }
@@ -317,7 +317,7 @@ int GreenSQL::new_socket() {
 
 
 bool GreenSQL::ProxyInit(int proxyId, std::string & proxyIp, int proxyPort,
-		std::string & backendIp, int backendPort)
+		std::string & backendIp, int backendPort, std::string & dbType)
 {
    
     sProxyIP = proxyIp;
@@ -325,7 +325,17 @@ bool GreenSQL::ProxyInit(int proxyId, std::string & proxyIp, int proxyPort,
     sBackendName = backendIp;
     iBackendPort = backendPort;
     iProxyId = proxyId;
-
+    sDBType = dbType;
+    if (dbType == "mysql")
+    {
+        DBType = DBTypeMySQL;
+    } else if (dbType == "pgsql")
+    {
+        DBType = DBTypePGSQL;
+    } else if (dbType == "mssql")
+    {
+        DBType = DBTypeMSSQL;
+    }
     int sfd = server_socket(sProxyIP, iProxyPort);
     if (sfd == -1)
         return false;
@@ -338,7 +348,8 @@ bool GreenSQL::ProxyInit(int proxyId, std::string & proxyIp, int proxyPort,
 }
 
 bool GreenSQL::ProxyReInit(int proxyId, std::string & proxyIp, int proxyPort,
-		                std::string & backendIp, int backendPort)
+		                std::string & backendIp, int backendPort,
+				std::string & dbType)
 {
     if (ServerInitialized())
     {
@@ -348,7 +359,7 @@ bool GreenSQL::ProxyReInit(int proxyId, std::string & proxyIp, int proxyPort,
 	
         serverEvent.ev_fd = 0;
     }
-    return ProxyInit(proxyId, proxyIp, proxyPort, backendIp, backendPort);
+    return ProxyInit(proxyId, proxyIp, proxyPort, backendIp, backendPort, dbType);
 }
 
 // this function return true is server socket is established
