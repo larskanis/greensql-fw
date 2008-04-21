@@ -18,6 +18,8 @@
 #include <event.h>
 #include <string>
 #include <vector>
+enum DBProxyType { DBTypeMySQL, DBTypePGSQL, DBTypeMSSQL };
+
 class GreenSQL
 {
     
@@ -39,9 +41,11 @@ public:
     
     //proxy
     bool ProxyInit(int proxyId, std::string & proxyIp, int proxyPort,
-                   std::string & backendIp, int backendPort);
+                   std::string & backendIp, int backendPort,
+		   std::string & dbType);
     bool ProxyReInit(int proxyId, std::string & proxyIp, 
-		    int proxyPort, std::string & bIp, int bPort);
+		    int proxyPort, std::string & bIp, int bPort,
+		    std::string & dbType);
     bool ServerInitialized();	
     bool PrepareNewConn(int, int &, int &);
     virtual void Server_cb(int fd, short which, void * arg, 
@@ -66,6 +70,9 @@ public:
     int         iBackendPort;
     std::string sProxyIP;
     int         iProxyPort;
+    std::string sDBType;
+    DBProxyType     DBType;
+
     bool bRunning;
  
 };
