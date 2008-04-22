@@ -39,15 +39,15 @@ install -m 0644 scripts/greensql.rotate $RPM_BUILD_ROOT/etc/logrotate.d/greensql
 
 %if "%{_vendor}" == "redhat"
 mkdir -p $RPM_BUILD_ROOT/etc/rc.d/init.d/
+mkdir -p $RPM_BUILD_ROOT/etc/init.d/
 install -m 0755 rpm/greensql-fw.redhat.init $RPM_BUILD_ROOT/etc/rc.d/init.d/greensql-fw
+install -m 0755 rpm/greensql-fw.redhat.init $RPM_BUILD_ROOT/etc/init.d/greensql-fw
 %endif
 
 %if "%{_vendor}" == "suse"
 mkdir -p $RPM_BUILD_ROOT/etc/init.d/
 install -m 0755 rpm/greensql-fw.suse.init $RPM_BUILD_ROOT/etc/init.d/greensql-fw
 %endif
-
-/sbin/chkconfig --add greensql-fw
 
 #make DESTDIR=$RPM_BUILD_ROOT
 
@@ -65,6 +65,7 @@ install -m 0755 rpm/greensql-fw.suse.init $RPM_BUILD_ROOT/etc/init.d/greensql-fw
 
 %if "%{_vendor}" == "redhat"
 /etc/rc.d/init.d/greensql-fw
+/etc/init.d/greensql-fw
 %endif
 
 %if "%{_vendor}" == "suse"
@@ -72,16 +73,21 @@ install -m 0755 rpm/greensql-fw.suse.init $RPM_BUILD_ROOT/etc/init.d/greensql-fw
 %endif
 
 %post
-/sbin/chkconfig --del greensql-fw
-groupadd greensql > /dev/null 2>&1
+/sbin/chkconfig --add greensql-fw  > /dev/null 2>&1 || true
+/sbin/chkconfig greensql-fw on || true
+
+groupadd greensql > /dev/null 2>&1 || true
 if ! /usr/bin/id greensql > /dev/null 2>&1 ; then
-    useradd -g greensql -s /dev/null greensql
+    useradd -g greensql -s /dev/null greensql > /dev/null 2>&1 || true
 fi
-touch /var/log/greensql.log
-chown greensql:greensql /var/log/greensql.log
-chown greensql:greensql -R /etc/greensql
+touch /var/log/greensql.log || true
+chown greensql:greensql /var/log/greensql.log || true
+chown greensql:greensql -R /etc/greensql || true
 #echo
 #echo "Now, you need to create database used to store GreenSQL configuration.
+
+%preun
+/sbin/chkconfig --del greensql-fw  > /dev/null 2>&1 || true
 
 %postun
 chmod 0600 /var/log/greensql.log > /dev/null 2>&1
