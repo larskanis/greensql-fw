@@ -137,14 +137,15 @@ bool proxymap_reload()
     std::string proxyIP;
     int proxyPort;
     int proxy_id = 99;
-
+    std::string dbType;
     
     backendIP = "127.0.0.1";
     backendPort = 3306;
 
     proxyIP = "127.0.0.1";
     proxyPort = 3305;
-
+    
+    dbType = "mysql";
     //        GreenMySQL * cls = new GreenMySQL();
     //        cls->ProxyInit(proxy_id, proxyIP, proxyPort,
     //                        backendIP, backendPort);
@@ -179,6 +180,7 @@ bool proxymap_reload()
         // backendServer = row[3]
         backendIP = row[4];
         backendPort = atoi(row[5]);
+	dbType = row[5];
         //new object
         
 	std::map<int, GreenMySQL * >::iterator itr;
@@ -189,7 +191,7 @@ bool proxymap_reload()
             cls = new GreenMySQL();
 
             bool ret = cls->ProxyInit(proxy_id, proxyIP, proxyPort, 
-			    backendIP, backendPort);
+			    backendIP, backendPort, dbType);
 	    if (ret == false)
 	    {
                 // failed to init proxy
@@ -202,15 +204,17 @@ bool proxymap_reload()
 	    }
             continue; 
         }
-	
+
+        // found proxy object	
         cls = itr->second;
 
         // check if db settings has been changed
         if (cls->sProxyIP != proxyIP ||
-            cls->iProxyPort != proxyPort)
+            cls->iProxyPort != proxyPort ||
+	    cls->sDBType != dbType)
 	{
             ret = cls->ProxyReInit(proxy_id, proxyIP, proxyPort,
-                                   backendIP, backendPort);
+                                   backendIP, backendPort, dbType);
             if (ret == false)
             {
                 proxymap_set_db_status(proxy_id, 2);
@@ -226,13 +230,15 @@ bool proxymap_reload()
             cls->iBackendPort = backendPort;
 	}
 
+	
         if (cls->ServerInitialized() == true)
         {
             proxymap_set_db_status(proxy_id, 1);
         } else {
-            // try to reinitialize server socket
+            // we failed to open this server object,
+	    // try once again
             ret = cls->ProxyReInit(proxy_id, proxyIP, proxyPort,
-                               backendIP, backendPort);
+                               backendIP, backendPort, dbType);
             if (ret == false)
             {
                 proxymap_set_db_status(proxy_id, 2);
