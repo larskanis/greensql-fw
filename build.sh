@@ -98,6 +98,12 @@ then
   build_rpm
 fi
 
+if `grep -i -E "suse|fedora|redhat|centos" /etc/rpm/platform >/dev/null 2>&1`
+then
+  echo "Building rpm package (for SuSe/Fedora/Redhat/Centos)"
+  build_rpm
+fi
+
 if `uname | grep -i freebsd >/dev/null 2>&1`
 then
   echo "Building FreeBSD package"
@@ -109,7 +115,7 @@ echo "This script could be used to build greensql-fw package for:
 echo "Debian/Ubuntu/FreeBSD/RedHat/CentOS/Fedora/Suse"
 echo "For other systems you have to do some hacking"
 echo
-echo "You can start by running \"make\""
+echo "You can start by running: make"
 echo
-exit;
+exit
 
