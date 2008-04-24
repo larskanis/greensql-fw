@@ -37,7 +37,7 @@ public:
     }
 };
 
-static std::map<int, GreenMySQL * > proxies;
+static std::map<int, GreenSQL * > proxies;
 
 void wrap_Server(int fd, short which, void * arg)
 {
@@ -47,14 +47,25 @@ void wrap_Server(int fd, short which, void * arg)
     logevent(NET_DEBUG, "[%d]wrap_Server\n", proxy_id);
     GreenSQLConfig * conf = GreenSQLConfig::getInstance();
     
-    GreenMySQL * cls = proxies[proxy_id];
-    
-    if(cls != NULL)
-        if (conf->bRunning == false)
-            cls->Close();
-        else
-            cls->Server_cb(fd, which, arg, NULL, 0, 0);
-
+    GreenSQL * cls = proxies[proxy_id];
+    Connection * conn = NULL;
+    int sfd;
+    int cfd;
+ 
+    if(cls == NULL)
+      return;
+    if (conf->bRunning == false)
+    {
+      cls->Close();
+    }
+    else if(cls->PrepareNewConn(fd, sfd, cfd))
+    {
+      if (cls->DBType == DBTypeMySQL)
+      {
+        conn = new MySQLConnection(proxy_id);
+      }
+      cls->Server_cb(fd, which, arg, conn, sfd, cfd);
+    }
 }
 
 void wrap_Proxy(int fd, short which, void * arg)
@@ -66,7 +77,7 @@ void wrap_Proxy(int fd, short which, void * arg)
     logevent(NET_DEBUG, "[%d]frontend socket fired %d\n", proxy_id, fd);
     GreenSQLConfig * conf = GreenSQLConfig::getInstance();
 
-    GreenMySQL * cls = proxies[proxy_id];
+    GreenSQL * cls = proxies[proxy_id];
     
     if(cls != NULL)
         if (conf->bRunning == false)
@@ -86,7 +97,7 @@ void wrap_Backend(int fd, short which, void * arg)
 
     GreenSQLConfig * conf = GreenSQLConfig::getInstance();
 
-    GreenMySQL * cls = proxies[proxy_id];
+    GreenSQL * cls = proxies[proxy_id];
 
     if(cls != NULL)
         if (conf->bRunning == false)
@@ -108,8 +119,8 @@ bool proxymap_init()
 
 bool proxymap_close()
 {
-    std::map<int, GreenMySQL * >::iterator iter;
-    GreenMySQL * cls = NULL;
+    std::map<int, GreenSQL * >::iterator iter;
+    GreenSQL * cls = NULL;
 
     while (proxies.size() != 0)
     {
@@ -129,7 +140,7 @@ bool proxymap_reload()
     //get records from the database
     MYSQL_RES *res; /* To be used to fetch information into */
     MYSQL_ROW row;
-    GreenMySQL * cls;
+    GreenSQL * cls;
     bool ret;
 
     std::string backendIP;
@@ -146,7 +157,7 @@ bool proxymap_reload()
     proxyPort = 3305;
     
     dbType = "mysql";
-    //        GreenMySQL * cls = new GreenMySQL();
+    //        GreenSQL * cls = new GreenSQL();
     //        cls->ProxyInit(proxy_id, proxyIP, proxyPort,
     //                        backendIP, backendPort);
     //        proxies[proxy_id] = cls;
@@ -183,12 +194,12 @@ bool proxymap_reload()
 	dbType = row[5];
         //new object
         
-	std::map<int, GreenMySQL * >::iterator itr;
+	std::map<int, GreenSQL * >::iterator itr;
 	itr = proxies.find(proxy_id);
 	
         if (itr == proxies.end())
 	{
-            cls = new GreenMySQL();
+            cls = new GreenSQL();
 
             bool ret = cls->ProxyInit(proxy_id, proxyIP, proxyPort, 
 			    backendIP, backendPort, dbType);
@@ -230,7 +241,6 @@ bool proxymap_reload()
             cls->iBackendPort = backendPort;
 	}
 
-	
         if (cls->ServerInitialized() == true)
         {
             proxymap_set_db_status(proxy_id, 1);
