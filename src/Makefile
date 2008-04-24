@@ -12,7 +12,7 @@ greensql-fw: $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LIBS) -o greensql-fw $(OBJS) parser/parser.o parser/sql.o parser/sql.tab.o
 
 mysql/mysql_con.o:
-	$(CXX) $(CXXFLAGS) -o greensql-fw -c mysql/mysql_con.cpp -o mysql/mysql_con.o
+	$(CXX) $(CXXFLAGS) -c mysql/mysql_con.cpp -o mysql/mysql_con.o
 
 clean:
 	rm -rf greensql-fw *.o mysql/*.o
