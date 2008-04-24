@@ -335,6 +335,9 @@ bool GreenSQL::ProxyInit(int proxyId, std::string & proxyIp, int proxyPort,
     } else if (dbType == "mssql")
     {
         DBType = DBTypeMSSQL;
+    } else 
+    {
+	DBType = DBTypeMySQL;
     }
     int sfd = server_socket(sProxyIP, iProxyPort);
     if (sfd == -1)
@@ -584,11 +587,11 @@ void GreenSQL::ProxyValidateServerResponse( Connection * conn )
     
         //try to write without polling
         int len = (int)response.size();
-	    if (len == 0)
-	    {
+	if (len == 0)
+	{
             // need to read more data to decide
-	        return;
-	    }
+	    return;
+	}
         if (socket_write(conn->proxy_event.ev_fd, response.c_str(), len) == true)
         {
             if (response.size() == (unsigned int)len)
