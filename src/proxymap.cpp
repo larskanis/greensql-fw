@@ -191,7 +191,7 @@ bool proxymap_reload()
         // backendServer = row[3]
         backendIP = row[4];
         backendPort = atoi(row[5]);
-	dbType = row[5];
+	dbType = row[6];
         //new object
         
 	std::map<int, GreenSQL * >::iterator itr;
