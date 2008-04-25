@@ -111,7 +111,7 @@ then
 fi
 
 
-echo "This script could be used to build greensql-fw package for:
+echo "This script could be used to build greensql-fw package for:"
 echo "Debian/Ubuntu/FreeBSD/RedHat/CentOS/Fedora/Suse"
 echo "For other systems you have to do some hacking"
 echo
