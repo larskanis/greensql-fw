@@ -1,3 +1,9 @@
+//
+// GreenSQL SQL language parser.
+//
+// Copyright (c) 2007 GreenSQL.NET <stremovsky@gmail.com>
+// License: GPL v2 (http://www.gnu.org/licenses/gpl.html)
+//
 
 #include <iostream>
 #include "expression.hpp"
