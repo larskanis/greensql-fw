@@ -51,6 +51,7 @@ static void cmp_fn(Expression * xp1, Expression * xp2);
 %type <str_val> alias
 %type <str_val> alias_str
 %type <exp_val> fn
+%type <exp_val> simple_fn
 %type <exp_val> fn_args
 %type <exp_val> const_value
 %type <str_val> table_field
@@ -142,6 +143,7 @@ math_exp:     field                           { $$=$1; }
 field:        table_field { $$=new Expression(); $$->AddField($1); }
             | const_value { $$=$1; } // const is already converter to exp
             | fn          { $$=$1; }
+            | simple_fn   { $$=new Expression(); $$->AddConst(new SQLString("fn()")); }
 	    ;
 
 table_field:  STRING               { $$=$1; /* printf("field: (s) %s\n", $1->Dump()); */ }
@@ -219,9 +221,11 @@ index_list:   STRING
             ;
 	
 fn:           STRING O_BRACE fn_args C_BRACE { $$=$3; }
-            | STRING O_BRACE MULTIPLY C_BRACE { }
-            | STRING O_BRACE C_BRACE { }
             | STRING O_BRACE DISTINCT fn_args order_cond C_BRACE { $$=$4; /* printf("fn\n"); */ } 
+            ;
+
+simple_fn:    STRING O_BRACE MULTIPLY C_BRACE { }
+            | STRING O_BRACE C_BRACE { }
             ;
 
 fn_args:       math_exp                  { $$=$1; }
@@ -272,7 +276,7 @@ order_cond: /* empty */
             ;
 
 orderby_column_list: table_field
-            | fn
+            | simple_fn
             | NULLX
             | orderby_column_list COMMA orderby_column_list
             ;
