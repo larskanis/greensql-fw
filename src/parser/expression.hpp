@@ -76,6 +76,7 @@ public:
   Expression()
   {
     has_const = 0;
+    str_length = 0;
     const_type = Undef;
     expressions.push_front(this);
     itr = expressions.begin();
@@ -130,10 +131,15 @@ public:
 
   bool Comp(Expression * xp2)
   {
-    //std::cout << "Left : ";
-    //Dump();
-    //std::cout << "Right: ";
-    //xp2->Dump();
+#ifdef PARSER_DEBUG
+    std::cout << "Left : ";
+    Dump();
+    if (xp2 != NULL)
+    {
+      std::cout << "Right: ";
+      xp2->Dump();
+    }
+#endif
 
     if (fields.size() != xp2->fields.size())
     {
@@ -192,7 +198,8 @@ public:
   {
     std::set<std::string>::iterator itr;
     itr = fields.begin();
-    //std::cout << "exp cont: ";
+    
+    std::cout << "exp cont: ";
     while (itr != fields.end())
     {
         std::cout << *itr << ", ";
