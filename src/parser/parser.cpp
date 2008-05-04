@@ -28,9 +28,10 @@ static query_risk * p_risk = &risk;
 int main()
 {
   char buf[1024];
-  snprintf(buf,sizeof(buf), "select 1 from user where t1 = 'string");
+  snprintf(buf,sizeof(buf), "SELECT * FROM users WHERE laston=unix_timestamp()+10*20+fn() AND user_level>1 ORDER BY userid ASC");
   scan_buffer(buf);
-  exit;
+
+  /*
   snprintf(buf,sizeof(buf), "select 1 from user where 1 -- commnent");
   scan_buffer(buf);
       
@@ -41,6 +42,7 @@ int main()
     //std::cout << "line: " << s << std::endl;
     scan_buffer(s.c_str());
   }
+  */
   free_sql_strings();
   free_expressions();
   return 1;
