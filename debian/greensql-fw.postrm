@@ -77,13 +77,13 @@ cleanup() {
 
 drop_mysql() {
   #echo "drop mysql $MRO"
-  mysql $MRO -f $DATABASE -e "REVOKE ALL ON * FROM ${MYSQL_USER}" \
+  mysql $MRO -f $DATABASE -e "REVOKE ALL ON $DATABASE.* FROM $MYSQL_USER" \
     > /dev/null 2>&1 || true
   mysql $MRO -f $DATABASE -e \
-    "REVOKE ALL ON * FROM '${MYSQL_USER}'@'localhost'" \
+    "REVOKE ALL ON $DATABASE.* FROM '$MYSQL_USER'@'localhost'" \
     > /dev/null 2>&1 || true
   mysql $MRO -f mysql -e \
-    "DELETE FROM user WHERE User='${MYSQL_USER}'" \
+    "DELETE FROM user WHERE User='$MYSQL_USER'" \
     > /dev/null 2>&1 || true
   mysqladmin $MRO -f drop $DATABASE > /dev/null 2>&1 || true
 }
