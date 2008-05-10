@@ -12,6 +12,7 @@ clean:
 
 install:
 	cp greensql-fw ${DESTDIR}/usr/sbin
+	cp scripts/greensql-create-db.sh ${DESTDIR}/usr/sbin/
 	cp conf/greensql.conf ${DESTDIR}/etc/greensql/
 	cp conf/mysql.conf ${DESTDIR}/etc/greensql/
 	touch ${DESTDIR}/var/log/greensql.log
