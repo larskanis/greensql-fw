@@ -64,7 +64,6 @@ change_pwd()
   if [ "$cont" != "" ]; then  
     GREENSQL_DB_PWD=$cont
   fi
-  echo "new pwd $GREENSQL_DB_PWD"
 }
 
 print_settings()
@@ -138,9 +137,9 @@ create_db()
   if mysql $MRO -BNe 'show databases' | grep -q "$GREENSQL_DB_NAME"; then
     echo "Database already exists, doing nothing."
   else
-    echo "Creating database..."
+    echo "Creating MySQL database..."
     mysqladmin $MRO -f create $GREENSQL_DB_NAME > /dev/null
-    echo "Adding user..."
+    echo "Adding MySQL user..."
     if [ "$MYSQL_HOSTNAME" = "localhost" -o "$MYSQL_HOSTNAME" = "127.0.0.1" ]
     then
       mysql $MRO $GREENSQL_DB_NAME -f -e "GRANT ALL ON $GREENSQL_DB_NAME.* TO '$GREENSQL_DB_USER'@'localhost' IDENTIFIED BY '${GREENSQL_DB_PWD}'" > /dev/null
@@ -154,7 +153,7 @@ create_db()
 
 create_tables()
 {
-echo "Creating tables..."
+echo "Creating MySQL tables..."
 mysql $MRO $GREENSQL_DB_NAME -e \
 "CREATE table query
 (
@@ -255,10 +254,14 @@ if [ ! -w $GREENSQL_CONFIG_FILE ]; then
   echo "dbpass=$GREENSQL_DB_PWD"
   if [ "$MYSQL_PORT" != "" ] && [ "$MYSQL_PORT" != "3306" ]; then
     echo "dbport=${MYSQL_PORT}"
+  else
+    echo "# dbport=3306"
   fi
   echo ""
   return
 fi
+
+echo "Modifing $GREENSQL_CONFIG_FILE..."
 
 # save start and end of the config file
 start_cfg=`perl -p0777 -e 's/\[database\].*$//s' $GREENSQL_CONFIG_FILE`
