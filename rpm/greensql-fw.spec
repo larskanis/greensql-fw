@@ -1,7 +1,7 @@
 Summary: GreenSQL open source database firewall solution.
 Name: greensql-fw
-Version: 0.8.2
-Release: 2
+Version: 0.8.3
+Release: 1
 License: GPL
 Group: Applications/Databases
 URL: http://www.greensql.net/
@@ -32,7 +32,8 @@ mkdir -p $RPM_BUILD_ROOT/etc/greensql
 mkdir -p $RPM_BUILD_ROOT/etc/logrotate.d
 mkdir -p $RPM_BUILD_ROOT/usr/sbin
 
-install -s -m 755 greensql-fw $RPM_BUILD_ROOT/usr/sbin/greensql-fw
+install -s -m 0755 greensql-fw $RPM_BUILD_ROOT/usr/sbin/greensql-fw
+install -m 0755 scripts/greensql-create-db.sh $RPM_BUILD_ROOT/usr/sbin/
 install -m 0644 conf/greensql.conf $RPM_BUILD_ROOT/etc/greensql/greensql.conf
 install -m 0644 conf/mysql.conf $RPM_BUILD_ROOT/etc/greensql/mysql.conf
 install -m 0644 scripts/greensql.rotate $RPM_BUILD_ROOT/etc/logrotate.d/greensql
@@ -62,6 +63,7 @@ install -m 0755 rpm/greensql-fw.suse.init $RPM_BUILD_ROOT/etc/init.d/greensql-fw
 %config /etc/logrotate.d/greensql
 
 /usr/sbin/greensql-fw
+/usr/sbin/greensql-create-db.sh
 
 %if "%{_vendor}" == "redhat"
 /etc/rc.d/init.d/greensql-fw
