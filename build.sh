@@ -38,6 +38,7 @@ build_bsd()
   rm -rf $VIRTDIR
   mkdir -p $VIRTDIR/sbin
   cp ../greensql-fw                $VIRTDIR/sbin/
+  cp ../scripts/greensql-create-db.sh $VIRTDIR/sbin/
   mkdir -p $VIRTDIR/etc/greensql
   cp ../conf/*.conf                $VIRTDIR/etc/greensql/
   mkdir -p $VIRTDIR/etc/rc.d
