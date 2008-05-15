@@ -11,7 +11,11 @@ libpcre3
 libpcre3-dev
 libevent-dev
 
-For default installation of FreeBSD you will need to run the following commands:
+For Ubuntu I had to install:
+libmysqlclient15-dev
+libevent-dev
+
+If you use default installation of FreeBSD you will need to run the following packages:
 
 pkg_add -r bison
 pkg_add -r libevent
