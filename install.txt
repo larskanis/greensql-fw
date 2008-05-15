@@ -27,42 +27,11 @@ Alternatively you can run the following commands:
 
 Creating MySQL DB and user
 --------------------------
-There are a number of steps in order to perform to create 
-MySQL DB and a user. Please run commands listed here as a root user.
+Just run the following script: greensql-create-db . It will
+automatically create configuration database.
 
-
-1. Firs of all  you need to creat GreenSQL DB. Run the following command:
-
-  mysqladmin create greendb
-
-2. After creating database, you can create tables by running the following
-command:
-  
-  cat db/mysql_create_tables.sql | mysql greendb 
-
-
-3. In order to add db user, run the following command in the shell:
-
-  echo "GRANT ALL PRIVILEGES ON greendb.* TO 'USER'@'%' IDENTIFIED BY 'PWD';" | mysql
-
-where:
-  USER - is a database user you wish to create.
-  PWD - is a password that will be used in order to access db.
-
-For example:
-  
-  echo "GRANT ALL PRIVILEGES  ON greendb.* TO 'green'@'%' IDENTIFIED BY 'pwd';" | mysql
-  
-
-4. Next, you need to sync new database setings. Run the following command:
-
-  mysqladmin flush-privileges
-
-
-Now everything must be setted up. In order to simplify mysql installation
-process, you can run setup_mysql.sh file located in the scripts directory.
-Please note, it will use a default password, which is not recomended.
-
+  cd scripts/
+  ./greensql-create-db.sh
 
 Setting up configuration files
 ------------------------------
