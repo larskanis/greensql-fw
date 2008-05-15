@@ -11,3 +11,9 @@ libpcre3
 libpcre3-dev
 libevent-dev
 
+For default installation of FreeBSD you will need to run the following commands:
+
+pkg_add -r bison
+pkg_add -r libevent
+pkg_add -r pcre
+pkg_add -r mysql51-client
