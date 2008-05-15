@@ -1,8 +1,8 @@
 
 The following directory contains source code of the GreenSQL engine.
 GreenSQL is an open source solution used to protect MySQL database
-agains SQL injection attacks. It is using biasian like method to
-detect SQL injections as well are a black list of forbidden SQL
+agains SQL injection attacks. It is using bayesian like method to
+detect SQL injections as well are a black list of "illegal" SQL
 commands.
 
 
