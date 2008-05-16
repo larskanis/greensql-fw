@@ -1,3 +1,12 @@
+greensql-fw (0.8.3) unstable; urgency=low
+
+  * Number of fixes of the risk engine.
+  * Added support for differnt types of of backend servers.
+  * Added new mysql patterns.
+  * Number of fixes of the debian package.
+
+ -- yuli <stremovsky@gmail.com>  May, 16 Fri 2008 14:40:00 +0300
+
 greensql-fw (0.8.2) unstable; urgency=low
 
   * Fixed a bug with reloading log file.
