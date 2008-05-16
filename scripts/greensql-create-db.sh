@@ -1,5 +1,10 @@
 #!/bin/sh
 
+#
+# Copyright (c) 2007 GreenSQL.NET <stremovsky@gmail.com>
+# License: GPL v2 (http://www.gnu.org/licenses/gpl.html)
+#
+
 MYSQL_ADMIN_USER="root"
 MYSQL_ADMIN_PWD=""
 MYSQL_HOST="127.0.0.1"
