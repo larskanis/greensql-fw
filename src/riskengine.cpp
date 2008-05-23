@@ -18,10 +18,7 @@ static bool check_sensitive_tables(std::string & query);
 static bool check_sensitive_table(std::string & table);
 static bool check_or_token(std::string & query);
 static bool check_union_token(std::string & query);
-static bool check_empty_password(std::string & query);
-static bool check_var_cmp_var(std::string & query);
-static bool check_always_true(std::string & query);
-static bool check_multiple_queries(std::string & pattern);
+//static bool check_empty_password(std::string & query);
 //
 // This function calculates risk assosicated with specific SQL query.
 // For more information about this file, please check docs/tautology.txt
@@ -239,6 +236,7 @@ static bool check_sensitive_table(std::string & table)
     return conf->mysql_patterns.Match( SQL_S_TABLES,  table );
 }
 
+/*
 static bool check_empty_password(std::string & query)
 {
     // SELECT xxx FROM XX WHERE XXX and password = ''
@@ -262,30 +260,5 @@ static bool check_empty_password(std::string & query)
     GreenSQLConfig * conf = GreenSQLConfig::getInstance();
     return conf->mysql_patterns.Match( SQL_EMPTY_PWD,  temp );
 }
+*/
 
-static bool check_var_cmp_var(std::string & query)
-{
-    GreenSQLConfig * conf = GreenSQLConfig::getInstance();
-    return conf->mysql_patterns.Match( SQL_VAR_CMP, query );
-}
-
-static bool check_always_true(std::string & query)
-{
-    GreenSQLConfig * conf = GreenSQLConfig::getInstance();
-    return conf->mysql_patterns.Match( SQL_TRUE_VAR, query );
-}
-
-static bool check_multiple_queries(std::string & pattern)
-{
-   size_t p = 0;
-
-   // we need to check if query has semmy column
-   if ( (p = pattern.find(";",0)) == std::string::npos)
-   {
-       return false;
-   }
-   // check if ";" is located in the end of line
-   if (p == pattern.length()-1)
-       return false;
-   return true;
-}
