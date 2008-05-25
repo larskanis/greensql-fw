@@ -195,19 +195,50 @@ static bool removeNumbers(std::string & query)
 {
     unsigned int i;
     unsigned int j;
-    
+    bool found_hex = false;
     //the following chars can precede number " ,.(" 
     for (i = 1; i < query.size(); i++)
     {
-        if ((query[i-1] == '.' || query[i-1] == ',' || 
+        if ((query[i-1] == ',' || 
              query[i-1] == '(' || query[i-1] == ' ' ||
+	     query[i-1] == '+' || query[i-1] == '-' ||
+	     query[i-1] == '*' || query[i-1] == '/' ||
 	     query[i-1] == '=')	&&
 	    query[i] >= '0' && query[i] <= '9')
 	{
+            found_hex = false;
+            // check for hex number
+            if (query[i] == '0' && i+1 < query.size())
+	    {
+              if (query[i+1] == 'x' || query[i+1] == 'X')
+	      {
+                for (j=i+2; j < query.size() && query[j] >= '0'
+			       && query[j] <= '9'; j++)
+		{
+                  ;
+		}
+	        query[i] = '?';
+		query.erase(i+1, j-i-1);
+		found_hex = true;
+	      }
+	    }
+	    if (found_hex == true)
+	    {
+		    continue;
+	    }
 	    for (j=i+1; j < query.size() && query[j] >= '0' 
 			    && query[j] <= '9'; j++)
 	    {
 		    ;
+	    }
+	    if (j < query.size() && query[j] == '.')
+	    {
+                j++;
+		for (j; j < query.size() && query[j] >= '0'
+				&& query[j] <= '9'; j++)
+		{
+			;
+		}
 	    }
             query[i] = '?';
 	    if (j != i+1)
