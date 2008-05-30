@@ -1,4 +1,3 @@
-
 greensql-fw (0.8.4) unstable; urgency=low
 
   * Fixed a bug in handling numbers inside SQL query.
