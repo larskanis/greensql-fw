@@ -1,3 +1,12 @@
+
+greensql-fw (0.8.4) unstable; urgency=low
+
+  * Fixed a bug in handling numbers inside SQL query.
+  * Fixed a bug in handling SQL comment.
+  * Added new mysql patterns.
+
+ -- yuli <stremovsky@gmail.com>  May, 31 Sat 2008 01:10:00 +0300
+
 greensql-fw (0.8.3) unstable; urgency=low
 
   * Number of fixes of the risk engine.
