@@ -232,6 +232,10 @@ bool GreenSQLConfig::load_db()
         logevent(DEBUG, "Mysql error: %s\n", mysql_error(&dbConn));
         return false;
     }
+//#ifdef MYSQL_OPT_RECONNECT
+    my_bool trueval = 1;
+    mysql_options(&dbConn, MYSQL_OPT_RECONNECT, &trueval);
+//#endif
     return true;
 }
 
