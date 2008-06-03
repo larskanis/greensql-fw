@@ -58,7 +58,9 @@ as          return AS;
 in          return IN;
 
 and         return AND;
+&&          return AND;
 or          {clb_found_or_token(); return OR;}
+\|\|        {clb_found_or_token(); return OR;}
 not         return NOT;
 
 group       return GROUP;
@@ -141,7 +143,16 @@ binary       ; // ignore binary statement
 "/"           return DIVIDE;
 "^"           return POWER;
 (\n|\r)+          ; //return END;
-";"          {clb_found_query_separator(); return END;}
+";"          {
+               /* calculate number of bytes read so far */
+               int pos = (int)(yy_c_buf_p - buf->yy_ch_buf);
+               /* check that ';' is not in the end of the buffer */
+               if (pos < ( buf->yy_n_chars - 1))
+               {
+                 clb_found_query_separator();
+               }
+               return END;
+             }
 
 "("          return O_BRACE;
 ")"          return C_BRACE;
