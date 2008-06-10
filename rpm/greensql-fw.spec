@@ -1,13 +1,13 @@
 Summary: GreenSQL open source database firewall solution.
 Name: greensql-fw
-Version: 0.8.4
+Version: 0.8.5
 Release: 1
 License: GPL
 Group: Applications/Databases
 URL: http://www.greensql.net/
 Source: http://easynews.dl.sourceforge.net/sourceforge/greensql/%{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-buildroot
-BuildRequires: mysql-devel, pcre-devel, libevent, flex, bison
+BuildRequires: mysql-devel, pcre-devel, libevent, flex, bison, gcc-c++
 %if "%{_vendor}" == "redhat"
 BuildRequires: libevent-devel
 %endif
@@ -40,15 +40,11 @@ install -m 0644 scripts/greensql.rotate $RPM_BUILD_ROOT/etc/logrotate.d/greensql
 
 %if "%{_vendor}" == "redhat"
 mkdir -p $RPM_BUILD_ROOT/etc/rc.d/init.d/
-mkdir -p $RPM_BUILD_ROOT/etc/init.d/
 install -m 0755 rpm/greensql-fw.redhat.init $RPM_BUILD_ROOT/etc/rc.d/init.d/greensql-fw
-install -m 0755 rpm/greensql-fw.redhat.init $RPM_BUILD_ROOT/etc/init.d/greensql-fw
 %endif
 
-%if "%{_vendor}" == "suse"
 mkdir -p $RPM_BUILD_ROOT/etc/init.d/
 install -m 0755 rpm/greensql-fw.suse.init $RPM_BUILD_ROOT/etc/init.d/greensql-fw
-%endif
 
 #make DESTDIR=$RPM_BUILD_ROOT
 
@@ -67,12 +63,9 @@ install -m 0755 rpm/greensql-fw.suse.init $RPM_BUILD_ROOT/etc/init.d/greensql-fw
 
 %if "%{_vendor}" == "redhat"
 /etc/rc.d/init.d/greensql-fw
-/etc/init.d/greensql-fw
 %endif
 
-%if "%{_vendor}" == "suse"
 /etc/init.d/greensql-fw
-%endif
 
 %post
 /sbin/chkconfig --add greensql-fw  > /dev/null 2>&1 || true
