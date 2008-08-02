@@ -27,6 +27,7 @@
 #include "proxymap.hpp"
 #include "dbmap.hpp"
 
+static bool fix_dir_name(std::string & conf_dir);
 
 #if WIN32
 int initWin();
@@ -79,8 +80,10 @@ int main(int argc, char *argv[])
         _CrtMemCheckpoint(&s1);
 #endif
 	GreenSQLConfig * cfg = GreenSQLConfig::getInstance();
-        std::string conf_path = "./";
-
+        std::string conf_path = "";
+#ifndef WIN32
+	conf_path = "./";
+#endif
 	if (argc > 2)
 	{
             if (strcmp(argv[1], "-p") == 0)
@@ -102,7 +105,8 @@ int main(int argc, char *argv[])
 	    fprintf(stderr, "DIRECTORY is a location of the config files\n");
             return -1;
 	}
-	
+
+        fix_dir_name(conf_path);	
 	if (cfg->load(conf_path) == false)
 	{
             fprintf(stderr, "Failed to load config file: %s/greensql.conf\n\n", 
@@ -150,7 +154,7 @@ int main(int argc, char *argv[])
         dbmap_init();
 		
         event_loop(0);
-	logevent(DEBUG, "end of the event loop\n");
+        //logevent(DEBUG, "end of the event loop\n");
 	
 //the followint function must clear memory used by event system
 #ifdef event_base_free
@@ -230,3 +234,21 @@ void clb_timeout(int fd, short which, void * arg)
 	}
     }
 }
+
+static bool fix_dir_name(std::string & conf_dir)
+{
+  int len = conf_dir.length();
+#if WIN32
+  if (conf_dir[len-1] != '\\')
+  {
+    conf_dir += "\";
+  }
+#else
+  if (conf_dir[len-1] != '/')
+  {
+    conf_dir += "/";
+  }
+#endif
+  return true; 
+}
+
