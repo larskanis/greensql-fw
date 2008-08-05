@@ -95,6 +95,19 @@ void clb_found_table(SQLString * s)
 #endif
 }
 
+bool clb_check_true_constant(SQLString * s)
+{
+  if (*(s->Dump()) == 0)
+    return false;
+#ifndef PARSER_DEBUG
+  GreenSQLConfig * conf = GreenSQLConfig::getInstance();
+  if (conf->re_s_tables >= 0 &&
+      conf->mysql_patterns.Match( SQL_S_TABLES,  * s->GetStr() ) )
+    return true;
+#endif
+  return false;
+}
+	
 void clb_found_tautology()
 {
   p_risk->has_tautology = 1;

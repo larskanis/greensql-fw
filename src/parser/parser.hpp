@@ -27,6 +27,7 @@ void clb_found_union_token();
 void clb_found_empty_pwd();
 void clb_found_comment();
 void clb_found_table(SQLString * t);
+bool clb_check_true_constant(SQLString * s);
 void clb_found_tautology();
 void clb_found_query_separator();
 
