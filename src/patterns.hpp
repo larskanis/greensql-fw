@@ -13,7 +13,7 @@
 
 enum MatchType { SQL_ALTER, SQL_CREATE, SQL_DROP, 
 	         SQL_INFO, SQL_BLOCK, SQL_S_TABLES,
-                 SQL_EMPTY_PWD, SQL_VAR_CMP, SQL_TRUE_VAR };
+                 SQL_EMPTY_PWD, SQL_VAR_CMP, SQL_TRUE_CONSTANTS };
 
 class SQLPatterns
 {
@@ -38,7 +38,7 @@ private:
     std::string s_tables_str; //used to store list of sensitive tables
     std::string empty_pwd_str;
     std::string var_cmp_str;
-    std::string true_str;
+    std::string true_constants_str;
 
     //regular expression patterns 
 
@@ -50,7 +50,7 @@ private:
     pcre * s_tables_re;
     pcre * empty_pwd_re;
     pcre * var_cmp_re;
-    pcre * true_re;
+    pcre * true_constants_re;
 
     pcre_extra * alter_pe;
     pcre_extra * create_pe;
@@ -60,7 +60,7 @@ private:
     pcre_extra * s_tables_pe;
     pcre_extra * empty_pwd_pe;
     pcre_extra * var_cmp_pe;
-    pcre_extra * true_pe;
+    pcre_extra * true_constants_pe;
 
 };
 
