@@ -31,6 +31,7 @@ void SQLPatterns::clear()
     empty_pwd_str= "";
     var_cmp_str  = "";
     true_constants_str= "";
+    bruteforce_functions_str="";
 
     alter_re     = NULL;
     create_re    = NULL;
@@ -41,6 +42,7 @@ void SQLPatterns::clear()
     empty_pwd_re = NULL;
     var_cmp_re   = NULL;
     true_constants_re= NULL;
+    bruteforce_functions_re=NULL;
 
     alter_pe     = NULL;
     create_pe    = NULL;
@@ -50,7 +52,8 @@ void SQLPatterns::clear()
     s_tables_pe  = NULL;
     empty_pwd_pe = NULL;
     var_cmp_pe   = NULL;
-    true_constants_pe= NULL;
+    true_constants_pe=NULL;
+    bruteforce_functions_pe=NULL;
 }
 
 void SQLPatterns::free()
@@ -73,6 +76,8 @@ void SQLPatterns::free()
        pcre_free(var_cmp_pe);
     if (true_constants_pe != NULL)
        pcre_free(true_constants_pe);
+    if (bruteforce_functions_pe != NULL)
+       pcre_free(bruteforce_functions_pe);
  
     if (alter_re != NULL)
        pcre_free(alter_re);
@@ -92,6 +97,8 @@ void SQLPatterns::free()
        pcre_free(var_cmp_re);
     if (true_constants_re != NULL)
        pcre_free(true_constants_re);
+    if (bruteforce_functions_re != NULL)
+       pcre_free(bruteforce_functions_re);
     
     clear();
 }
@@ -200,7 +207,13 @@ void SQLPatterns::LoadPattern(std::string & section, std::string & line)
         if (true_constants_str.length() > 0)
             true_constants_str += "|";
 	true_constants_str += line;
+    } else if (section == "bruteforce functions")
+    {
+        if (bruteforce_functions_str.length() > 0)
+            bruteforce_functions_str += "|";
+        bruteforce_functions_str += line;	
     }
+
     empty_pwd_str = "((where\\s|and\\s|or\\s|not\\s|^)|(\\(\\s*))?"
 	    "(pass|password|pwd|passwd)\\s*\\=\\s*(\\'\\')|(\\\"\\\")";
 
@@ -256,6 +269,12 @@ bool SQLPatterns::CompilePatterns()
     {
         free();
         return false;
+    }
+
+    if (compile_pattern(bruteforce_functions_str, &bruteforce_functions_re, &bruteforce_functions_pe) == false)
+    {
+        free();
+	return false;
     }
 
     return true;
@@ -363,11 +382,25 @@ bool SQLPatterns::Match(MatchType type, std::string & str)
         {
             if (true_constants_str.length() == 0)
                 return false;
-            rc = pcre_exec(true_constants_re, true_constants_pe, str.c_str(), str.length(),
+            rc = pcre_exec(true_constants_re, true_constants_pe,
+                           str.c_str(), str.length(),
                            0, 0, NULL, 0);
             break;
 
         }
+
+        case SQL_BRUTEFORCE_FUNCTIONS:
+        {
+            if (bruteforce_functions_str.length() == 0)
+                return false;
+            rc = pcre_exec(bruteforce_functions_re, bruteforce_functions_pe,
+                           str.c_str(), str.length(),
+                           0, 0, NULL, 0);
+            break;
+
+        }
+
+	
 	default:
 	    return false;
     }
