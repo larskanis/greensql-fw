@@ -6,6 +6,9 @@
 // License: GPL v2 (http://www.gnu.org/licenses/gpl.html)
 //
 
+// THIS CODE IS NO LONGER IN USE.
+
+/*
 #include "riskengine.hpp"
 #include "normalization.hpp"
 #include "config.hpp"
@@ -14,8 +17,8 @@
 #include "parser/parser.hpp"
 
 static bool check_comments(std::string & query);
-static bool check_sensitive_tables(std::string & query);
-static bool check_sensitive_table(std::string & table);
+//static bool check_sensitive_tables(std::string & query);
+//static bool check_sensitive_table(std::string & table);
 static bool check_or_token(std::string & query);
 static bool check_union_token(std::string & query);
 //static bool check_empty_password(std::string & query);
@@ -24,6 +27,8 @@ static bool check_union_token(std::string & query);
 // For more information about this file, please check docs/tautology.txt
 //
 
+*/
+/*
 unsigned int calc_risk(std::string & query, std::string & pattern, 
 		std::string & reason)
 {
@@ -88,6 +93,9 @@ unsigned int calc_risk(std::string & query, std::string & pattern,
     return ret;
 }
 
+*/
+
+/*
 static bool check_or_token(std::string & query)
 {
     size_t p = 1;
@@ -110,6 +118,9 @@ static bool check_or_token(std::string & query)
     return false;
 }
 
+*/
+
+/*
 static bool check_union_token(std::string & query)
 {
     size_t p = 1;
@@ -131,7 +142,9 @@ static bool check_union_token(std::string & query)
     }
     return false;
 }
+*/
 
+/*
 static bool check_comments(std::string & query)
 {
    size_t p = 0;
@@ -156,6 +169,9 @@ static bool check_comments(std::string & query)
    return false;
 }
 
+*/
+
+/*
 static bool check_sensitive_tables(std::string & query)
 {
     // we need parse query
@@ -235,6 +251,8 @@ static bool check_sensitive_table(std::string & table)
     
     return conf->mysql_patterns.Match( SQL_S_TABLES,  table );
 }
+
+*/
 
 /*
 static bool check_empty_password(std::string & query)
