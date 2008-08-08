@@ -8,10 +8,10 @@
 #ifndef GREENSQL_RISKENGINE_HPP
 #define GREENSQL_RISKENGINE_HPP
 
-
+/*
 #include <string>
 
 unsigned int calc_risk(std::string & query, std::string & pattern, 
 		std::string &reason);
-
+*/
 #endif
