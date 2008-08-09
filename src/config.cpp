@@ -66,6 +66,7 @@ void GreenSQLConfig::init()
     re_always_true = 30;
     re_empty_password = 30;
     re_multiple_queries = 30;
+    re_bruteforce = 15;
     
     log_level = 3;
     log_file = "/var/log/greensql.log";
@@ -87,6 +88,7 @@ bool GreenSQLConfig::load(std::string & path)
     std::string section = "";
     line.reserve(1024);
 
+    logevent(DEBUG, "Loading config file: %s\n", cfg_file.c_str());
     if (!file.is_open())
     {
         //logevent(CRIT, "Failed to load configuration file: %s .\n",
@@ -197,9 +199,12 @@ bool GreenSQLConfig::parse_re_setting(std::string & key, std::string & value)
     } else if (key == "risk_empty_password")
     {
         re_empty_password = atoi(value.c_str());
-    }  else if (key == "risk_multiple_queries")
+    } else if (key == "risk_multiple_queries")
     {
         re_multiple_queries = atoi(value.c_str());
+    } else if (key == "risk bruteforce")
+    {
+        re_bruteforce = atoi(value.c_str());
     }
 
     return true;
@@ -246,10 +251,3 @@ bool GreenSQLConfig::close_db()
     return true;
 }
 
-bool GreenSQLConfig::load_patterns(std::string & path)
-{
-     
-    std::string file = path + "mysql.conf";
-
-    return mysql_patterns.Load(file);
-}
