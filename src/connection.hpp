@@ -17,6 +17,7 @@
 #include <event.h>
 #include "buffer.hpp"
 #include "dbpermobj.hpp"
+#include "patterns.hpp"     // for SQLPatterns
 #include <string> // for std::string
 
 class Connection
@@ -33,14 +34,20 @@ public:
     Buffer response_in;    
     Buffer response_out;
     bool first_request;
+    virtual bool checkBlacklist(std::string & query, std::string & reason) = 0;
     virtual bool parseRequest(std::string & req, bool & hasResponse ) = 0;
     virtual bool parseResponse(std::string & response) = 0;
     virtual bool blockResponse(std::string & response) = 0;
+    virtual SQLPatterns * getSQLPatterns() = 0;
     int iProxyId;    // the simplest method to transfer proxy id
     std::string db_name;
     std::string db_new_name;
     std::string db_user;
     DBPermObj * db;
+private:
+    unsigned int calculateRisk(std::string & query, std::string & pattern,
+                           std::string &reason);
+    
 };
 
 #endif
