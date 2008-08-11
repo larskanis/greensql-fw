@@ -11,6 +11,8 @@
 #include "../connection.hpp"
 #include "../log.hpp"
 
+bool mysql_patterns_init(std::string & path);
+
 enum MySQLType { 
 	MYSQL_QUIT        = 1, 
 	MYSQL_DB          = 2,
@@ -28,10 +30,12 @@ class MySQLConnection: public Connection
 public: 
 	MySQLConnection(int a);
 	~MySQLConnection();
+	bool checkBlacklist(std::string & query, std::string & reason);
 	bool parseRequest(std::string & request, bool & hasResponse );
 	bool parseResponse(std::string & response);
         bool blockResponse(std::string & response);
-	
+        SQLPatterns * getSQLPatterns();
+
 	std::string serverVersion;
 	int charset;
         int serverCaps;
