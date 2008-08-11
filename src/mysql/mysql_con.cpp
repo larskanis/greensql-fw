@@ -8,7 +8,21 @@
 #include "mysql_con.hpp"
 
 #include "../normalization.hpp"
+#include "../config.hpp"
 #include "../dbmap.hpp"
+static SQLPatterns mysql_patterns;
+
+bool mysql_patterns_init(std::string & path)
+{
+    std::string file = path + "mysql.conf";
+
+    return mysql_patterns.Load(file);
+}
+
+SQLPatterns * MySQLConnection::getSQLPatterns()
+{
+  return & mysql_patterns;
+}
 
 MySQLConnection::MySQLConnection(int id): Connection(id)
 {
@@ -20,6 +34,45 @@ MySQLConnection::MySQLConnection(int id): Connection(id)
 
 MySQLConnection::~MySQLConnection()
 {
+}
+
+bool MySQLConnection::checkBlacklist(std::string & query, std::string & reason)
+{
+    GreenSQLConfig * conf = GreenSQLConfig::getInstance();
+    bool ret = false;
+    if (db->CanAlter() == false)
+    {
+        ret = mysql_patterns.Match( SQL_ALTER,  query );
+        if (ret == true)
+        {
+            reason += "Query blocked due to the 'alter' rules.\n";
+        }
+    }
+    if (ret == false && db->CanDrop() == false)
+    {
+        ret = mysql_patterns.Match( SQL_DROP,  query );
+        if (ret == true)
+        {
+            reason += "Query blocked due to the 'drop' rules.\n";
+        }
+    }
+    if (ret == false && db->CanCreate() == false)
+    {
+        ret = mysql_patterns.Match( SQL_CREATE,  query );
+        if (ret == true)
+        {
+            reason += "Query blocked due to the 'create' rules.\n";
+        }
+    }
+    if (ret == false && db->CanGetInfo() == false)
+    {
+        ret = mysql_patterns.Match( SQL_INFO,  query );
+        if (ret == true)
+        {
+            reason += "Query blocked due to the 'info' rules.\n";
+        }
+    }
+    return ret;
 }
 
 bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
