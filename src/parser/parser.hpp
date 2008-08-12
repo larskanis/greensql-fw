@@ -10,17 +10,22 @@
 
 #include "expression.hpp"
 
+#ifndef PARSER_DEBUG
+#include "../patterns.hpp"
+#endif
+
 struct query_risk {
-	int has_separator;
-	int has_tautology;
-	int has_empty_pwd;
-	int has_s_table;
-	int has_comment;
-	int has_union;
-	int has_or;
+  int has_bruteforce_function;
+  int has_separator;
+  int has_tautology;
+  int has_empty_pwd;
+  int has_s_table;
+  int has_comment;
+  int has_union;
+  int has_or;
 };
 
-bool query_parse(struct query_risk * q_risk, const char * q);
+bool query_parse(struct query_risk * q_risk, SQLPatterns * patterns, const char * q);
 
 void clb_found_or_token();
 void clb_found_union_token();
@@ -30,5 +35,6 @@ void clb_found_table(SQLString * t);
 bool clb_check_true_constant(SQLString * s);
 void clb_found_tautology();
 void clb_found_query_separator();
+void clb_found_bruteforce_function();
 
 #endif
