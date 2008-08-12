@@ -22,6 +22,7 @@ static bool free_expressions();
 
 static query_risk risk;
 static query_risk * p_risk = &risk;
+static SQLPatterns * patterns = NULL;
 
 #ifdef PARSER_DEBUG
 // ind debug mode we have our own main function
@@ -50,11 +51,13 @@ int main()
 
 #endif
 
-bool query_parse(struct query_risk * q_risk, const char * q)
+bool query_parse(struct query_risk * q_risk,
+		SQLPatterns * sql_patterns, const char * q)
 {
   p_risk = q_risk;
   //bzero(q_risk, sizeof(struct query_risk));
   memset(q_risk, sizeof(struct query_risk), 0);
+  patterns = sql_patterns;
   scan_buffer(q);
   free_sql_strings();
   free_expressions();
@@ -87,9 +90,9 @@ void clb_found_table(SQLString * s)
     return;
 #ifndef PARSER_DEBUG
   GreenSQLConfig * conf = GreenSQLConfig::getInstance();
-  if (conf->re_s_tables >= 0 &&
-      conf->mysql_patterns.Match( SQL_S_TABLES,  * s->GetStr() ) )
-    p_risk->has_s_table = 1; 
+  if (patterns != NULL && conf->re_s_tables >= 0 )
+    if (patterns->Match( SQL_S_TABLES,  * s->GetStr() ) )
+      p_risk->has_s_table = 1; 
 #else
   p_risk->has_s_table = 1;
 #endif
@@ -101,9 +104,9 @@ bool clb_check_true_constant(SQLString * s)
     return false;
 #ifndef PARSER_DEBUG
   GreenSQLConfig * conf = GreenSQLConfig::getInstance();
-  if (conf->re_s_tables >= 0 &&
-      conf->mysql_patterns.Match( SQL_S_TABLES,  * s->GetStr() ) )
-    return true;
+  if (patterns != NULL && conf->re_s_tables >= 0 )
+    if (patterns->Match( SQL_S_TABLES,  * s->GetStr() ) )
+      return true;
 #endif
   return false;
 }
@@ -116,6 +119,11 @@ void clb_found_tautology()
 void clb_found_query_separator()
 {
   p_risk->has_separator = 1;
+}
+
+void clb_found_bruteforce_function()
+{
+  p_risk->has_bruteforce_function = 1;
 }
 
 
