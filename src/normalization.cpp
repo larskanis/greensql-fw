@@ -233,8 +233,8 @@ static bool removeNumbers(std::string & query)
 	    }
 	    if (j < query.size() && query[j] == '.')
 	    {
-                j++;
-		for (j; j < query.size() && query[j] >= '0'
+                //j++;
+		for (j++; j < query.size() && query[j] >= '0'
 				&& query[j] <= '9'; j++)
 		{
 			;
