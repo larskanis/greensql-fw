@@ -129,10 +129,10 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Failed to connect to db storage.\n");
 	    return -1;
 	}
-        if (cfg->load_patterns(conf_path) == false)
+        if (mysql_patterns_init(conf_path) == false)
         {
-            fprintf(stderr, "Failed to load list of patterns.\n");
-	    return -1;
+            fprintf(stderr, "Failed to load MySQL list of patterns.\n");
+            return -1;
         }
 #if WIN32
         initWin();
@@ -241,7 +241,7 @@ static bool fix_dir_name(std::string & conf_dir)
 #if WIN32
   if (conf_dir[len-1] != '\\')
   {
-    conf_dir += "\";
+    conf_dir += '\\';
   }
 #else
   if (conf_dir[len-1] != '/')
