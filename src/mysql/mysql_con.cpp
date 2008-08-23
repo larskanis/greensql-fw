@@ -46,6 +46,7 @@ bool MySQLConnection::checkBlacklist(std::string & query, std::string & reason)
         if (ret == true)
         {
             reason += "Query blocked due to the 'alter' rules.\n";
+	    logevent(DEBUG, "Query blocked due to the 'alter' rules.\n");
         }
     }
     if (ret == false && db->CanDrop() == false)
@@ -54,6 +55,7 @@ bool MySQLConnection::checkBlacklist(std::string & query, std::string & reason)
         if (ret == true)
         {
             reason += "Query blocked due to the 'drop' rules.\n";
+	    logevent(DEBUG, "Query blocked due to the 'drop' rules.\n");
         }
     }
     if (ret == false && db->CanCreate() == false)
@@ -62,6 +64,7 @@ bool MySQLConnection::checkBlacklist(std::string & query, std::string & reason)
         if (ret == true)
         {
             reason += "Query blocked due to the 'create' rules.\n";
+	    logevent(DEBUG, "Query blocked due to the 'create' rules.\n");
         }
     }
     if (ret == false && db->CanGetInfo() == false)
@@ -69,7 +72,8 @@ bool MySQLConnection::checkBlacklist(std::string & query, std::string & reason)
         ret = mysql_patterns.Match( SQL_INFO,  query );
         if (ret == true)
         {
-            reason += "Query blocked due to the 'info' rules.\n";
+            reason += "Query blocked due to the information disclosure rules.\n";
+	    logevent(DEBUG, "Query blocked due to the information disclosure rules.\n");
         }
     }
     return ret;
