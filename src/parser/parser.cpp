@@ -104,8 +104,8 @@ bool clb_check_true_constant(SQLString * s)
     return false;
 #ifndef PARSER_DEBUG
   GreenSQLConfig * conf = GreenSQLConfig::getInstance();
-  if (patterns != NULL && conf->re_s_tables >= 0 )
-    if (patterns->Match( SQL_S_TABLES,  * s->GetStr() ) )
+  if (patterns != NULL )
+    if (patterns->Match( SQL_TRUE_CONSTANTS,  * s->GetStr() ) )
       return true;
 #endif
   return false;
