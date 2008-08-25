@@ -106,6 +106,7 @@ void SQLPatterns::free()
 bool SQLPatterns::Load(std::string & cfg_file)
 {
     std::ifstream file(cfg_file.c_str());
+    std::string temp;
 
     if (!file.is_open())
     {
@@ -152,6 +153,21 @@ bool SQLPatterns::Load(std::string & cfg_file)
 	    return false;
 	}
         LoadPattern(section, line);
+
+        if (true_constants_str.length() > 0)
+        {
+          temp =  "^(";
+          temp += true_constants_str;
+          temp += ")$";
+          true_constants_str = temp;
+        }
+	if (bruteforce_functions_str.length() > 0)
+	{
+          temp = "^(";
+	  temp += bruteforce_functions_str;
+	  temp += ")$";
+	  bruteforce_functions_str = temp;
+	}
     }
     CompilePatterns();
     return true;
