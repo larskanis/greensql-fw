@@ -156,6 +156,13 @@ unsigned int Connection::calculateRisk(std::string & query,
         logevent(DEBUG, "Query has empty password expression\n");
         ret += conf->re_empty_password;
     }
+    if (conf->re_bruteforce > 0 &&
+        risk.has_bruteforce_function == 1)
+    {
+        reason += "Query has SQL fuction that can be used to bruteforce db contents\n";
+	logevent(DEBUG, "Query has SQL fuction that can be used to bruteforce db contents\n");
+	ret += conf->re_bruteforce;
+    }
     return ret;
 }
 
