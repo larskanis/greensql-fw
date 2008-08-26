@@ -12,6 +12,8 @@
 
 #ifndef PARSER_DEBUG
 #include "../patterns.hpp"
+#else
+#define SQLPatterns char
 #endif
 
 struct query_risk {
@@ -33,6 +35,7 @@ void clb_found_empty_pwd();
 void clb_found_comment();
 void clb_found_table(SQLString * t);
 bool clb_check_true_constant(SQLString * s);
+bool clb_check_bruteforce_function(SQLString* s);
 void clb_found_tautology();
 void clb_found_query_separator();
 void clb_found_bruteforce_function();
