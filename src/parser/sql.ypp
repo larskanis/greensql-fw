@@ -140,7 +140,10 @@ math_exp:     field                           { $$=$1; }
 	    | O_BRACE math_exp C_BRACE        { $$=$2; }
 	    ;
 	    
-field:        table_field { $$=new Expression(); $$->AddField($1); }
+field:        table_field { $$=new Expression(); 
+                            clb_check_true_constant($1)? 
+                              $$->AddConst(new SQLString("fn()")) : 
+                              $$->AddField($1); }
             | const_value { $$=$1; } // const is already converter to exp
             | fn          { $$=$1; }
             | simple_fn   { $$=new Expression(); $$->AddConst(new SQLString("fn()")); }
@@ -220,12 +223,12 @@ index_list:   STRING
             | index_list COMMA index_list
             ;
 	
-fn:           STRING O_BRACE fn_args C_BRACE { $$=$3; }
-            | STRING O_BRACE DISTINCT fn_args order_cond C_BRACE { $$=$4; /* printf("fn\n"); */ } 
+fn:           STRING O_BRACE fn_args C_BRACE { $$=$3; clb_check_bruteforce_function($1); }
+            | STRING O_BRACE DISTINCT fn_args order_cond C_BRACE { $$=$4; clb_check_bruteforce_function($1); /* printf("fn\n"); */ } 
             ;
 
-simple_fn:    STRING O_BRACE MULTIPLY C_BRACE { }
-            | STRING O_BRACE C_BRACE { }
+simple_fn:    STRING O_BRACE MULTIPLY C_BRACE { clb_check_bruteforce_function($1); }
+            | STRING O_BRACE C_BRACE { clb_check_bruteforce_function($1); }
             ;
 
 fn_args:       math_exp                  { $$=$1; }
