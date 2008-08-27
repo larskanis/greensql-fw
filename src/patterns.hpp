@@ -25,6 +25,8 @@ public:
     void LoadPattern(std::string & section, std::string & line);
     bool CompilePatterns();
     bool Match(MatchType type, std::string & str);
+    bool HasTrueConstantPatterns() { return true_constants_re != NULL; }
+    bool HasBruteforcePatterns() { return bruteforce_functions_re != NULL; }
 
 private:
     void clear();
