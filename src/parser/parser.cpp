@@ -33,7 +33,6 @@ int main()
   snprintf(buf,sizeof(buf), "SELECT * FROM users WHERE laston=1");
   scan_buffer(buf);
 
-  /*
   snprintf(buf,sizeof(buf), "select 1 from user where 1 -- commnent");
   scan_buffer(buf);
       
@@ -43,10 +42,12 @@ int main()
     std::getline(std::cin, s);
     //std::cout << "line: " << s << std::endl;
     scan_buffer(s.c_str());
+    free_sql_strings();
+    free_expressions();
+	
   }
-  */
-  free_sql_strings();
-  free_expressions();
+  //free_sql_strings();
+  //free_expressions();
   return 1;
 }
 
