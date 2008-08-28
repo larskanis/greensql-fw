@@ -37,7 +37,7 @@ GreenSQL::GreenSQL()
 
 GreenSQL::~GreenSQL(void)
 {
-    logevent(DEBUG, "i am in GreenSQL destructor\n");
+    //logevent(DEBUG, "i am in GreenSQL destructor\n");
 }
 
 bool GreenSQL::PrepareNewConn(int fd, int & sfd, int & cfd)
@@ -645,7 +645,7 @@ void GreenSQL::Close()
         serverEvent.ev_fd = 0;
     }
 
-    logevent(NET_DEBUG, "Closing proxy object\n");
+    //logevent(NET_DEBUG, "Closing proxy object\n");
 }
 
 void GreenSQL::CloseConnection(Connection * conn)
