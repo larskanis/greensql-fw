@@ -27,6 +27,10 @@ sql_cache           return SELECT_OPT;
 sql_no_cache        return SELECT_OPT;
 sql_calc_found_rows return SELECT_OPT;
 
+low_priority        return LOW_PRIORITY;
+quick               return QUICK;
+
+set                 return SET;
 
 index       return INDEX;
 key         return INDEX;
@@ -78,6 +82,8 @@ exists      return EXISTS;
 having      return HAVING;
 limit       return LIMIT;
 procedure   return PROCEDURE;
+
+default     return DEFAULT;
 
 [0-9]+      {  yylval.int_val = atoi(yytext);
                return INTEGER;
