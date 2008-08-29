@@ -28,6 +28,7 @@ static void cmp_fn(Expression * xp1, Expression * xp2);
 %token JOIN_TYPE JOIN STRAIGHT_JOIN
 %token INDEX
 %token USE ON USING IGNORE FORCE FOR
+%token QUICK LOW_PRIORITY
 %token GROUP
 %token ORDER BY
 %token ASC DESC
@@ -42,6 +43,8 @@ static void cmp_fn(Expression * xp1, Expression * xp2);
 %token LIMIT OFFSET
 %token PROCEDURE
 %token UNION
+%token SET
+%token DEFAULT
 %token <int_val> INTEGER
 %token <str_val> STRING
 %token <str_val> Q_STRING
@@ -81,6 +84,7 @@ command:
 	    | insert_cmd
 	    | show_cmd
 	    | delete_cmd
+            | update_cmd
 	    ;
 
 select_cmd:   SELECT select_options select_exps FROM table_references where_cond group_cond having_cond order_cond limit_cond procedure_cond union_cond end_cond
@@ -93,7 +97,10 @@ insert_cmd:   INSERT INTO
 show_cmd:     SHOW
             ;
 
-delete_cmd:   DELETE
+delete_cmd:   DELETE delete_option_list delete_table_list FROM table_references where_cond order_cond limit_cond end_cond
+            ;
+
+update_cmd:   UPDATE delete_option_list table_references SET set_cond where_cond order_cond limit_cond end_cond
             ;
 
 select_options: /* empty */
@@ -106,6 +113,27 @@ select_opts:  SELECT_OPT
             | select_opts SELECT_OPT
             | select_opts DISTINCT
 	    ;
+
+delete_option_list: /* empty */
+            | delete_option
+            ;
+
+delete_option: LOW_PRIORITY
+            | IGNORE
+            | QUICK
+            | delete_option LOW_PRIORITY
+            | delete_option IGNORE
+            | delete_option QUICK
+            ;
+
+delete_table_list: /* empty */
+            | delete_table
+            | delete_table_list COMMA delete_table
+            ;
+
+delete_table: 
+            | table DOT MULTIPLY
+            ;
 
 where_cond:  /* empty */
             | WHERE where_exp_list
@@ -301,6 +329,12 @@ union_cond: /* empty */
 end_cond:  /* empty */
             | END
             ;
+
+set_cond:     table_field EQUAL where_exp_list
+            | table_field EQUAL DEFAULT
+            | set_cond COMMA field EQUAL where_exp_list
+            ;
+
 %%
 /*
 int main()
