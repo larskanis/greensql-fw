@@ -60,7 +60,11 @@ static void cmp_fn(Expression * xp1, Expression * xp2);
 %type <str_val> table_field
 %type <exp_val> field
 %type <exp_val> math_exp
-
+%type <exp_val> select_exp
+%type <exp_val> math_op
+%type <exp_val> table
+%type <exp_val> select_exps
+%type <exp_val> select_cmd
 
 %left O_BRACE
 %left C_BRACE
@@ -87,8 +91,8 @@ command:
             | update_cmd
 	    ;
 
-select_cmd:   SELECT select_options select_exps FROM table_references where_cond group_cond having_cond order_cond limit_cond procedure_cond union_cond end_cond
-            | SELECT select_options select_exps
+select_cmd:   SELECT select_options select_exps FROM table_references where_cond group_cond having_cond order_cond limit_cond procedure_cond union_cond end_cond { $$=$3; }
+            | SELECT select_options select_exps { $$=$3; }
             ;
 
 insert_cmd:   INSERT INTO
@@ -139,21 +143,20 @@ where_cond:  /* empty */
             | WHERE where_exp_list
 	    ;
 
-select_exps: select_exp
-            | select_exps COMMA select_exps
+select_exps: select_exp                       { $$=$1; }
+            | select_exps COMMA select_exp    { $$->Add($3); }
             ;
 
-select_exp:   math_op alias
-            | MULTIPLY
-            | table DOT MULTIPLY
-            | O_BRACE select_cmd C_BRACE alias
+select_exp:   math_op alias                   { $$=$1; }
+            | MULTIPLY                        { $$=new Expression(); }
+            | table DOT MULTIPLY              { $$=$1; }
             ;
 
-math_op:     math_exp
-            | math_exp REGEXP math_exp
-            | math_exp NOT REGEXP math_exp
-            | math_exp EQUAL math_exp
-            | math_exp N_EQUAL math_exp 
+math_op:     math_exp                         { $$=$1; }
+            | math_exp REGEXP math_exp        { $$->Add($3); }
+            | math_exp NOT REGEXP math_exp    { $$->Add($4); }
+            | math_exp EQUAL math_exp         { $$->Add($3); }
+            | math_exp N_EQUAL math_exp       { $$->Add($3); }
             | math_exp IS NULLX
             | math_exp IS NOT NULLX
             ;
@@ -166,6 +169,7 @@ math_exp:     field                           { $$=$1; }
 	    | MINUS math_exp %prec NEG        { $$=$2; }
 	    | math_exp POWER math_exp         { $$->Add($3); }
 	    | O_BRACE math_exp C_BRACE        { $$=$2; }
+            | O_BRACE select_cmd C_BRACE      { $$=$2; }
 	    ;
 	    
 field:        table_field { $$=new Expression(); 
@@ -218,12 +222,12 @@ join_cond:  /* empty */
 table_factor: table alias index_hint
             ;
 
-table:        STRING                 { clb_found_table($1); }
-            | ACCENT STRING ACCENT   { clb_found_table($2); }
-            | STRING DOT STRING      { clb_found_table($3); }
-            | STRING DOT ACCENT STRING ACCENT     { clb_found_table($4); }
-//            | ACCENT STRING ACCENT DOT ACCENT STRING ACCENT  { clb_found_table($6); }
-            | O_BRACE select_cmd C_BRACE
+table:        STRING                 { $$=new Expression(); $$->AddField($1); clb_found_table($1); }
+            | ACCENT STRING ACCENT   { $$=new Expression(); $$->AddField($2); clb_found_table($2); }
+            | STRING DOT STRING      { $$=new Expression(); $$->AddField($3); clb_found_table($3); }
+            | STRING DOT ACCENT STRING ACCENT     { $$=new Expression(); $$->AddField($4); clb_found_table($4); }
+//            | ACCENT STRING ACCENT DOT ACCENT STRING ACCENT  { $$=new Expression(); $$->AddField($6); clb_found_table($6); }
+            | O_BRACE select_cmd C_BRACE { $$=$2; }
 	    ;
 
 alias:      /* empty */ { }
