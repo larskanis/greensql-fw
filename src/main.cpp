@@ -17,6 +17,7 @@
 #include <crtdbg.h>
 #else
 #include <signal.h>
+#include <sys/types.h>
 #endif
 
 #include <event.h>

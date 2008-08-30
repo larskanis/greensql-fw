@@ -8,6 +8,7 @@
 #ifndef GREEN_SQL_CONFIG_HPP
 #define GREEN_SQL_CONFIG_HPP
 
+#include <string.h>         // fix Fedora compilation errors.
 #include <string>
 #ifdef WIN32
 #include <winsock2.h>
