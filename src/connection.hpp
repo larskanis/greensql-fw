@@ -12,6 +12,8 @@
 
 #ifdef WIN32
 #include <winsock2.h>
+#else
+#include <sys/types.h>
 #endif
 
 #include <event.h>
