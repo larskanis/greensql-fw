@@ -36,11 +36,10 @@ CREATE table db_perm
 dbpid          int unsigned NOT NULL auto_increment primary key,
 proxyid        int unsigned NOT NULL default '0',
 db_name        char(50) NOT NULL,
-create_perm    smallint unsigned NOT NULL default 0,
-drop_perm      smallint unsigned NOT NULL default 0,
-alter_perm     smallint unsigned NOT NULL default 0,
-info_perm      smallint unsigned NOT NULL default 0,
-block_q_perm   smallint unsigned NOT NULL default 0,
+perms          bigint unsigned NOT NULL default '0',
+perms2         bigint unsigned NOT NULL default '0',
+status         smallint unsigned NOT NULL default '0',
+status_changed datetime NOT NULL,
 INDEX (proxyid, db_name)
 );
 
