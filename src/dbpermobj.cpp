@@ -10,17 +10,28 @@
 #include "misc.hpp"
 #include "log.hpp"
 
-void DBPermObj::Init(std::string name, unsigned int id,
-                    bool _create, bool _drop,
-                    bool _alter, bool _info, bool _block_q)
+void DBPermObj::Init(std::string name, unsigned int id, long long perms,
+		     long long perms2, unsigned int status)
 {
     db_name = name;
     proxy_id = id;
-    create_perm = _create;
-    drop_perm = _drop;
-    alter_perm = _alter;
-    info_perm = _info;
-    block_q_perm = _block_q;
+    block_status = (DBBlockStatus) status;
+
+    if (perms == 0)
+      return;
+    if (perms & (int)CREATE_Q)
+        create_perm = true;
+    if (perms & (int)DROP_Q)
+	drop_perm = true;
+    if (perms & (int)ALTER_Q)
+	drop_perm = true;
+    if (perms & (int)INFO_Q)
+	info_perm = true;
+    if (perms & (int)BLOCK_Q)
+	block_q_perm = true;
+    if (perms & (int)BRUTEFORCE_Q)
+	bruteforce_perm = true;
+    return;
 }
 
 DBPermObj::~DBPermObj()
@@ -28,7 +39,7 @@ DBPermObj::~DBPermObj()
     exceptions.clear();
 }
 
-bool DBPermObj::LoadExceptions()
+bool DBPermObj::LoadWhitelist()
 {
     GreenSQLConfig * conf = GreenSQLConfig::getInstance();
     MYSQL * dbConn = &conf->dbConn;
@@ -84,7 +95,7 @@ bool DBPermObj::LoadExceptions()
     return true;
 }
 
-int DBPermObj::CheckQuery(std::string & q)
+int DBPermObj::CheckWhitelist(std::string & q)
 {
     std::map<std::string, int >::iterator itr;
     itr = exceptions.find(q);	
@@ -92,3 +103,61 @@ int DBPermObj::CheckQuery(std::string & q)
         return 0;
     return itr->second;
 }
+
+bool DBPermObj::AddToWhitelist(std::string & dbuser, std::string & pattern)
+{
+    char * q = new char [ pattern.length() + 1024 ];
+    GreenSQLConfig * conf = GreenSQLConfig::getInstance();
+    MYSQL * dbConn = &conf->dbConn;
+    MYSQL_RES *res; /* To be used to fetch information into */
+
+    snprintf(q, pattern.length() + 1024,
+        "SELECT queryid FROM query WHERE "
+        "proxyid = %d and db_name = '%s' and pattern = '%s'",
+        proxy_id, db_name.c_str(), pattern.c_str());
+
+    /* read new queryid from the database */
+    if( mysql_query(dbConn, q) )
+    {
+        /* Failed */
+        logevent(STORAGE,"(%s) %s\n", q, mysql_error(dbConn));
+        delete [] q;
+        return false;
+    }
+
+    /* Download result from server */
+    res=mysql_store_result(dbConn);
+    if (res != NULL)
+    {
+        // nothing to do here, query is aready in whitelist
+        delete [] q;
+        return true;
+    }
+    if (mysql_num_rows(res) > 0)
+    {
+        // nothing to do here, query is aready in whitelist
+        delete [] q;
+        return true;
+    }
+
+    // add pattern to the whitelist
+    snprintf(q, pattern.length() + 1024,
+        "INSERT into query "
+        "(proxyid, perm, db_name, query) "
+        "VALUES (%d,1,'%s','%s')",
+        proxy_id, db_name.c_str(), pattern.c_str());
+
+    /* read new urls from the database */
+    if ( mysql_query(dbConn, q) )
+    {
+        /* Make query */
+        logevent(STORAGE,"(%s) %s\n", q, mysql_error(dbConn));
+        delete [] q;
+        return false;
+    }
+    delete [] q;
+    q = NULL;
+
+    return true;
+}
+
