@@ -28,6 +28,15 @@ enum DBBlockLevel {
     HIGH_RISK           = 2,
 };
 
+enum DBPerms {
+    CREATE_Q = 1,
+    DROP_Q   = 2,
+    ALTER_Q  = 4,
+    INFO_Q  = 8,
+    BLOCK_Q = 16,
+    BRUTEFORCE_Q = 32
+};
+
 class DBPermObj
 {
 public:
@@ -44,13 +53,13 @@ public:
 
     ~DBPermObj();
 
-    void Init(std::string name, unsigned int id,
-		    bool _create, bool _drop,
-		    bool _alter, bool _info, bool _block_q);
+    void Init(std::string name, unsigned int id, long long perms,
+		    long long perms2, unsigned int status);
     
-    bool LoadExceptions();
+    bool LoadWhitelist();
     int CheckWhitelist(std::string & q);
-	    
+    bool AddToWhitelist(std::string & dbuser, std::string & pattern);
+
     bool CanCreate()
     {
         return create_perm;
