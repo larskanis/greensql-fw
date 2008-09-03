@@ -7,9 +7,9 @@
 
 #include "dbpermobj.hpp"
 #include "config.hpp"
-#include "mysql/mysql_con.hpp"
 #include "dbmap.hpp"
 #include "misc.hpp"
+#include "log.hpp"
 
 #include <map>
 //#include <string>
@@ -18,9 +18,15 @@ static std::map<std::string, DBPermObj * > dbs;
 static DBPermObj * default_db = NULL;
 
 static const char * const q_db = "SELECT dbpid, proxyid, db_name, "
-                                 "create_perm, drop_perm, alter_perm, "
-				 "info_perm, block_q_perm "
-                                 "FROM db_perm ";
+                                 "perms, perms2, status "
+				 "FROM db_perm ";
+// the following query is used to swith db from learning mode to active protection
+static const char * const q_learning3 = "UPDATE db_perm SET status = 4 "
+	"WHERE status = 11 AND now() + INTERVAL 3 day > status_changed";
+static const char * const q_learning7 = "UPDATE db_perm SET status = 4 "
+        "WHERE status = 11 AND now() + INTERVAL 7 day > status_changed";
+	
+
 bool dbmap_init()
 {
     default_db = new DBPermObj(); 
@@ -86,14 +92,16 @@ bool dbmap_reload()
     //"info_perm, block_q_perm "
 
     unsigned int proxy_id = 0;
-    std::string db_name;
-    bool alter_b = false;
-    bool create_b = false;
-    bool drop_b = false;
-    bool info_b = false;
-    bool block_q_b = false;
+    std::string db_name = "";
+    unsigned int status = 0;
+    long long perms = 0;
+    long long perms2 = 0;
 
     std::string key;
+
+    /* update state -> from learning to active protection */
+    mysql_query(dbConn, q_learning3);
+    mysql_query(dbConn, q_learning7);
 
     /* read new urls from the database */
     if( mysql_query(dbConn, q_db) )
@@ -118,17 +126,9 @@ bool dbmap_reload()
     {
         proxy_id = atoi(row[1]);
         db_name = row[2];
-        
-        if (*row[3] == '1')
-            create_b = true;
-        if (*row[4] == '1')
-            drop_b = true;
-        if (*row[5] == '1')
-            alter_b = true;
-        if (*row[6] == '1')
-            info_b = true;
-        if (*row[7] == '1')
-            block_q_b = true;
+        perms = atoll(row[3]);
+        perms2 = atoll(row[4]);
+        status = atoi(row[5]);
 
         key = itoa(proxy_id);
         key += ",";
@@ -140,23 +140,20 @@ bool dbmap_reload()
 	if (proxy_id == 0)
 	{
             // default db
-	    default_db->Init(db_name, proxy_id, create_b, drop_b,
-			     alter_b, info_b, block_q_b);
+	    default_db->Init(db_name, proxy_id, perms, perms2, status);
 	}
 	else if (itr == dbs.end())
         {
             DBPermObj * db = new DBPermObj();
 
-            db->Init(db_name, proxy_id, create_b, drop_b,
-                    alter_b, info_b, block_q_b); 
-	    db->LoadExceptions();
+            db->Init(db_name, proxy_id, perms, perms2, status);
+	    db->LoadWhitelist();
             dbs[key] = db;
         } else {
             //reload settings
             DBPermObj * db = itr->second;
-            db->Init(db_name, proxy_id, create_b, drop_b,
-                    alter_b, info_b, block_q_b);
-            db->LoadExceptions();
+            db->Init(db_name, proxy_id, perms, perms2, status);
+            db->LoadWhitelist();
 	}
     }
     /* Release memory used to store results. */
