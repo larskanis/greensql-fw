@@ -11,6 +11,9 @@
 bool logalert(int proxy_id, std::string & dbname, std::string & dbuser,
 		std::string & query, std::string & pattern, 
 		std::string & reason, int risk, int block);
+bool logwhitelist(int proxy_id, std::string & dbname, std::string & dbuser,
+                std::string & query, std::string & pattern,
+                std::string & reason, int risk, int block);
 
 
 #endif
