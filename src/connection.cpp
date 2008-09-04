@@ -10,10 +10,9 @@
 #include "normalization.hpp"
 #include "riskengine.hpp"
 #include "misc.hpp"
-#include "dbmap.hpp"
 #include "alert.hpp"
 #include "parser/parser.hpp"     // for query_risk struct
-
+#include "dbmap.hpp"
 
 Connection::Connection(int proxy_id)
 {
@@ -46,50 +45,111 @@ bool Connection::check_query(std::string & query)
     std::string original_query = query;
     std::string reason = "";
 
+    // perform normalization - make a pattern of the query
     normalizeQuery(query);
     str_lowercase(query);
     std::string pattern = query;
-
     logevent(SQL_DEBUG, "AFTER NORM   : %s\n", query.c_str());
+
     bool ret = false;
+    bool privileged_operation = false;
     int risk = 0;
-    ret = checkBlacklist(query, reason);
 
-    if (ret == false)
+    if ( (ret = checkBlacklist(query, reason)) == true)
     {
-	// if
-	risk = calculateRisk(original_query, query, reason);
-	logevent(SQL_DEBUG, "RISK         : %d\n", risk);
-
-	//check if risk is low
-    } else if (ret == true)
-    {
-	risk = conf->re_block_level+1;
-	logevent(SQL_DEBUG, "FORBIDEN     : %s\n", query.c_str());
+         privileged_operation = true;
+	 logevent(SQL_DEBUG, "FORBIDEN     : %s\n", query.c_str());
     }
-    
-    int block = db->CheckQuery(pattern);
-    if (block )
+    // check if we find anything interesting
+    risk = calculateRisk(original_query, query, reason);
+    logevent(SQL_DEBUG, "RISK         : %d\n", risk);
+
+    int in_whitelist = 0;
+
+    in_whitelist = db->CheckWhitelist(pattern);
+    if ( in_whitelist )
     {
 	logevent(SQL_DEBUG, "Found in Exception List.\n");
 	return true;
     }
-    if (risk != 0)
+
+    DBBlockStatus block_status = db->GetBlockStatus();
+
+    if ( block_status == ALWAYS_BLOCK_NEW )
     {
-	if (risk >= conf->re_block_level)
-	{
-            // block level
-            logalert(iProxyId, db_name, db_user, original_query, 
-                     pattern, reason, risk, 1);
-	    // block this query
-	    return false;
-	}
-	else
-	{
-            //warn level
+        reason += "Query blocked because it is not in whitelist.\n";
+        logevent(DEBUG, "Query blocked because it is not in whitelist.\n");
+        logalert(iProxyId, db_name, db_user, original_query,
+                 pattern, reason, risk, (int)BLOCKED);
+        // block this query
+        return false;
+    }
+
+    if (privileged_operation)
+    {
+	risk = conf->re_block_level+1;
+        if (block_status == PRIVILEGE_BLOCK || block_status == RISK_BLOCK)
+        {
             logalert(iProxyId, db_name, db_user, original_query,
-                     pattern, reason, risk, 0);
+                     pattern, reason, risk, (int)BLOCKED);
+            // block this query
+            return false;
+	} else if (block_status == LEARNING_MODE ||
+		   block_status == LEARNING_MODE_3DAYS ||
+		   block_status == LEARNING_MODE_7DAYS)
+	{
+	    db->AddToWhitelist(db_user, pattern);
+            logwhitelist(iProxyId, db_name, db_user, original_query,
+                         pattern, reason, risk, (int)HIGH_RISK);
+	    return true;
+        } else {
+            // block_status == RISK_SIMULATION 
+            // block_status == LEARNING_MODE
+            logalert(iProxyId, db_name, db_user, original_query,
+                     pattern, reason, risk, (int)HIGH_RISK);
+            return true;
+        }
+    }
+
+    if (block_status == LEARNING_MODE ||
+        block_status == LEARNING_MODE_3DAYS ||
+        block_status == LEARNING_MODE_7DAYS)
+    {
+        db->AddToWhitelist(db_user, pattern);
+        if (risk >= conf->re_block_level)
+        {
+            logwhitelist(iProxyId, db_name, db_user, original_query,
+                     pattern, reason, risk, (int)HIGH_RISK);
+        } else if (risk >= conf->re_warn_level)
+        {
+            logwhitelist(iProxyId, db_name, db_user, original_query,
+                     pattern, reason, risk, (int)WARN);
+        } else {
+            logwhitelist(iProxyId, db_name, db_user, original_query,
+                     pattern, reason, risk, (int)LOW);
 	}
+
+        return true;
+    }
+
+    DBBlockLevel risk_block_level = HIGH_RISK;
+    if (block_status == RISK_BLOCK)
+    {
+        risk_block_level = BLOCKED;
+    }
+
+    if (risk >= conf->re_block_level) 
+    {
+        logalert(iProxyId, db_name, db_user, original_query,
+                 pattern, reason, risk, (int)risk_block_level);
+        if (risk_block_level == BLOCKED)
+            return false;
+    } 
+    else if (risk >= conf->re_warn_level)
+    {
+        //warn level
+        logalert(iProxyId, db_name, db_user, original_query,
+                 pattern, reason, risk, (int)WARN);
     }
 
     return true;
