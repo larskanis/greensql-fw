@@ -113,7 +113,7 @@ bool DBPermObj::AddToWhitelist(std::string & dbuser, std::string & pattern)
 
     snprintf(q, pattern.length() + 1024,
         "SELECT queryid FROM query WHERE "
-        "proxyid = %d and db_name = '%s' and pattern = '%s'",
+        "proxyid = %d and db_name = '%s' and query = '%s'",
         proxy_id, db_name.c_str(), pattern.c_str());
 
     /* read new queryid from the database */
@@ -127,13 +127,7 @@ bool DBPermObj::AddToWhitelist(std::string & dbuser, std::string & pattern)
 
     /* Download result from server */
     res=mysql_store_result(dbConn);
-    if (res != NULL)
-    {
-        // nothing to do here, query is aready in whitelist
-        delete [] q;
-        return true;
-    }
-    if (mysql_num_rows(res) > 0)
+    if (res != NULL && mysql_num_rows(res) > 0)
     {
         // nothing to do here, query is aready in whitelist
         delete [] q;
