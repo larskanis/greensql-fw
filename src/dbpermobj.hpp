@@ -26,6 +26,7 @@ enum DBBlockLevel {
     WARN                = 0,
     BLOCKED             = 1,
     HIGH_RISK           = 2,
+    LOW                 = 3
 };
 
 enum DBPerms {
