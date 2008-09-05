@@ -22,9 +22,9 @@ static const char * const q_db = "SELECT dbpid, proxyid, db_name, "
 				 "FROM db_perm ";
 // the following query is used to swith db from learning mode to active protection
 static const char * const q_learning3 = "UPDATE db_perm SET status = 4 "
-	"WHERE status = 11 AND now() + INTERVAL 3 day > status_changed";
+	"WHERE status = 11 AND now() > status_changed + INTERVAL 3 day";
 static const char * const q_learning7 = "UPDATE db_perm SET status = 4 "
-        "WHERE status = 11 AND now() + INTERVAL 7 day > status_changed";
+        "WHERE status = 12 AND now() > status_changed + INTERVAL 7 day";
 	
 
 bool dbmap_init()
