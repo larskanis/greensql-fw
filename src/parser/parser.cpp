@@ -39,12 +39,16 @@ int main()
   std::string s;
   while (std::cin)
   {
+    memset(p_risk, 0, sizeof(struct query_risk));
     std::getline(std::cin, s);
     //std::cout << "line: " << s << std::endl;
     scan_buffer(s.c_str());
     free_sql_strings();
     free_expressions();
-	
+    if (p_risk->has_tautology)
+    {
+        printf("query has tautology\n");
+    }	    
   }
   //free_sql_strings();
   //free_expressions();
