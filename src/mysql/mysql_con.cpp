@@ -38,15 +38,15 @@ MySQLConnection::~MySQLConnection()
 
 bool MySQLConnection::checkBlacklist(std::string & query, std::string & reason)
 {
-    GreenSQLConfig * conf = GreenSQLConfig::getInstance();
+    //GreenSQLConfig * conf = GreenSQLConfig::getInstance();
     bool ret = false;
     if (db->CanAlter() == false)
     {
         ret = mysql_patterns.Match( SQL_ALTER,  query );
         if (ret == true)
         {
-            reason += "Query blocked due to the 'alter' rules.\n";
-	    logevent(DEBUG, "Query blocked due to the 'alter' rules.\n");
+            reason += "Detected attempt to change database/table structure.\n";
+	    logevent(DEBUG, "Detected attempt to change database/table structure.\n");
         }
     }
     if (ret == false && db->CanDrop() == false)
@@ -54,8 +54,8 @@ bool MySQLConnection::checkBlacklist(std::string & query, std::string & reason)
         ret = mysql_patterns.Match( SQL_DROP,  query );
         if (ret == true)
         {
-            reason += "Query blocked due to the 'drop' rules.\n";
-	    logevent(DEBUG, "Query blocked due to the 'drop' rules.\n");
+            reason += "Detected attempt to drop database/table/index.\n";
+	    logevent(DEBUG, "Detected attempt to drop database/table.\n");
         }
     }
     if (ret == false && db->CanCreate() == false)
@@ -63,8 +63,8 @@ bool MySQLConnection::checkBlacklist(std::string & query, std::string & reason)
         ret = mysql_patterns.Match( SQL_CREATE,  query );
         if (ret == true)
         {
-            reason += "Query blocked due to the 'create' rules.\n";
-	    logevent(DEBUG, "Query blocked due to the 'create' rules.\n");
+            reason += "Detected attempt to create database/table/index.\n";
+	    logevent(DEBUG, "Detected attempt to create database/table/index.\n");
         }
     }
     if (ret == false && db->CanGetInfo() == false)
@@ -72,8 +72,8 @@ bool MySQLConnection::checkBlacklist(std::string & query, std::string & reason)
         ret = mysql_patterns.Match( SQL_INFO,  query );
         if (ret == true)
         {
-            reason += "Query blocked due to the information disclosure rules.\n";
-	    logevent(DEBUG, "Query blocked due to the information disclosure rules.\n");
+            reason += "Detected attempt to discover db internal information.\n";
+	    logevent(DEBUG, "Detected attempt to discover db internal information.\n");
         }
     }
     return ret;
