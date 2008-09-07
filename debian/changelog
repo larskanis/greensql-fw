@@ -1,3 +1,12 @@
+greensql-fw (0.9.0) unstable; urgency=low
+
+  * Added support for Simulation mode.
+  * Added support for Learning mode.
+  * Fixed numerous risk calculation bugs.
+  * Code redesign.
+
+ -- yuli <stremovsky@gmail.com>  Sep, 4 Thu 2008 01:10:00 +0300
+
 greensql-fw (0.8.4) unstable; urgency=low
 
   * Fixed a bug in handling numbers inside SQL query.
