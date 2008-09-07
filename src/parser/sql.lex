@@ -56,6 +56,7 @@ union       {clb_found_union_token(); return UNION;}
 from        return FROM;
 where       return WHERE;
 like        return LIKE;
+rlike       return LIKE;
 into        return INTO;
 
 as          return AS;
@@ -75,6 +76,7 @@ desc        return DESC;
 
 is          return IS;
 null        return NULLX;
+\N          return NULLX;
 
 any         return ANY;
 exists      return EXISTS;
@@ -137,18 +139,21 @@ binary       ; // ignore binary statement
 	    }
 
 "="           return EQUAL;
+"<=>"         return EQUAL;
 "!="          return N_EQUAL;
 "<>"          return N_EQUAL;
 ">="          return N_EQUAL;
 "<="          return N_EQUAL;
 ">"           return N_EQUAL;
 "<"           return N_EQUAL;
+">>"          return SHIFT;
+"<<"          return SHIFT;
 "+"           return PLUS;
 "-"           return MINUS;
 "*"           return MULTIPLY;
 "/"           return DIVIDE;
+div           return DIVIDE;
 "^"           return POWER;
-(\n|\r)+          ; //return END;
 ";"          {
                /* calculate number of bytes read so far */
                int pos = (int)(yy_c_buf_p - buf->yy_ch_buf);
@@ -169,7 +174,7 @@ binary       ; // ignore binary statement
 "\""         return get_q_string('\"');
 "`"          return ACCENT;
 
-[ \t]  ;
+[ \t\v\f\r\n]+  ; // return END;
 
 .            { /* printf("invalid charachter %s\n", yytext); */ }
 
