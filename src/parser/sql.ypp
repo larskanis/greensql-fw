@@ -36,7 +36,7 @@ static void cmp_fn(Expression * xp1, Expression * xp2);
 %token INTO
 %token AS IN ANY EXISTS
 %token IS NULLX
-%token EQUAL N_EQUAL PLUS MINUS MULTIPLY DIVIDE POWER NEWLINE 
+%token EQUAL N_EQUAL PLUS MINUS MULTIPLY DIVIDE POWER NEWLINE SHIFT
 %token ACCENT
 %token REGEXP
 %token HAVING
@@ -68,7 +68,7 @@ static void cmp_fn(Expression * xp1, Expression * xp2);
 
 %left O_BRACE
 %left C_BRACE
-%left PLUS MINUS 
+%left PLUS MINUS SHIFT
 %left MULTIPLY DIVIDE 
 %left NEG END COMMA AS DOT 
 %left AND
@@ -166,6 +166,7 @@ math_exp:     field                           { $$=$1; }
 	    | math_exp MINUS    math_exp      { $$->Add($3); }
 	    | math_exp MULTIPLY math_exp      { $$->Add($3); }
 	    | math_exp DIVIDE   math_exp      { $$->Add($3); }
+            | math_exp SHIFT    math_exp      { $$->Add($3); }
 	    | MINUS math_exp %prec NEG        { $$=$2; }
 	    | math_exp POWER math_exp         { $$->Add($3); }
 	    | O_BRACE math_exp C_BRACE        { $$=$2; }
@@ -334,9 +335,10 @@ end_cond:  /* empty */
             | END
             ;
 
-set_cond:     table_field EQUAL where_exp_list
+set_cond:     table_field EQUAL math_exp
             | table_field EQUAL DEFAULT
-            | set_cond COMMA field EQUAL where_exp_list
+            | set_cond COMMA field EQUAL math_exp
+            | set_cond COMMA field EQUAL DEFAULT
             ;
 
 %%
