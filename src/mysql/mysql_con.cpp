@@ -81,11 +81,12 @@ bool MySQLConnection::checkBlacklist(std::string & query, std::string & reason)
 
 bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
 {
-    std::string query;
-
     int size = request_in.size();
     if (size < 3)
         return true;
+
+    std::string query;
+    std::string response = "";
 
     const unsigned char * data = request_in.raw();
     int request_size = (data[2]<<16 | data[1] << 8 | data[0]) + 4;
@@ -208,7 +209,6 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
             {
                 // bad query - block it
                 request = ""; // do not send it to backend server
-                std::string response = "";
                 blockResponse(response);
                 response_in.append(response.c_str(), response.size());
                 hasResponse = true;
