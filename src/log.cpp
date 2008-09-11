@@ -6,10 +6,12 @@
 //
 
 #include "log.hpp"
+#include <time.h>
+#include <string.h>
+#include <syslog.h>
 #include "config.hpp"
 #include <stdarg.h> //for va_list 
 #include <stdio.h>  //for STDOUT
-#include <string.h> // for memset
 #include <ctype.h> // for isascii
 
 // for fstat
@@ -77,39 +79,64 @@ static bool log_reload()
 void logevent(ErrorType type, const char * fmt, ...)
 {
     va_list ap;
-    va_start(ap, fmt);
+    //va_start(ap, fmt);
     char * error;
-
+    char month[10];
+    int facility;
+    struct tm *now;
+    time_t tval;
+    
     if (log_level < (int) type)
     {
       va_end(ap);
       return;
     }
- 
+
+    va_start(ap, fmt);
+    tval = time(NULL);
+    now = localtime(&tval);
+	    
+    
+
     switch (type)
     {
-        case CRIT:      error = "CRIT:      ";
+        case CRIT:      error = "CRIT      ";
+			facility = LOG_CRIT;
 	                break;
-	case ERR:     error = "ERROR:     ";
+	case ERR:     error = "ERROR       ";
+		        facility = LOG_ERR;
 			break;
-	case INFO:      error = "INFO:      ";
+	case INFO:      error = "INFO      ";
+			facility = LOG_INFO;
 	                break;
-        case DEBUG:     error = "DEBUG:     ";
+        case DEBUG:     error = "DEBUG     ";
+			facility = LOG_DEBUG;
                         break;
-        case NET_DEBUG: error = "NET_DEBUG: ";
+        case NET_DEBUG: error = "NET_DEBUG ";
+			facility = LOG_NOTICE;
                         break;
-	case SQL_DEBUG: error = "SQL_DEBUG: ";
+	case SQL_DEBUG: error = "SQL_DEBUG ";
+			facility = LOG_NOTICE;
 			break;
-	case STORAGE:   error = "STORAGE:   ";
+	case STORAGE:   error = "STORAGE   ";
+			facility = LOG_NOTICE;
 			break;
-        default:        error = "UNKNOWN:   ";
+        default:        error = "UNKNOWN   ";
+			facility = LOG_NOTICE;
                         break;
     }
     
     log_reload();
-    fprintf(log_file, error);
+    strftime(month,10,"%b",now);
+    fprintf(log_file,"[%02d/%s/%02d:%d:%02d:%02d] %s",now->tm_mday,month, now->tm_year+1900,now->tm_hour, now->tm_min, now->tm_sec, error );
 
-    vfprintf(log_file, fmt, ap);
+    // vsyslog can be used instead
+    //
+    //char syslog_buffer[512];
+    //vsprintf(syslog_buffer,fmt,ap);
+    //syslog(facility,syslog_buffer);
+
+    vfprintf(log_file, fmt, ap );
     va_end(ap);
     fflush(log_file);
 }
@@ -118,7 +145,11 @@ void logevent(ErrorType type, const char * fmt, ...)
 void loghex(ErrorType type, const unsigned char * data, int size)
 {
     char * error;
-
+    struct tm *now;
+    time_t tval;
+    tval = time(NULL);
+    char month[10];
+    now = localtime(&tval);
     if (size == 0)
         return;
     if (log_level < (int) type)
@@ -126,21 +157,21 @@ void loghex(ErrorType type, const unsigned char * data, int size)
     
     switch (type)
     {
-        case CRIT:      error = "CRIT:      ";
+        case CRIT:      error = "CRIT      ";
                         break;
-        case ERR:       error = "ERROR:     ";
+        case ERR:       error = "ERROR     ";
                         break;
-        case INFO:      error = "INFO:      ";
+        case INFO:      error = "INFO      ";
                         break;
-        case DEBUG:     error = "DEBUG:     ";
+        case DEBUG:     error = "DEBUG     ";
                         break;
-        case NET_DEBUG: error = "NET_DEBUG: ";
+        case NET_DEBUG: error = "NET_DEBUG ";
                         break;
-        case SQL_DEBUG: error = "SQL_DEBUG: ";
+        case SQL_DEBUG: error = "SQL_DEBUG ";
                         break;
-        case STORAGE:   error = "STORAGE:   ";
+        case STORAGE:   error = "STORAGE   ";
                         break;
-        default:        error = "UNKNOWN:   ";
+        default:        error = "UNKNOWN   ";
                         break;
     }
 
@@ -149,16 +180,19 @@ void loghex(ErrorType type, const unsigned char * data, int size)
     
     log_reload();
 
+    strftime(month,10,"%b",now);
     for (i = 0; i < lines; i++)
     {
-       fprintf(log_file, error);
+       /*fprintf(log_file, error);*/
+       fprintf(log_file,"[%02d/%s/%02d:%d:%02d:%02d] %s", now->tm_mday, month, now->tm_year+1900,now->tm_hour, now->tm_min, now->tm_sec, error );
        printline(data+i*16, 16);
     }
     // ord(size%16)
     int ord = (((unsigned char)(size<<4)) >>4);
     if ( ord > 0)
     {
-        fprintf(log_file, error);
+        /*fprintf(log_file, error);*/
+	fprintf(log_file,"[%02d/%s/%02d:%d:%02d:%02d] %s", now->tm_mday,month ,now->tm_year+1900,now->tm_hour, now->tm_min, now->tm_sec, error );
         printline(data+i*16, ord);
     }
     fflush(log_file);
