@@ -58,6 +58,7 @@ where       return WHERE;
 like        return LIKE;
 rlike       return LIKE;
 into        return INTO;
+sounds\slike return LIKE;
 
 as          return AS;
 in          return IN;
@@ -86,6 +87,9 @@ limit       return LIMIT;
 procedure   return PROCEDURE;
 
 default     return DEFAULT;
+
+div         return DIVIDE;
+xor         return XOR;
 
 [0-9]+      {  yylval.int_val = atoi(yytext);
                return INTEGER;
@@ -132,6 +136,7 @@ binary       ; // ignore binary statement
                yylval.str_val = new SQLString(yytext);
 	       return STRING;
             }
+
 	    
 @[a-z0-9\.]+ {
                yylval.int_val = strlen(yytext);
@@ -152,8 +157,12 @@ binary       ; // ignore binary statement
 "-"           return MINUS;
 "*"           return MULTIPLY;
 "/"           return DIVIDE;
-div           return DIVIDE;
 "^"           return POWER;
+"%"           return PERCENT;
+"|"           return BIT_OR;
+"&"           return BIT_AND;
+"~"           return BIT_NOT;
+"!"           return BIT_NOT;
 ";"          {
                /* calculate number of bytes read so far */
                int pos = (int)(yy_c_buf_p - buf->yy_ch_buf);
