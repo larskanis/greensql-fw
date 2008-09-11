@@ -37,6 +37,7 @@ static void cmp_fn(Expression * xp1, Expression * xp2);
 %token AS IN ANY EXISTS
 %token IS NULLX
 %token EQUAL N_EQUAL PLUS MINUS MULTIPLY DIVIDE POWER NEWLINE SHIFT
+%token BIT_OR BIT_AND BIT_NOT XOR PERCENT
 %token ACCENT
 %token REGEXP
 %token HAVING
@@ -69,7 +70,9 @@ static void cmp_fn(Expression * xp1, Expression * xp2);
 %left O_BRACE
 %left C_BRACE
 %left PLUS MINUS SHIFT
-%left MULTIPLY DIVIDE 
+%left BIT_OR BIT_AND BIT_NOT 
+%left XOR PERCENT
+%left MULTIPLY DIVIDE
 %left NEG END COMMA AS DOT 
 %left AND
 %left OR
@@ -166,8 +169,14 @@ math_exp:     field                           { $$=$1; }
 	    | math_exp MINUS    math_exp      { $$->Add($3); }
 	    | math_exp MULTIPLY math_exp      { $$->Add($3); }
 	    | math_exp DIVIDE   math_exp      { $$->Add($3); }
+            | math_exp XOR      math_exp      { $$->Add($3); }
             | math_exp SHIFT    math_exp      { $$->Add($3); }
+            | math_exp BIT_OR   math_exp      { $$->Add($3); }
+            | math_exp BIT_AND  math_exp      { $$->Add($3); }
+            | math_exp BIT_NOT  math_exp      { $$->Add($3); }
+            | math_exp PERCENT  math_exp      { $$->Add($3); }
 	    | MINUS math_exp %prec NEG        { $$=$2; }
+            | BIT_NOT math_exp %prec NEG      { $$=$2; }
 	    | math_exp POWER math_exp         { $$->Add($3); }
 	    | O_BRACE math_exp C_BRACE        { $$=$2; }
             | O_BRACE select_cmd C_BRACE      { $$=$2; }
