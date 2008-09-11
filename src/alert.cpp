@@ -7,6 +7,9 @@
 
 #include "config.hpp"
 #include "log.hpp"
+#include "alert.hpp"
+
+#include <map>
 
 static unsigned int agroup_get(int p_id, std::string & dbn, std::string & p);
 static unsigned int agroup_add(int p_id, std::string & dbn, std::string & p);
@@ -15,7 +18,11 @@ static int alert_add(unsigned int agroupid, char * user, char * query,
 static bool agroup_update(unsigned int agroupid);
 static bool agroup_update_status(unsigned int agroupid);
 
-    
+static std::map<std::string, unsigned int > agroupmap;
+static const char * const q_agroup = "SELECT agroupid, proxyid, db_name, pattern "
+                                     "FROM alert_group";
+static unsigned int agroupmap_get( int p_id, std::string & dbn,std::string & p);
+ 
 bool logalert(int proxy_id, std::string & dbname,  std::string & dbuser,
         std::string & query, std::string & pattern, 
         std::string & reason, int risk, int block)
@@ -38,7 +45,12 @@ bool logalert(int proxy_id, std::string & dbname,  std::string & dbuser,
     mysql_real_escape_string(dbConn, tmp_r, reason.c_str(), (unsigned long) reason.length()); 
     tmp_r[reason.length()*4] = '\0';
 
-    unsigned int agroupid = agroup_get(proxy_id, dbname, pattern);
+    unsigned int agroupid = agroupmap_get(proxy_id, dbname, pattern);
+    
+    if (agroupid == 0)
+    {
+        agroupid = agroup_get(proxy_id, dbname, pattern);
+    }
     if (agroupid == 0)
     {
         agroupid = agroup_add(proxy_id, dbname, pattern);
@@ -82,8 +94,11 @@ bool logwhitelist(int proxy_id, std::string & dbname,  std::string & dbuser,
     mysql_real_escape_string(dbConn, tmp_r, reason.c_str(), (unsigned long) reason.length());
     tmp_r[reason.length()*4] = '\0';
 
-
-    unsigned int agroupid = agroup_get(proxy_id, dbname, pattern);
+    unsigned int agroupid = agroupmap_get(proxy_id, dbname, pattern);
+    if (agroupid == 0)
+    {
+        agroupid = agroup_get(proxy_id, dbname, pattern);
+    }
     if (agroupid == 0)
     {
         agroupid = agroup_add(proxy_id, dbname, pattern);
@@ -103,6 +118,85 @@ bool logwhitelist(int proxy_id, std::string & dbname,  std::string & dbuser,
     delete [] tmp_u;
     delete [] tmp_r;
     return true;
+}
+
+bool agroupmap_init()
+{
+    return agroupmap_reload();
+}
+
+bool agroupmap_reload()
+{
+    GreenSQLConfig * conf = GreenSQLConfig::getInstance();
+    MYSQL * dbConn = &conf->dbConn;
+    MYSQL_RES *res; /* To be used to fetch information into */
+    MYSQL_ROW row;
+    unsigned int proxy_id = 0;
+    unsigned int agroupid = 0;
+    std::string db_name = "";
+    std::string pattern = "";
+    std::string key = "";
+    std::map<std::string, unsigned int > temp_agroupmap;
+    //std::map<std::string, unsigned int >::iterator itr;
+
+    /* read all alert groups from the database */
+    if( mysql_query(dbConn, q_agroup) )
+    {
+        /* Make query */
+        logevent(STORAGE,"(%s) %s\n", q_agroup, mysql_error(dbConn));
+        return false;
+    }
+    
+    /* Download result from server */
+    res=mysql_store_result(dbConn);
+    if (res == NULL)
+    {
+        //logevent(STORAGE, "Records Found: 0, error:%s\n", mysql_error(dbConn));
+        return false;
+    }
+
+    /* Get a row from the results */
+    while ((row=mysql_fetch_row(res)))
+    {
+        agroupid = atoi(row[0]);
+        proxy_id = atoi(row[1]);
+        db_name = row[2];
+        pattern = row[3];
+
+        key = proxy_id;
+        key += ",";
+        key += db_name;
+        key += ",";
+        key += pattern;
+
+        temp_agroupmap[key] = agroupid;
+    }
+
+    agroupmap = temp_agroupmap;
+
+    /* Release memory used to store results. */
+    mysql_free_result(res);
+    return true;
+}
+
+static unsigned int
+agroupmap_get( int proxy_id, std::string & db_name,std::string & pattern)
+{
+    std::string key;
+    std::map<std::string, unsigned int >::iterator itr;
+
+    key = proxy_id;
+    key += ",";
+    key += db_name;
+    key += ",";
+    key += pattern;
+
+    itr = agroupmap.find(key);
+    if (itr == agroupmap.end())
+    {
+        return 0;
+    }
+    return itr->second;
 }
 
 static unsigned int 
@@ -185,7 +279,18 @@ agroup_add(int proxy_id, std::string & dbname, std::string & pattern)
     {
         return 0;
     }
-    return agroup_get(proxy_id, dbname, pattern);
+    unsigned int agroupid = agroup_get(proxy_id, dbname, pattern);
+    // add new key to adgroupmap
+    std::string key;
+    key = proxy_id;
+    key += ",";
+    key += dbname;
+    key += ",";
+    key += pattern;
+
+    agroupmap[key] = agroupid;
+
+    return agroupid; 
 }
 
 static int alert_add(unsigned int agroupid, char * user,
