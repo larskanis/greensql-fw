@@ -156,12 +156,12 @@ select_exp:   math_op alias                   { $$=$1; }
             ;
 
 math_op:     math_exp                         { $$=$1; }
-            | math_exp REGEXP math_exp        { $$->Add($3); }
-            | math_exp NOT REGEXP math_exp    { $$->Add($4); }
-            | math_exp EQUAL math_exp         { $$->Add($3); }
-            | math_exp N_EQUAL math_exp       { $$->Add($3); }
-            | math_exp IS NULLX
-            | math_exp IS NOT NULLX
+            | math_op REGEXP math_exp        { $$->Add($3); }
+            | math_op NOT REGEXP math_exp    { $$->Add($4); }
+            | math_op EQUAL math_exp         { $$->Add($3); }
+            | math_op N_EQUAL math_exp       { $$->Add($3); }
+            | math_op IS NULLX
+            | math_op IS NOT NULLX
             ;
 
 math_exp:     field                           { $$=$1; }
@@ -288,6 +288,7 @@ where_exp_list: where_exp_list OR where_exp_list
 where_exp:    math_exp                     { if ($1->IsTrue()) clb_found_tautology(); }
             | math_exp EQUAL    math_exp   { cmp_fn($1,$3); }
 	    | math_exp N_EQUAL  math_exp   { cmp_fn($1,$3); }
+            | math_exp EQUAL math_exp EQUAL math_exp { clb_found_tautology(); }
 	    | math_exp LIKE     math_exp   { cmp_fn($1,$3); }
 	    | math_exp NOT LIKE math_exp   { cmp_fn($1,$4); }
             | math_exp REGEXP   math_exp   { cmp_fn($1,$3); }
