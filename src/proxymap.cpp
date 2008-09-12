@@ -80,10 +80,12 @@ void wrap_Proxy(int fd, short which, void * arg)
     GreenSQL * cls = proxies[proxy_id];
     
     if(cls != NULL)
+    {
         if (conf->bRunning == false)
             cls->Close();
         else
             cls->Proxy_cb(fd, which, arg);
+    }
 
 }
 
@@ -100,10 +102,12 @@ void wrap_Backend(int fd, short which, void * arg)
     GreenSQL * cls = proxies[proxy_id];
 
     if(cls != NULL)
+    {
         if (conf->bRunning == false)
             cls->Close();
         else
             cls->Backend_cb(fd, which, arg);
+    }
 
 }
 
