@@ -27,6 +27,7 @@
 #include "mysql/mysql_con.hpp"
 #include "proxymap.hpp"
 #include "dbmap.hpp"
+#include "alert.hpp"
 
 static bool fix_dir_name(std::string & conf_dir);
 
@@ -153,6 +154,7 @@ int main(int argc, char *argv[])
        
         proxymap_init();
         dbmap_init();
+	agroupmap_init();
 		
         event_loop(0);
         //logevent(DEBUG, "end of the event loop\n");
@@ -226,12 +228,13 @@ void clb_timeout(int fd, short which, void * arg)
         evtimer_set(tEvent, clb_timeout, tEvent);
         evtimer_add(tEvent, &delay);
 	counter++;
-	if (counter == 1000)
+	if (counter == 3000)
 	{
             //logevent(INFO, "Timer fired 1000 times\n");
 	    counter = 0;
 	    proxymap_reload();
 	    dbmap_reload();
+	    agroupmap_reload();
 	}
     }
 }
