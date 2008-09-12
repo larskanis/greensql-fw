@@ -41,6 +41,7 @@ bool Connection::close()
 
 bool Connection::check_query(std::string & query)
 {
+    //return true;
     GreenSQLConfig * conf = GreenSQLConfig::getInstance();
     std::string original_query = query;
     std::string reason = "";
@@ -205,8 +206,8 @@ unsigned int Connection::calculateRisk(std::string & query,
     if (conf->re_var_cmp_var > 0 &&
         risk.has_tautology == 1)
     {
-        reason += "Variable comparison only\n";
-        logevent(DEBUG, "Variable comparison only\n");
+        reason += "True expression detected (SQL tautology)\n";
+        logevent(DEBUG, "True expression detected (SQL tautology)\n");
         ret += conf->re_var_cmp_var;
     }
     if (conf->re_empty_password > 0 &&
