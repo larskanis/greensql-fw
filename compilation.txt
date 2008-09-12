@@ -1,19 +1,24 @@
 In order to compile this application you need the following packages:
 
+g++
 libpcre
 libmysqlclient
 libevent
 flex
 bison
 
-For example in Debian Oldstable you will need:
-libpcre3
-libpcre3-dev
-libevent-dev
+For Ubuntu and Debian I had to install:
 
-For Ubuntu I had to install:
 libmysqlclient15-dev
 libevent-dev
+libpcre3-dev
+libpcre3
+
+In order to build deb package you will need the folowing:
+sudo apt-get install devscripts
+sudo apt-get install fakeroot
+sudo apt-get install debhelper
+sudo apt-get install build-essential
 
 If you use default installation of FreeBSD you will need to run the following packages:
 
