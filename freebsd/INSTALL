@@ -50,10 +50,10 @@ POST-INSTALL)
         fi
         echo
         echo "GreenSQL database firewall is almost installed."
-        echo "The last step is to configure configuration db."
-        echo "Please follow instructions found in the following file:"
+        echo "The last step is to configure database."
+        echo "Just run the following script:"
         echo
-        echo "/usr/local/share/doc/greensql-fw/greensql-mysql-db.txt"
+        echo "/usr/local/sbin/greensql-create-db.sh"
         echo
         ;;
 esac
