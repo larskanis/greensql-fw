@@ -1,5 +1,20 @@
 Installation
 
+One of the simple ways to install greensql SQL firewall is to build a
+package for yout OS. We have a special script that does the whole
+process. We support deb/rpm/bsd packages. Just run the following commands:
+
+  shell> cd greensql-fw
+  shell> ./build.sh
+
+This script will create package for your OS. After installing this package
+you need to create configuration db by running the following command:
+
+  shell> greensql-create-db.sh
+
+
+MANUAL INSTALLATION
+
 The are a number of steps to perform in order to install application.
 They are:
 
@@ -27,7 +42,7 @@ Alternatively you can run the following commands:
 
 Creating MySQL DB and user
 --------------------------
-Just run the following script: greensql-create-db . It will
+Just run the following script: greensql-create-db.sh . It will
 automatically create configuration database.
 
   cd scripts/
@@ -77,7 +92,7 @@ in the scripts/ directory.
 Configure start up scripts
 --------------------------
 
-As a final step you need to copy greensql application to the /user/sbin 
+As a final step you need to copy greensql application to the /user/sbin/
 or /sbin directory, copy service initialization file to the /etc/init.d/
 directory.
 
@@ -87,7 +102,7 @@ Please do the following:
  cd scripts
  cp rc.greensql /etc/init.d/greensql
 
-Another alternative is to run ./setup_binary script located in the scripts/
+Another alternative is to run ./setup_binary.sh script located in the scripts/
 directory.
 
 
