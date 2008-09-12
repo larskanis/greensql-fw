@@ -2,7 +2,7 @@ Source: greensql-fw
 Section: misc
 Priority: optional
 Maintainer: yuli <stremovsky@gmail.com>
-Build-Depends: debhelper (>= 4.0.0)
+Build-Depends: debhelper (>= 4.0.0), flex, bison, libevent-dev, libpcre3-dev, libmysqlclient15-dev
 Standards-Version: 3.6.2
 
 Package: greensql-fw
