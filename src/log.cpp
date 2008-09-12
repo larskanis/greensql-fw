@@ -80,7 +80,7 @@ void logevent(ErrorType type, const char * fmt, ...)
 {
     va_list ap;
     //va_start(ap, fmt);
-    char * error;
+    const char * error;
     char month[10];
     int facility;
     struct tm *now;
@@ -103,7 +103,7 @@ void logevent(ErrorType type, const char * fmt, ...)
         case CRIT:      error = "CRIT      ";
 			facility = LOG_CRIT;
 	                break;
-	case ERR:     error = "ERROR       ";
+	case ERR:       error = "ERROR       ";
 		        facility = LOG_ERR;
 			break;
 	case INFO:      error = "INFO      ";
@@ -144,7 +144,7 @@ void logevent(ErrorType type, const char * fmt, ...)
 
 void loghex(ErrorType type, const unsigned char * data, int size)
 {
-    char * error;
+    const char * error;
     struct tm *now;
     time_t tval;
     tval = time(NULL);
