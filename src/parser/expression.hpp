@@ -15,6 +15,7 @@
 #include <iostream>   //cout
 #include <iterator>   //ostream_iterator
 #include <list>
+#include <string.h>   // for string related functions like strlen
 
 #ifdef WIN32
 #define strcasecmp _stricmp
