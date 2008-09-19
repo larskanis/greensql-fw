@@ -13,7 +13,6 @@
 #include "connection.hpp"
 #include "proxymap.hpp"
 #include <vector>
-#include <iostream>
 
 
 #ifdef WIN32
@@ -29,6 +28,7 @@
 #include <errno.h>
 #endif
 
+static const int min_buf_size = 10240;
 
 GreenSQL::GreenSQL()
 {
@@ -376,250 +376,206 @@ bool GreenSQL::ServerInitialized()
 
 void GreenSQL::Proxy_cb(int fd, short which, void * arg)
 {
-    //remote user sends us a command
-    try
-    {
-        Connection * conn = (Connection *) arg;
-        char data[1024];
-        int len = sizeof(data) - 1;
+    Connection * conn = (Connection *) arg;
+    char data[min_buf_size];
+    int len = sizeof(data) - 1;
 
-        if (which & EV_WRITE)
-            Proxy_write_cb(fd, which, arg);
+    if (which & EV_WRITE)
+        Proxy_write_cb(fd, which, arg);
 
-        if (!(which & EV_READ))
-            return;
-
-        if (socket_read(fd, data, len) == false)
-        {
-            logevent(NET_DEBUG, "Failed to read socket, closing socket\n");
-            CloseConnection(conn);
-            return;
-        }
-    
-        if ( len > 0 )
-        {
-            data[len] = '\0';
-            //printf("received data\n");
-            conn->request_in.append(data,len);
-    
-            //perform validation of the request
-            ProxyValidateClientRequest(conn);
-        }
-    }
-    catch(char * str)
-    {
-        std::cout << "Proxy_cb exception:" << str << std::endl;
+    if (!(which & EV_READ))
         return;
+
+    if (socket_read(fd, data, len) == false)
+    {
+        logevent(NET_DEBUG, "Failed to read socket, closing socket\n");
+        CloseConnection(conn);
+        return;
+    }
+    
+    if ( len > 0 )
+    {
+        data[len] = '\0';
+        //printf("received data\n");
+        conn->request_in.append(data,len);
+    
+        //perform validation of the request
+        ProxyValidateClientRequest(conn);
     }
 }
 
 void GreenSQL::Proxy_write_cb(int fd, short which, void * arg)
 {
-    try
-    {
-        Connection * conn = (Connection *) arg;
-        int len = conn->response_out.size();
-        const unsigned char * data = conn->response_out.raw();
+    Connection * conn = (Connection *) arg;
+    int len = conn->response_out.size();
+    const unsigned char * data = conn->response_out.raw();
 
-        if (socket_write(fd, (const char * )data, len) == true)
-        {
-            logevent(NET_DEBUG, "Proxy data send\n");
-            conn->response_out.chop_back(len);
-        } else {
-	    logevent(NET_DEBUG, "Failed to send, closing socket\n");
-            CloseConnection(conn);
-            return;
-        }
-        if (conn->response_out.size() == 0)
-        {
-            //we can clear the WRITE event flag
-            event_del( &conn->proxy_event);
-            event_set( &conn->proxy_event, fd, EV_READ | EV_PERSIST, 
-		wrap_Proxy, (void *)conn);
-            event_add( &conn->proxy_event, 0);
-        } 
-    }
-    catch(char * str)
+    if (socket_write(fd, (const char * )data, len) == true)
     {
-        std::cout << "Proxy_write_cb exception:" << str << std::endl;
+        logevent(NET_DEBUG, "Proxy data send\n");
+        conn->response_out.chop_back(len);
+    } else {
+        logevent(NET_DEBUG, "Failed to send, closing socket\n");
+        CloseConnection(conn);
         return;
     }
+    if (conn->response_out.size() == 0)
+    {
+        //we can clear the WRITE event flag
+        event_del( &conn->proxy_event);
+        event_set( &conn->proxy_event, fd, EV_READ | EV_PERSIST, 
+        wrap_Proxy, (void *)conn);
+        event_add( &conn->proxy_event, 0);
+    } 
 }
 
 void GreenSQL::ProxyValidateClientRequest(Connection * conn)
 {
     std::string request = "";
     bool hasResponse = false;
-    request.reserve(1024);
+    request.reserve(min_buf_size);
+    int len = 0;
 
     // mysql_validate(request);
-    try
+    if (conn->parseRequest(request, hasResponse) == false)
     {
-        if (conn->parseRequest(request, hasResponse) == false)
-	    {
-            logevent(NET_DEBUG, "Failed to parse request, closing socket.\n");
-            CloseConnection(conn);
-	    }
-
-        int len = (int)request.size();
-
-        if (hasResponse == true)
-        {
-            ProxyValidateServerResponse( conn ); 
-        }
-        else if (len > 0)
-        {
-            //try to write without polling
-            if (socket_write(conn->client_event.ev_fd, 
-			request.c_str(), len) == true)
-            {
-                if (request.size() == (unsigned int)len)
-              	    return;
-                request.erase(0,len);
-            } else {
-                logevent(NET_DEBUG, "Failed to write to backend server\n");
-                CloseConnection(conn);
-            }
-
-            //push request
-            conn->request_out.append(request.c_str(), (int)request.size());
-
-            //now we need to check if client event is set to WRITE
-            if (conn->client_event.ev_flags != 
-	        (EV_READ | EV_WRITE | EV_PERSIST) )
-            {
-                int fd = conn->client_event.ev_fd;
-                event_del( &conn->client_event);
-                event_set( &conn->client_event, fd, 
-                          EV_READ | EV_WRITE | EV_PERSIST, 
-                wrap_Backend, (void *)conn);
-                event_add( &conn->client_event,0);
-            }
-	    }
+        logevent(NET_DEBUG, "Failed to parse request, closing socket.\n");
+        CloseConnection(conn);
     }
-    catch(char * str)
+
+    len = (int)request.size();
+
+    if (hasResponse == true)
     {
-        std::cout << "ProxyValidateClientRequest exception:" << str << std::endl;
+       ProxyValidateServerResponse( conn ); 
+    }
+    if (len <= 0)
         return;
+
+    // we have some data to write
+    //
+    //try to write without polling
+    if (socket_write(conn->client_event.ev_fd, request.c_str(), len) == true)
+    {
+        if (request.size() == (unsigned int)len)
+        {
+            return;
+        }
+        request.erase(0,len);
+    } else {
+        logevent(NET_DEBUG, "Failed to write to backend server\n");
+        CloseConnection(conn);
+    }
+
+    //push request
+    conn->request_out.append(request.c_str(), (int)request.size());
+
+    //now we need to check if client event is set to WRITE
+    if (conn->client_event.ev_flags != (EV_READ | EV_WRITE | EV_PERSIST) )
+    {
+        int fd = conn->client_event.ev_fd;
+        event_del( &conn->client_event);
+        event_set( &conn->client_event, fd, EV_READ | EV_WRITE | EV_PERSIST, 
+        wrap_Backend, (void *)conn);
+        event_add( &conn->client_event,0);
     }
 }
 
 void GreenSQL::Backend_cb(int fd, short which, void * arg)
 {
-    try
-    {
-        //we are real server client.
-        Connection * conn = (Connection *) arg;
-        char data[1024];
-        int len = sizeof(data)-1;
 
-        if ( which & EV_WRITE )
-            Backend_write_cb(fd, which, arg);
+    //we are real server client.
+    Connection * conn = (Connection *) arg;
+    char data[min_buf_size];
+    int len = sizeof(data)-1;
 
-        if (!(which & EV_READ))
-            return;
+    if ( which & EV_WRITE )
+        Backend_write_cb(fd, which, arg);
+
+    if (!(which & EV_READ))
+        return;
     
-        if (socket_read(fd, data, len) == false)
-        {
-            CloseConnection(conn);
-            return;
-        }
-        if ( len > 0 )
-        {
-            data[len] = '\0';
-            //printf("received data\n");
-            conn->response_in.append(data,len);
-
-            ProxyValidateServerResponse( conn );
-        }
-        return;
-    }
-    catch(char * str)
+    if (socket_read(fd, data, len) == false)
     {
-        std::cout << "Backend_cb exception:" << str << std::endl;
+        CloseConnection(conn);
         return;
     }
+    if ( len > 0 )
+    {
+        data[len] = '\0';
+        //printf("received data\n");
+        conn->response_in.append(data,len);
+
+        ProxyValidateServerResponse( conn );
+    }
+
+    return;
 }
 
 void GreenSQL::Backend_write_cb(int fd, short which, void * arg)
 {
-    try
-    {
-        //we are real server client.
-        Connection * conn = (Connection *) arg;
-        int len = conn->request_out.size();
-        const unsigned char * data = conn->request_out.raw();
+    //we are real server client.
+    Connection * conn = (Connection *) arg;
+    int len = conn->request_out.size();
+    const unsigned char * data = conn->request_out.raw();
 
-        if (socket_write(fd, (const char *)data, len) == true)
-        {
-	    logevent(NET_DEBUG, "sending data to client\n");
-            //printf("client data send\n");
-            conn->request_out.chop_back(len);
-        } else {
-	    logevent(NET_DEBUG, "Failed to send data to client, closing socket\n");
-            CloseConnection(conn);
-            return;
-        }
-        if (conn->request_out.size() == 0)
-        {
-            //we can clear the WRITE event flag
-            event_del( &conn->client_event);
-            event_set( &conn->client_event, fd, EV_READ | EV_PERSIST, 
-			    wrap_Backend, (void *)conn);
-            event_add( &conn->client_event, 0);
-        }
-    }
-    catch(char * str)
+    if (socket_write(fd, (const char *)data, len) == true)
     {
-        std::cout << "Backend_write_cb exception:" << str << std::endl;
+        logevent(NET_DEBUG, "sending data to client\n");
+        //printf("client data send\n");
+        conn->request_out.chop_back(len);
+    } else {
+        logevent(NET_DEBUG, "Failed to send data to client, closing socket\n");
+        CloseConnection(conn);
         return;
+    }
+    if (conn->request_out.size() == 0)
+    {
+        //we can clear the WRITE event flag
+        event_del( &conn->client_event);
+        event_set( &conn->client_event, fd, EV_READ | EV_PERSIST, 
+			    wrap_Backend, (void *)conn);
+        event_add( &conn->client_event, 0);
     }
 }
 
 void GreenSQL::ProxyValidateServerResponse( Connection * conn )
 {
     std::string response;
-    response.reserve(1024);
+    response.reserve(min_buf_size);
 
-    try
+    conn->parseResponse(response);
+    
+    //try to write without polling
+    int len = (int)response.size();
+    if (len == 0)
     {
-        conn->parseResponse(response);
-    
-        //try to write without polling
-        int len = (int)response.size();
-	if (len == 0)
-	{
-            // need to read more data to decide
-	    return;
-	}
-        if (socket_write(conn->proxy_event.ev_fd, response.c_str(), len) == true)
-        {
-            if (response.size() == (unsigned int)len)
-            	return;
-            response.erase(0,len);
-        } else {
-            CloseConnection(conn);
-            return;
-        }
-    
-        //push respose
-        conn->response_out.append(response.c_str(), (int)response.size());
-
-        //now we need to check if proxy event is set to WRITE
-        if (conn->proxy_event.ev_flags != (EV_READ | EV_WRITE | EV_PERSIST) )
-        {
-            int fd = conn->proxy_event.ev_fd;
-            event_del( &conn->proxy_event);
-            event_set( &conn->proxy_event, fd, EV_READ | EV_WRITE | EV_PERSIST, wrap_Proxy, (void *)conn);
-            event_add( &conn->proxy_event, 0);
-        }
+        // need to read more data to decide
+	return;
     }
-    catch(char * str)
+    if (socket_write(conn->proxy_event.ev_fd, response.c_str(), len) == true)
     {
-        std::cout << "ProxyValidateServerResponse exception:" << str << std::endl;
+        if (response.size() == (unsigned int)len)
+        {
+     	    return;
+        }
+        response.erase(0,len);
+    } else {
+        CloseConnection(conn);
         return;
     }
     
+    //push respose
+    conn->response_out.append(response.c_str(), (int)response.size());
+
+    //now we need to check if proxy event is set to WRITE
+    if (conn->proxy_event.ev_flags != (EV_READ | EV_WRITE | EV_PERSIST) )
+    {
+        int fd = conn->proxy_event.ev_fd;
+        event_del( &conn->proxy_event);
+        event_set( &conn->proxy_event, fd, EV_READ | EV_WRITE | EV_PERSIST, wrap_Proxy, (void *)conn);
+        event_add( &conn->proxy_event, 0);
+    }
 }
 
 void GreenSQL::Close()
