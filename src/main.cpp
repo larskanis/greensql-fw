@@ -5,7 +5,7 @@
 // License: GPL v2 (http://www.gnu.org/licenses/gpl.html)
 //
 
-#include <iostream>
+//#include <iostream>
 
 #include <stdio.h>
 #include <time.h>
@@ -75,7 +75,7 @@ int _tmain(int argc, char * argv[])
 int main(int argc, char *argv[])
 #endif
 {
-    try
+    //try
     {
 #ifdef WIN32
         SetConsoleCtrlHandler( (PHANDLER_ROUTINE) Hook, TRUE );
@@ -147,8 +147,8 @@ int main(int argc, char *argv[])
         struct event tEvent;
         memset(&tEvent,0, sizeof(struct event));
         struct timeval delay;
-        delay.tv_sec=0;
-        delay.tv_usec=100;
+        delay.tv_sec=1;
+        delay.tv_usec=0;
         evtimer_set(&tEvent, clb_timeout, &tEvent);
         evtimer_add(&tEvent, &delay);
        
@@ -176,13 +176,15 @@ int main(int argc, char *argv[])
         _CrtDumpMemoryLeaks();
         Beep( 440, 300 );
 #endif
-	std::cout << "quit:" << std::endl; 
+	//std::cout << "quit:" << std::endl; 
         
     }
+/*
     catch(char * str)
     {
 	    std::cout << "Main exception:" << str << std::endl; 
     }
+*/
     exit(0);
 }
 
@@ -212,8 +214,8 @@ static int counter = 0;
 void clb_timeout(int fd, short which, void * arg)
 {
     struct timeval delay;
-    delay.tv_sec=0;
-    delay.tv_usec=100;
+    delay.tv_sec=1;
+    delay.tv_usec=0;
 
     struct event * tEvent = (struct event*) arg;
 
@@ -221,6 +223,7 @@ void clb_timeout(int fd, short which, void * arg)
 
     GreenSQLConfig * cfg = GreenSQLConfig::getInstance();
 
+    logevent(INFO, "timer fired\n");
     if (cfg->bRunning == false)
     {
         proxymap_close();
@@ -228,7 +231,7 @@ void clb_timeout(int fd, short which, void * arg)
         evtimer_set(tEvent, clb_timeout, tEvent);
         evtimer_add(tEvent, &delay);
 	counter++;
-	if (counter == 3000)
+	if (counter == 10)
 	{
             //logevent(INFO, "Timer fired 1000 times\n");
 	    counter = 0;
