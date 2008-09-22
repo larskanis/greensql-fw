@@ -204,8 +204,11 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
         // query must not be empty
         // otherwise system can crash
         if (query[0] != '\0')
-		{
-			if ( check_query(query) == false)
+        {
+            //hasResponse = false;
+	    //return true;
+
+            if ( check_query(query) == false)
             {
                 // bad query - block it
                 request = ""; // do not send it to backend server
@@ -215,14 +218,14 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
             } else {
                 hasResponse = false;
             }
-		}
+        }
     } else if (data[4] == MYSQL_PREPARE) {
-         logevent(SQL_DEBUG, "PREPARE QUERY: %s\n", data+5);
+        logevent(SQL_DEBUG, "PREPARE QUERY: %s\n", data+5);
     } else if (data[4] == MYSQL_EXEC) {
-         logevent(SQL_DEBUG, "EXECUTE QUERY: %s\n", data+5);
+        logevent(SQL_DEBUG, "EXECUTE QUERY: %s\n", data+5);
     } else if (data[4] == MYSQL_DB) {
-         logevent(SQL_DEBUG, "DATABASE: %s\n", data+5);
-         db_new_name = (const char *)data+5;
+        logevent(SQL_DEBUG, "DATABASE: %s\n", data+5);
+        db_new_name = (const char *)data+5;
     } else {
         logevent(SQL_DEBUG, "UNKNOWN COMMAND\n");
         loghex(SQL_DEBUG, data, request_size);   
