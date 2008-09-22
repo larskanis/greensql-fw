@@ -223,7 +223,7 @@ void clb_timeout(int fd, short which, void * arg)
 
     GreenSQLConfig * cfg = GreenSQLConfig::getInstance();
 
-    logevent(INFO, "timer fired\n");
+    //logevent(INFO, "timer fired\n");
     if (cfg->bRunning == false)
     {
         proxymap_close();
