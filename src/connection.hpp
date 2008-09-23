@@ -47,8 +47,7 @@ public:
     std::string db_user;
     DBPermObj * db;
 private:
-    unsigned int calculateRisk(std::string & query, std::string & pattern,
-                           std::string &reason);
+    unsigned int calculateRisk(std::string & query, std::string &reason);
     
 };
 
