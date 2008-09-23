@@ -147,14 +147,16 @@ void loghex(ErrorType type, const unsigned char * data, int size)
     const char * error;
     struct tm *now;
     time_t tval;
-    tval = time(NULL);
     char month[10];
-    now = localtime(&tval);
+
     if (size == 0)
         return;
     if (log_level < (int) type)
 	    return;
-    
+   
+    tval = time(NULL);
+    now = localtime(&tval);
+ 
     switch (type)
     {
         case CRIT:      error = "CRIT      ";
