@@ -49,20 +49,22 @@ bool Connection::check_query(std::string & query)
     // perform normalization - make a pattern of the query
     normalizeQuery(query);
     str_lowercase(query);
-    std::string pattern = query;
-    logevent(SQL_DEBUG, "AFTER NORM   : %s\n", query.c_str());
+    // we will make the reference out of query
+    std::string & pattern = query;
+
+    logevent(SQL_DEBUG, "AFTER NORM   : %s\n", pattern.c_str());
 
     bool ret = false;
     bool privileged_operation = false;
     int risk = 0;
 
-    if ( (ret = checkBlacklist(query, reason)) == true)
+    if ( (ret = checkBlacklist(pattern, reason)) == true)
     {
          privileged_operation = true;
-	 logevent(SQL_DEBUG, "FORBIDEN     : %s\n", query.c_str());
+	 logevent(SQL_DEBUG, "FORBIDEN     : %s\n", pattern.c_str());
     }
     // check if we find anything interesting
-    risk = calculateRisk(original_query, query, reason);
+    risk = calculateRisk(original_query, reason);
     logevent(SQL_DEBUG, "RISK         : %d\n", risk);
 
     int in_whitelist = 0;
@@ -157,7 +159,7 @@ bool Connection::check_query(std::string & query)
 }
 
 unsigned int Connection::calculateRisk(std::string & query,
-  std::string & pattern, std::string & reason)
+  std::string & reason)
 {
     GreenSQLConfig * conf = GreenSQLConfig::getInstance();
     unsigned int ret = 0;
