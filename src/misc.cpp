@@ -87,6 +87,8 @@ bool ParseConfLine(std::string & str, std::string & key, std::string & value)
 
 void str_lowercase(std::string &str)
 {
+    // Another varian for this function is to do the following:
+    // transform(tmp.begin(), tmp.end(), tolower);
     std::string::iterator i = str.begin();
     while (i != str.end()) {
         *i = tolower(*i);
