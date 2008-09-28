@@ -74,11 +74,11 @@ public:
     String,
     Complex
   };
-  Expression()
+  Expression() : has_const(0), str_length(0), const_type(Undef)
   {
-    has_const = 0;
-    str_length = 0;
-    const_type = Undef;
+    //has_const = 0;
+    //str_length = 0;
+    //const_type = Undef;
     expressions.push_front(this);
     itr = expressions.begin();
   }
