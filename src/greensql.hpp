@@ -17,8 +17,18 @@
 
 #include <event.h>
 #include <string>
-#include <vector>
+#include <list>
 enum DBProxyType { DBTypeMySQL, DBTypePGSQL, DBTypeMSSQL };
+
+void Proxy_cb(int fd, short which, void * arg);
+void Proxy_write_cb(int fd, short which, void * arg);
+void ProxyValidateClientRequest(Connection*);
+void ProxyValidateServerResponse(Connection*);
+void Backend_cb(int fd, short which, void * arg);
+void Backend_write_cb(int fd, short which, void * arg);
+bool socket_read(int fd, char * data, int & size);
+bool socket_write(int fd, const char* data, int & size);
+void CloseConnection(Connection * conn);
 
 class GreenSQL
 {
@@ -35,8 +45,8 @@ public:
     int client_socket(std::string & server, int port);
     int socket_accept(int serverfd);
     int static socket_close(int sfd);
-    bool socket_read(int fd, char * data, int & size);
-    bool socket_write(int fd, const char* data, int & size);
+    //bool socket_read(int fd, char * data, int & size);
+    //bool socket_write(int fd, const char* data, int & size);
     int new_socket();
     
     //proxy
@@ -50,17 +60,16 @@ public:
     bool PrepareNewConn(int, int &, int &);
     virtual void Server_cb(int fd, short which, void * arg, 
     		Connection *, int, int);
-    void Proxy_cb(int fd, short which, void * arg);
-    void Proxy_write_cb(int fd, short which, void * arg);
-    void ProxyValidateClientRequest(Connection*);
-    void Backend_cb(int fd, short which, void * arg);
-    void Backend_write_cb(int fd, short which, void * arg);
-    void ProxyValidateServerResponse(Connection*);
+    //void Proxy_cb(int fd, short which, void * arg);
+    //void Proxy_write_cb(int fd, short which, void * arg);
+    //void ProxyValidateClientRequest(Connection*);
+    //void Backend_cb(int fd, short which, void * arg);
+    //void Backend_write_cb(int fd, short which, void * arg);
+    //void ProxyValidateServerResponse(Connection*);
     
     void Close();
-    void CloseConnection(Connection * conn);
 
-    std::vector<Connection*> v_conn;
+    std::list<Connection*> v_conn;
     struct event serverEvent;
 
     int         iProxyId;
