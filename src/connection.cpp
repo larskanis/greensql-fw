@@ -36,6 +36,7 @@ bool Connection::close()
     if (client_event.ev_fd != 0 && client_event.ev_fd != -1 && 
 		client_event.ev_flags & EVLIST_INIT)
         event_del(&client_event);
+    connections->erase(location);
     return true;
 }
 
