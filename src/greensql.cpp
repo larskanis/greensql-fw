@@ -12,7 +12,6 @@
 #include "config.hpp"
 #include "connection.hpp"
 #include "proxymap.hpp"
-#include <vector>
 
 
 #ifdef WIN32
@@ -73,7 +72,9 @@ void GreenSQL::Server_cb(int fd, short which, void * arg,
     event_add( &conn->client_event,0);
     logevent(NET_DEBUG, "size of the connection queue: %d\n", v_conn.size());
 	    
-    v_conn.push_back(conn);
+    v_conn.push_front(conn);
+    conn->connections = &v_conn;
+    conn->location = v_conn.begin();
 }
 
 
@@ -229,7 +230,7 @@ int GreenSQL::socket_close(int sfd)
     return 0;
 }
 
-bool GreenSQL::socket_read(int fd, char * data, int & size)
+bool socket_read(int fd, char * data, int & size)
 {
     if ((size = recv(fd, data, size, 0)) < 0)
     {
@@ -254,7 +255,7 @@ bool GreenSQL::socket_read(int fd, char * data, int & size)
     return true; 
 }
 
-bool GreenSQL::socket_write(int fd, const char* data, int & size)
+bool socket_write(int fd, const char* data, int & size)
 {
     logevent(NET_DEBUG, "Socket_write\n");
     if ((size = send(fd, data, size, 0))  <= 0)
@@ -374,7 +375,7 @@ bool GreenSQL::ServerInitialized()
     return false;
 }
 
-void GreenSQL::Proxy_cb(int fd, short which, void * arg)
+void Proxy_cb(int fd, short which, void * arg)
 {
     Connection * conn = (Connection *) arg;
     char data[min_buf_size];
@@ -404,7 +405,7 @@ void GreenSQL::Proxy_cb(int fd, short which, void * arg)
     }
 }
 
-void GreenSQL::Proxy_write_cb(int fd, short which, void * arg)
+void Proxy_write_cb(int fd, short which, void * arg)
 {
     Connection * conn = (Connection *) arg;
     int len = conn->response_out.size();
@@ -429,7 +430,7 @@ void GreenSQL::Proxy_write_cb(int fd, short which, void * arg)
     } 
 }
 
-void GreenSQL::ProxyValidateClientRequest(Connection * conn)
+void ProxyValidateClientRequest(Connection * conn)
 {
     std::string request = "";
     bool hasResponse = false;
@@ -481,7 +482,7 @@ void GreenSQL::ProxyValidateClientRequest(Connection * conn)
     }
 }
 
-void GreenSQL::Backend_cb(int fd, short which, void * arg)
+void Backend_cb(int fd, short which, void * arg)
 {
 
     //we are real server client.
@@ -512,7 +513,7 @@ void GreenSQL::Backend_cb(int fd, short which, void * arg)
     return;
 }
 
-void GreenSQL::Backend_write_cb(int fd, short which, void * arg)
+void Backend_write_cb(int fd, short which, void * arg)
 {
     //we are real server client.
     Connection * conn = (Connection *) arg;
@@ -539,7 +540,7 @@ void GreenSQL::Backend_write_cb(int fd, short which, void * arg)
     }
 }
 
-void GreenSQL::ProxyValidateServerResponse( Connection * conn )
+void ProxyValidateServerResponse( Connection * conn )
 {
     std::string response;
     response.reserve(min_buf_size);
@@ -583,14 +584,11 @@ void GreenSQL::Close()
     //check if we have initialized server socket
     
     Connection * conn;
-    size_t i = v_conn.size();
-    while ( i != 0)
+    while ( v_conn.size() != 0)
     {
-        conn = v_conn[i-1];
+        conn = v_conn.front();
         conn->close();
-        v_conn.pop_back();
-	delete conn;
-        i--;
+        delete conn;
     }
     v_conn.clear();
 
@@ -604,11 +602,12 @@ void GreenSQL::Close()
     //logevent(NET_DEBUG, "Closing proxy object\n");
 }
 
-void GreenSQL::CloseConnection(Connection * conn)
+void CloseConnection(Connection * conn)
 {
+    /*
     std::vector<Connection*>::iterator itr;
 
-    //remove frpm v_conn
+    //remove from v_conn
 
     itr = v_conn.begin();
     while (itr != v_conn.end())
@@ -620,6 +619,7 @@ void GreenSQL::CloseConnection(Connection * conn)
         }
         itr++;
     }
+    */
     conn->close();
     delete conn;
 }
