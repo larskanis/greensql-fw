@@ -21,6 +21,7 @@
 #include "dbpermobj.hpp"
 #include "patterns.hpp"     // for SQLPatterns
 #include <string> // for std::string
+#include <list>
 
 class Connection
 {
@@ -46,6 +47,8 @@ public:
     std::string db_new_name;
     std::string db_user;
     DBPermObj * db;
+    std::list<Connection*>::iterator location;
+    std::list<Connection*> * connections;
 private:
     unsigned int calculateRisk(std::string & query, std::string &reason);
     
