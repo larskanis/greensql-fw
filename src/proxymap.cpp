@@ -71,6 +71,7 @@ void wrap_Server(int fd, short which, void * arg)
 void wrap_Proxy(int fd, short which, void * arg)
 {
     int proxy_id;
+
     Connection * con = (Connection *) arg;
     proxy_id = con->iProxyId;
 
@@ -79,12 +80,15 @@ void wrap_Proxy(int fd, short which, void * arg)
 
     GreenSQL * cls = proxies[proxy_id];
     
-    if(cls != NULL)
+    if (conf->bRunning == false)
     {
-        if (conf->bRunning == false)
-            cls->Close();
-        else
-            cls->Proxy_cb(fd, which, arg);
+      GreenSQL * cls = proxies[proxy_id];
+      if (cls)
+        cls->Close();
+    }
+    else
+    {
+      Proxy_cb(fd, which, arg);
     }
 
 }
@@ -99,14 +103,15 @@ void wrap_Backend(int fd, short which, void * arg)
 
     GreenSQLConfig * conf = GreenSQLConfig::getInstance();
 
-    GreenSQL * cls = proxies[proxy_id];
-
-    if(cls != NULL)
+    if (conf->bRunning == false)
     {
-        if (conf->bRunning == false)
-            cls->Close();
-        else
-            cls->Backend_cb(fd, which, arg);
+      GreenSQL * cls = proxies[proxy_id];
+      if (cls)
+        cls->Close();
+    }
+    else
+    {
+      Backend_cb(fd, which, arg);
     }
 
 }
