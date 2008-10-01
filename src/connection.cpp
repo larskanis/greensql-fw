@@ -59,6 +59,21 @@ bool Connection::check_query(std::string & query)
     bool privileged_operation = false;
     int risk = 0;
 
+    // Optimization Changes
+    // In case we are in automatic block of the new commands
+    // we do not need to calculate query risk if the query
+    // pattern is known and it is in the whitelist.
+    // This must be 99% of the cases (after learning mode is over).
+
+    int in_whitelist = 0;
+
+    in_whitelist = db->CheckWhitelist(pattern);
+    if ( in_whitelist )
+    {
+        logevent(SQL_DEBUG, "Found in Exception List.\n");
+        return true;
+    }
+
     if ( (ret = checkBlacklist(pattern, reason)) == true)
     {
          privileged_operation = true;
@@ -67,15 +82,6 @@ bool Connection::check_query(std::string & query)
     // check if we find anything interesting
     risk = calculateRisk(original_query, reason);
     logevent(SQL_DEBUG, "RISK         : %d\n", risk);
-
-    int in_whitelist = 0;
-
-    in_whitelist = db->CheckWhitelist(pattern);
-    if ( in_whitelist )
-    {
-	logevent(SQL_DEBUG, "Found in Exception List.\n");
-	return true;
-    }
 
     DBBlockStatus block_status = db->GetBlockStatus();
 
