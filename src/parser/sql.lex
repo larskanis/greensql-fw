@@ -87,6 +87,9 @@ limit       return LIMIT;
 procedure   return PROCEDURE;
 
 default     return DEFAULT;
+unknwon     return UNKNOWN;
+true        return TRUEX;
+false       return FALSEX;
 
 div         return DIVIDE;
 xor         return XOR;
@@ -163,6 +166,7 @@ binary       ; // ignore binary statement
 "&"           return BIT_AND;
 "~"           return BIT_NOT;
 "!"           return BIT_NOT;
+
 ";"          {
                /* calculate number of bytes read so far */
                int pos = (int)(yy_c_buf_p - buf->yy_ch_buf);
