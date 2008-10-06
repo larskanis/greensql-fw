@@ -35,9 +35,9 @@ static void cmp_fn(Expression * xp1, Expression * xp2);
 %token INSERT UPDATE DELETE SHOW
 %token INTO
 %token AS IN ANY EXISTS
-%token IS NULLX
+%token IS NULLX UNKNOWN FALSEX TRUEX DEFAULT
 %token EQUAL N_EQUAL PLUS MINUS MULTIPLY DIVIDE POWER NEWLINE SHIFT
-%token BIT_OR BIT_AND BIT_NOT XOR PERCENT
+%token PERCENT
 %token ACCENT
 %token REGEXP
 %token HAVING
@@ -45,7 +45,6 @@ static void cmp_fn(Expression * xp1, Expression * xp2);
 %token PROCEDURE
 %token UNION
 %token SET
-%token DEFAULT
 %token <int_val> INTEGER
 %token <str_val> STRING
 %token <str_val> Q_STRING
@@ -63,20 +62,22 @@ static void cmp_fn(Expression * xp1, Expression * xp2);
 %type <exp_val> math_exp
 %type <exp_val> select_exp
 %type <exp_val> math_op
-%type <exp_val> table
+%type <exp_val> simple_table
 %type <exp_val> select_exps
 %type <exp_val> select_cmd
 
 %left O_BRACE
 %left C_BRACE
 %left PLUS MINUS SHIFT
-%left BIT_OR BIT_AND BIT_NOT 
-%left XOR PERCENT
+%left BIT_OR BIT_AND BIT_NOT
+%left PERCENT
 %left MULTIPLY DIVIDE
-%left NEG END COMMA AS DOT 
+%left NEG END COMMA AS
+%left DOT 
 %left AND
 %left OR
 %left NOT
+%left XOR
 %left EQUAL N_EQUAL LIKE
 %left JOIN_TYPE 
 %left STRAIGHT_JOIN
@@ -138,12 +139,14 @@ delete_table_list: /* empty */
             | delete_table_list COMMA delete_table
             ;
 
-delete_table: 
-            | table DOT MULTIPLY
+delete_table: simple_table 
+            | simple_table DOT simple_table
+            | simple_table DOT simple_table DOT MULTIPLY
+            | simple_table DOT MULTIPLY
             ;
 
 where_cond:  /* empty */
-            | WHERE where_exp_list
+            | WHERE logical_exp_list
 	    ;
 
 select_exps: select_exp                       { $$=$1; }
@@ -152,16 +155,13 @@ select_exps: select_exp                       { $$=$1; }
 
 select_exp:   math_op alias                   { $$=$1; }
             | MULTIPLY                        { $$=new Expression(); }
-            | table DOT MULTIPLY              { $$=$1; }
+            | simple_table DOT simple_table   { $$=$3; } 
+            | simple_table DOT MULTIPLY       { $$=$1; }
             ;
 
 math_op:     math_exp                         { $$=$1; }
-            | math_op REGEXP math_exp        { $$->Add($3); }
-            | math_op NOT REGEXP math_exp    { $$->Add($4); }
-            | math_op EQUAL math_exp         { $$->Add($3); }
-            | math_op N_EQUAL math_exp       { $$->Add($3); }
-            | math_op IS NULLX
-            | math_op IS NOT NULLX
+            | math_op comp_operator math_exp        { $$->Add($3); }
+            | math_op NOT comp_operator math_exp        { $$->Add($4); }
             ;
 
 math_exp:     field                           { $$=$1; }
@@ -169,7 +169,6 @@ math_exp:     field                           { $$=$1; }
 	    | math_exp MINUS    math_exp      { $$->Add($3); }
 	    | math_exp MULTIPLY math_exp      { $$->Add($3); }
 	    | math_exp DIVIDE   math_exp      { $$->Add($3); }
-            | math_exp XOR      math_exp      { $$->Add($3); }
             | math_exp SHIFT    math_exp      { $$->Add($3); }
             | math_exp BIT_OR   math_exp      { $$->Add($3); }
             | math_exp BIT_AND  math_exp      { $$->Add($3); }
@@ -177,7 +176,7 @@ math_exp:     field                           { $$=$1; }
             | math_exp PERCENT  math_exp      { $$->Add($3); }
 	    | MINUS math_exp %prec NEG        { $$=$2; }
             | BIT_NOT math_exp %prec NEG      { $$=$2; }
-	    | math_exp POWER math_exp         { $$->Add($3); }
+	    | math_exp POWER math_exp         { $$->Add($3); /*bit xor*/ }
 	    | O_BRACE math_exp C_BRACE        { $$=$2; }
             | O_BRACE select_cmd C_BRACE      { $$=$2; }
 	    ;
@@ -193,8 +192,8 @@ field:        table_field { $$=new Expression();
 
 table_field:  STRING               { $$=$1; /* printf("field: (s) %s\n", $1->Dump()); */ }
             | ACCENT STRING ACCENT { $$=$2; /* printf("field: (s) %s\n", $2->Dump()); */ }
-            | STRING DOT STRING    { $$=$3; /* printf("field: (s) %s.%s\n", $1->Dump(), $3->Dump()); */ }
-	    | STRING DOT ACCENT STRING ACCENT { $$=$4; /* printf("field: (as) %s.%s\n", $1->Dump(),$4->Dump()); */ }
+            | STRING DOT STRING    { $$=$3; }
+	    | STRING DOT ACCENT STRING ACCENT { $$=$4; }
 	    ; 
 
 const_value:  INTEGER           { $$=new Expression(); $$->AddConst($1); /* printf("field: (n) %d\n", $1->Dump()); */ }
@@ -202,6 +201,9 @@ const_value:  INTEGER           { $$=new Expression(); $$->AddConst($1); /* prin
 	    | Q_STRING          { $$=new Expression(); $$->AddConst($1); /* printf("field: (qs) %s\n", $1->Dump()); */ }
 	    | DQ_STRING         { $$=new Expression(); $$->AddConst($1); /* printf("field: (dqs) %s\n", $1->Dump()); */ }
             | NULLX             { $$=new Expression(); $$->AddConst(0); /* printf("field: (null)\n"); */ }
+            | UNKNOWN           { $$=new Expression(); $$->AddConst(0); }
+            | TRUEX             { $$=new Expression(); $$->AddConst(1); }
+            | FALSEX            { $$=new Expression(); $$->AddConst(0); }
             ;
 
 table_references: table_reference
@@ -225,17 +227,18 @@ join_types: join_types JOIN_TYPE
             ;
 
 join_cond:  /* empty */
-            | ON where_exp_list
+            | ON logical_exp_list
             | USING O_BRACE math_exp C_BRACE
             ;
 
-table_factor: table alias index_hint
+table_factor: simple_table alias index_hint
+            | simple_table DOT simple_table alias index_hint
             ;
 
-table:        STRING                 { $$=new Expression(); $$->AddField($1); clb_found_table($1); }
+simple_table:        STRING                 { $$=new Expression(); $$->AddField($1); clb_found_table($1); }
             | ACCENT STRING ACCENT   { $$=new Expression(); $$->AddField($2); clb_found_table($2); }
-            | STRING DOT STRING      { $$=new Expression(); $$->AddField($3); clb_found_table($3); }
-            | STRING DOT ACCENT STRING ACCENT     { $$=new Expression(); $$->AddField($4); clb_found_table($4); }
+//            | STRING DOT STRING      { $$=new Expression(); $$->AddField($3); clb_found_table($3); }
+//            | STRING DOT ACCENT STRING ACCENT     { $$=new Expression(); $$->AddField($4); clb_found_table($4); }
 //            | ACCENT STRING ACCENT DOT ACCENT STRING ACCENT  { $$=new Expression(); $$->AddField($6); clb_found_table($6); }
             | O_BRACE select_cmd C_BRACE { $$=$2; }
 	    ;
@@ -277,26 +280,39 @@ fn_args:       math_exp                  { $$=$1; }
             | fn_args COMMA fn_args      { $$->Add($3); }
             ;
 
+logical_operator: AND
+            | OR
+//            | NOT
+            | XOR
+            ;
 
-where_exp_list: where_exp_list OR where_exp_list
-	    | where_exp_list AND where_exp_list
-	    | O_BRACE where_exp_list C_BRACE
-	    | NOT where_exp_list
-	    | where_exp
+logical_exp_list: logical_exp_list logical_operator logical_exp
+	    | O_BRACE logical_exp_list C_BRACE
+	    | NOT logical_exp
+	    | logical_exp
 	    ;
 
-where_exp:    math_exp                     { if ($1->IsTrue()) clb_found_tautology(); }
-            | math_exp EQUAL    math_exp   { cmp_fn($1,$3); }
-	    | math_exp N_EQUAL  math_exp   { cmp_fn($1,$3); }
-            | math_exp EQUAL math_exp EQUAL math_exp { clb_found_tautology(); }
-	    | math_exp LIKE     math_exp   { cmp_fn($1,$3); }
-	    | math_exp NOT LIKE math_exp   { cmp_fn($1,$4); }
-            | math_exp REGEXP   math_exp   { cmp_fn($1,$3); }
-            | math_exp NOT REGEXP math_exp { cmp_fn($1,$4); }
-            | math_exp IS       math_exp   { cmp_fn($1,$3); }
-            | math_exp IS NOT   math_exp   { cmp_fn($1,$4); }
+comp_operator:  EQUAL
+            | N_EQUAL
+            | LIKE
+            | REGEXP
+            | IS NOT
+            | IS
+            ;
+
+            
+logical_exp: math_exp                     { if ($1->IsTrue()) clb_found_tautology(); }
+            | math_exp NOT math_exp   { cmp_fn($1,$3); }
+            | math_exp comp_operator math_exp   { cmp_fn($1,$3); }
+            | math_exp NOT comp_operator math_exp   { cmp_fn($1,$4); }
+            | math_exp comp_operator math_exp comp_operator math_exp { clb_found_tautology(); }
+            | math_exp NOT comp_operator math_exp comp_operator math_exp { clb_found_tautology(); }
+            | math_exp comp_operator math_exp NOT comp_operator math_exp { clb_found_tautology(); }
+            | math_exp NOT comp_operator math_exp NOT comp_operator math_exp { clb_found_tautology(); }
             | math_exp IN O_BRACE fn_args C_BRACE { cmp_fn($1,$4); }
-            | math_exp IN O_BRACE select_cmd C_BRACE
+            | math_exp NOT IN O_BRACE fn_args C_BRACE { cmp_fn($1,$5); }
+            | math_exp IN O_BRACE select_cmd C_BRACE { cmp_fn($1, $4); }
+            | math_exp NOT IN O_BRACE select_cmd C_BRACE { cmp_fn($1, $5); }
             | EXISTS O_BRACE select_cmd C_BRACE
             ;
 
@@ -305,7 +321,7 @@ group_cond: /* empty */
             ;
 
 groupby_column_list: table_field
-            | groupby_column_list COMMA groupby_column_list
+            | groupby_column_list COMMA table_field
             ;
 
 sort_order: /* empty */
@@ -314,7 +330,7 @@ sort_order: /* empty */
             ;
 
 having_cond:  /* empty */
-            | HAVING where_exp_list
+            | HAVING logical_exp_list
             ;
 
 order_cond: /* empty */
