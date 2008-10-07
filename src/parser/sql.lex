@@ -185,7 +185,7 @@ binary       ; // ignore binary statement
 
 "'"          return get_q_string('\'');
 "\""         return get_q_string('\"');
-"`"          return ACCENT;
+"`"          return get_q_string('\`');
 
 [ \t\v\f\r\n]+  ; // return END;
 
@@ -209,8 +209,10 @@ static int get_q_string(int delimeter)
             yylval.str_val = new SQLString(str);
             if (delimeter == '\'')
                 return Q_STRING;
+            else if (delimeter == '\"')
+                return DQ_STRING;
             else
-               return DQ_STRING;
+                return NAME;
         }
         // add new char
         str += c;
@@ -229,7 +231,9 @@ static int get_q_string(int delimeter)
     yylval.str_val = new SQLString(str);
     if (delimeter == '\'')
         return Q_STRING;
-    return DQ_STRING;
+    else if (delimeter == '\"')
+        return DQ_STRING;
+    return NAME;
 }
 
 // when end of buffer is reached, stop processing
