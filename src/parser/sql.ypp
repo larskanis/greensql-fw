@@ -38,7 +38,6 @@ static void cmp_fn(Expression * xp1, Expression * xp2);
 %token IS NULLX UNKNOWN FALSEX TRUEX DEFAULT
 %token EQUAL N_EQUAL PLUS MINUS MULTIPLY DIVIDE POWER NEWLINE SHIFT
 %token PERCENT
-%token ACCENT
 %token REGEXP
 %token HAVING
 %token LIMIT OFFSET
@@ -49,6 +48,7 @@ static void cmp_fn(Expression * xp1, Expression * xp2);
 %token <str_val> STRING
 %token <str_val> Q_STRING
 %token <str_val> DQ_STRING
+%token <str_val> NAME;
 %token <int_val> VARIABLE
 
 %type <str_val> alias
@@ -155,8 +155,14 @@ select_exps: select_exp                       { $$=$1; }
 
 select_exp:   math_op alias                   { $$=$1; }
             | MULTIPLY                        { $$=new Expression(); }
-            | simple_table DOT simple_table   { $$=$3; } 
-            | simple_table DOT MULTIPLY       { $$=$1; }
+            | STRING DOT MULTIPLY { $$=new Expression(); $$->AddField($1); clb_found_table($1); }
+            | NAME DOT MULTIPLY { $$=new Expression(); $$->AddField($1); clb_found_table($1); }
+            | STRING DOT STRING DOT MULTIPLY { $$=new Expression(); $$->AddField($3); clb_found_table($3); }
+            | STRING DOT NAME DOT MULTIPLY { $$=new Expression(); $$->AddField($3); clb_found_table($3); }
+            | NAME DOT STRING DOT MULTIPLY { $$=new Expression(); $$->AddField($3); clb_found_table($3); }
+            | NAME DOT NAME DOT MULTIPLY { $$=new Expression(); $$->AddField($3); clb_found_table($3); }
+//            | simple_table DOT simple_table   { $$=$3; } 
+//            | simple_table DOT MULTIPLY       { $$=$1; }
             ;
 
 math_op:     math_exp                         { $$=$1; }
@@ -190,17 +196,19 @@ field:        table_field { $$=new Expression();
             | simple_fn   { $$=new Expression(); $$->AddConst(new SQLString("fn()")); }
 	    ;
 
-table_field:  STRING               { $$=$1; /* printf("field: (s) %s\n", $1->Dump()); */ }
-            | ACCENT STRING ACCENT { $$=$2; /* printf("field: (s) %s\n", $2->Dump()); */ }
+table_field:  STRING               { $$=$1; }
+            | NAME                 { $$=$1; }
             | STRING DOT STRING    { $$=$3; }
-	    | STRING DOT ACCENT STRING ACCENT { $$=$4; }
+	    | STRING DOT NAME      { $$=$3; }
+            | NAME   DOT STRING    { $$=$3; }
+            | NAME   DOT NAME      { $$=$3; }
 	    ; 
 
-const_value:  INTEGER           { $$=new Expression(); $$->AddConst($1); /* printf("field: (n) %d\n", $1->Dump()); */ }
-	    | VARIABLE          { $$=new Expression(); $$->AddConst($1); /* printf("field: (v) %d\n", $1); */ }
-	    | Q_STRING          { $$=new Expression(); $$->AddConst($1); /* printf("field: (qs) %s\n", $1->Dump()); */ }
-	    | DQ_STRING         { $$=new Expression(); $$->AddConst($1); /* printf("field: (dqs) %s\n", $1->Dump()); */ }
-            | NULLX             { $$=new Expression(); $$->AddConst(0); /* printf("field: (null)\n"); */ }
+const_value:  INTEGER           { $$=new Expression(); $$->AddConst($1); }
+	    | VARIABLE          { $$=new Expression(); $$->AddConst($1); }
+	    | Q_STRING          { $$=new Expression(); $$->AddConst($1); }
+	    | DQ_STRING         { $$=new Expression(); $$->AddConst($1); }
+            | NULLX             { $$=new Expression(); $$->AddConst(0);  }
             | UNKNOWN           { $$=new Expression(); $$->AddConst(0); }
             | TRUEX             { $$=new Expression(); $$->AddConst(1); }
             | FALSEX            { $$=new Expression(); $$->AddConst(0); }
@@ -235,8 +243,8 @@ table_factor: simple_table alias index_hint
             | simple_table DOT simple_table alias index_hint
             ;
 
-simple_table:        STRING                 { $$=new Expression(); $$->AddField($1); clb_found_table($1); }
-            | ACCENT STRING ACCENT   { $$=new Expression(); $$->AddField($2); clb_found_table($2); }
+simple_table: STRING { $$=new Expression(); $$->AddField($1); clb_found_table($1); }
+            | NAME   { $$=new Expression(); $$->AddField($1); clb_found_table($1); }
 //            | STRING DOT STRING      { $$=new Expression(); $$->AddField($3); clb_found_table($3); }
 //            | STRING DOT ACCENT STRING ACCENT     { $$=new Expression(); $$->AddField($4); clb_found_table($4); }
 //            | ACCENT STRING ACCENT DOT ACCENT STRING ACCENT  { $$=new Expression(); $$->AddField($6); clb_found_table($6); }
@@ -248,8 +256,8 @@ alias:      /* empty */ { }
             | AS alias_str { }
             ;
 
-alias_str:    STRING                 { /* $$ = $1; printf("table: %s\n", $1); */ }
-            | ACCENT STRING ACCENT   { /* $$ = $2; printf("table: %s\n", $2); */ }
+alias_str:    STRING         { /* $$ = $1; printf("table: %s\n", $1); */ }
+            | NAME           { /* $$ = $2; printf("table: %s\n", $2); */ }
             | Q_STRING
             | DQ_STRING
             ;
