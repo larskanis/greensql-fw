@@ -185,7 +185,7 @@ binary       ; // ignore binary statement
 
 "'"          return get_q_string('\'');
 "\""         return get_q_string('\"');
-"`"          return get_q_string('\`');
+"`"          return get_q_string('`');
 
 [ \t\v\f\r\n]+  ; // return END;
 
@@ -215,7 +215,7 @@ static int get_q_string(int delimeter)
                 return NAME;
         }
         // add new char
-        str += c;
+        str.append( 1, (unsigned char) c );
         if (c == '\\' && quoted == 0)
         {
             quoted = 1;
