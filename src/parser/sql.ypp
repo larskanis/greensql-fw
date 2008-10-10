@@ -155,12 +155,12 @@ select_exps: select_exp                       { $$=$1; }
 
 select_exp:   math_op alias                   { $$=$1; }
             | MULTIPLY                        { $$=new Expression(); }
-            | STRING DOT MULTIPLY { $$=new Expression(); $$->AddField($1); clb_found_table($1); }
-            | NAME DOT MULTIPLY { $$=new Expression(); $$->AddField($1); clb_found_table($1); }
-            | STRING DOT STRING DOT MULTIPLY { $$=new Expression(); $$->AddField($3); clb_found_table($3); }
-            | STRING DOT NAME DOT MULTIPLY { $$=new Expression(); $$->AddField($3); clb_found_table($3); }
-            | NAME DOT STRING DOT MULTIPLY { $$=new Expression(); $$->AddField($3); clb_found_table($3); }
-            | NAME DOT NAME DOT MULTIPLY { $$=new Expression(); $$->AddField($3); clb_found_table($3); }
+            | STRING DOT MULTIPLY { clb_found_table($1); $$=new Expression(); $$->AddField($1); }
+            | NAME DOT MULTIPLY { clb_found_table($1); $$=new Expression(); $$->AddField($1);  }
+            | STRING DOT STRING DOT MULTIPLY { clb_found_table($3); $$=new Expression(); $$->AddField($3); }
+            | STRING DOT NAME DOT MULTIPLY { clb_found_table($3); $$=new Expression(); $$->AddField($3); }
+            | NAME DOT STRING DOT MULTIPLY { clb_found_table($3); $$=new Expression(); $$->AddField($3); }
+            | NAME DOT NAME DOT MULTIPLY { clb_found_table($3); $$=new Expression(); $$->AddField($3); }
 //            | simple_table DOT simple_table   { $$=$3; } 
 //            | simple_table DOT MULTIPLY       { $$=$1; }
             ;
@@ -243,11 +243,11 @@ table_factor: simple_table alias index_hint
             | simple_table DOT simple_table alias index_hint
             ;
 
-simple_table: STRING { $$=new Expression(); $$->AddField($1); clb_found_table($1); }
-            | NAME   { $$=new Expression(); $$->AddField($1); clb_found_table($1); }
-//            | STRING DOT STRING      { $$=new Expression(); $$->AddField($3); clb_found_table($3); }
-//            | STRING DOT ACCENT STRING ACCENT     { $$=new Expression(); $$->AddField($4); clb_found_table($4); }
-//            | ACCENT STRING ACCENT DOT ACCENT STRING ACCENT  { $$=new Expression(); $$->AddField($6); clb_found_table($6); }
+simple_table: STRING { clb_found_table($1); $$=new Expression(); $$->AddField($1); }
+            | NAME   { clb_found_table($1); $$=new Expression(); $$->AddField($1); }
+//            | STRING DOT STRING  { clb_found_table($3); $$=new Expression(); $$->AddField($3); }
+//            | STRING DOT NAME    { clb_found_table($3); $$=new Expression(); $$->AddField($4); }
+//            | NAME DOT NAME      { clb_found_table($3); $$=new Expression(); $$->AddField($6); }
             | O_BRACE select_cmd C_BRACE { $$=$2; }
 	    ;
 
