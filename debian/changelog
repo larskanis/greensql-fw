@@ -1,9 +1,17 @@
+greensql-fw (0.9.4) unstable; urgency=low
+
+  * More code optimization.
+  * Fixed numerous risk calculation bugs.
+  * Fixed bug in detection of sensitive tables.
+
+ -- yuli <stremovsky@gmail.com>  Oct, 09 Thu 2008 01:10:00 +0300
+
 greensql-fw (0.9.2) unstable; urgency=low
 
   * Code optimization.
   * Fixed numerous risk calculation bugs.
 
- -- yuli <stremovsky@gmail.com>  Sep, 12 Sep 2008 01:10:00 +0300
+ -- yuli <stremovsky@gmail.com>  Sep, 12 Fri 2008 01:10:00 +0300
 
 greensql-fw (0.9.0) unstable; urgency=low
 
