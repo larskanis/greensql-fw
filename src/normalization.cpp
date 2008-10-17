@@ -212,8 +212,11 @@ static bool removeNumbers(std::string & query)
 	    {
               if (query[i+1] == 'x' || query[i+1] == 'X')
 	      {
-                for (j=i+2; j < query.size() && query[j] >= '0'
-			       && query[j] <= '9'; j++)
+		// fix for hex numbers
+                for (j=i+2; j < query.size() && 
+				((query[j] >= '0' && query[j] <= '9') ||
+				(query[j] >= 'a' && query[j] <= 'f')); 
+				j++)
 		{
                   ;
 		}
