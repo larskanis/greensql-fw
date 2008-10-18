@@ -47,9 +47,10 @@ bool Connection::check_query(std::string & query)
     std::string original_query = query;
     std::string reason = "";
 
+    // convert query to lower case
+    str_lowercase(query);
     // perform normalization - make a pattern of the query
     normalizeQuery(query);
-    str_lowercase(query);
     // we will make the reference out of query
     std::string & pattern = query;
 
