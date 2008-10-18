@@ -199,11 +199,14 @@ static bool removeNumbers(std::string & query)
     //the following chars can precede number " ,.(" 
     for (i = 1; i < query.size(); i++)
     {
-        if ((query[i-1] == ',' || 
+        if ((query[i-1] == ',' || query[i-1] == '!' ||
              query[i-1] == '(' || query[i-1] == ' ' ||
 	     query[i-1] == '+' || query[i-1] == '-' ||
 	     query[i-1] == '*' || query[i-1] == '/' ||
-	     query[i-1] == '=')	&&
+	     query[i-1] == '=' || query[i-1] == '~' ||
+	     query[i-1] == '<' || query[i-1] == '>' ||
+	     query[i-1] == '^' || query[i-1] == '%' ||
+	     query[i-1] == '|' || query[i-1] == '&')	&&
 	    query[i] >= '0' && query[i] <= '9')
 	{
             found_hex = false;
