@@ -13,7 +13,7 @@ static bool removeNumbers(std::string & query);
 static bool removeHashComment(std::string & query);
 static bool removeDashComment(std::string & query);
 static bool removeCppComment(std::string & query);
-static int lookForChar(std::string & query, int start, char delimeter);
+static unsigned int lookForChar(std::string & query, int start, char delimeter);
 
 /*
  * The following function is used to perform the following changes:
@@ -259,7 +259,7 @@ static bool removeNumbers(std::string & query)
 bool removeQuotedText(std::string & query)
 {
     unsigned int i;
-    int j;
+    unsigned int j;
     bool quoted = false;
 
     for (i = 0; i < query.size(); i++)
@@ -285,7 +285,6 @@ bool removeQuotedText(std::string & query)
 	}
     }
     return true;
-
 }
 
 static bool fixNegativeNumbers(std::string & query)
@@ -338,7 +337,7 @@ static bool fixNegativeNumbers(std::string & query)
     return true;
 }
 
-static int lookForChar(std::string & query, int start, char delimeter)
+static unsigned int lookForChar(std::string & query, int start, char delimeter)
 {
     unsigned int j = 0;
     bool quoted = false;
@@ -347,7 +346,7 @@ static int lookForChar(std::string & query, int start, char delimeter)
     {
         if (query[j] == delimeter && quoted == false)
 	{
-		return j;
+            return j;
 	} else if (query[j] == '\\' && quoted == false)
 	{
             quoted = true;
