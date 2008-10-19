@@ -128,7 +128,7 @@ void logevent(ErrorType type, const char * fmt, ...)
     
     log_reload();
     strftime(month,10,"%b",now);
-    fprintf(log_file,"[%02d/%s/%02d:%d:%02d:%02d] %s",now->tm_mday,month, now->tm_year+1900,now->tm_hour, now->tm_min, now->tm_sec, error );
+    fprintf(log_file,"[%02d/%s/%02d %d:%02d:%02d] %s",now->tm_mday,month, now->tm_year+1900,now->tm_hour, now->tm_min, now->tm_sec, error );
 
     // vsyslog can be used instead
     //
@@ -186,7 +186,7 @@ void loghex(ErrorType type, const unsigned char * data, int size)
     for (i = 0; i < lines; i++)
     {
        /*fprintf(log_file, error);*/
-       fprintf(log_file,"[%02d/%s/%02d:%d:%02d:%02d] %s", now->tm_mday, month, now->tm_year+1900,now->tm_hour, now->tm_min, now->tm_sec, error );
+       fprintf(log_file,"[%02d/%s/%02d %d:%02d:%02d] %s", now->tm_mday, month, now->tm_year+1900,now->tm_hour, now->tm_min, now->tm_sec, error );
        printline(data+i*16, 16);
     }
     // ord(size%16)
@@ -194,7 +194,7 @@ void loghex(ErrorType type, const unsigned char * data, int size)
     if ( ord > 0)
     {
         /*fprintf(log_file, error);*/
-	fprintf(log_file,"[%02d/%s/%02d:%d:%02d:%02d] %s", now->tm_mday,month ,now->tm_year+1900,now->tm_hour, now->tm_min, now->tm_sec, error );
+	fprintf(log_file,"[%02d/%s/%02d %d:%02d:%02d] %s", now->tm_mday,month ,now->tm_year+1900,now->tm_hour, now->tm_min, now->tm_sec, error );
         printline(data+i*16, ord);
     }
     fflush(log_file);
