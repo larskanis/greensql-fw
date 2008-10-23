@@ -16,14 +16,3 @@ libpcre
 libmysqlclient
 libevent
 
-
-For compilation, you will need the development versions of the above packages.
-
-For example in Debian Oldstable you will need:
-libpcre3
-libpcre3-dev
-libevent1
-libevent-dev
-libmysqlclient14
-libmysqlclient14-dev
-
