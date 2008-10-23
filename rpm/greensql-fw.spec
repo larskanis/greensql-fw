@@ -7,9 +7,15 @@ Group: Applications/Databases
 URL: http://www.greensql.net/
 Source: http://easynews.dl.sourceforge.net/sourceforge/greensql/%{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-buildroot
-BuildRequires: mysql-devel, pcre-devel, libevent, flex, bison, gcc-c++
+BuildRequires: mysql-devel, pcre-devel, flex, bison, gcc-c++
 %if "%{_vendor}" == "redhat"
 BuildRequires: libevent-devel
+%endif
+
+%if "%{_vendor}" == "MandrakeSoft" || "%{_vendor}" == "Mandrakesoft" || "%{_vendor}" == "Mandriva"  || "%{_vendor}" == "mandriva"
+BuildRequires: libevent-devel
+%else
+BuildRequires: libevent
 %endif
 
 %description
