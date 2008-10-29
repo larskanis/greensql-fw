@@ -230,6 +230,11 @@ bool GreenSQLConfig::load_db()
 	return false;
     }
 
+#if MYSQL_VERSION_ID >= 50013
+    my_bool trueval = 1;
+    mysql_options(&dbConn, MYSQL_OPT_RECONNECT, &trueval);
+#endif
+	
     if(!mysql_real_connect(&dbConn, sDbHost.c_str(), sDbUser.c_str(),
                            sDbPass.c_str(), sDbName.c_str(),
                            iDbPort, NULL, 0))
@@ -237,10 +242,7 @@ bool GreenSQLConfig::load_db()
         logevent(DEBUG, "Mysql error: %s\n", mysql_error(&dbConn));
         return false;
     }
-//#ifdef MYSQL_OPT_RECONNECT
-    my_bool trueval = 1;
-    mysql_options(&dbConn, MYSQL_OPT_RECONNECT, &trueval);
-//#endif
+
     return true;
 }
 
