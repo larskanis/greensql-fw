@@ -14,15 +14,26 @@ libevent-dev
 libpcre3-dev
 libpcre3
 
+
+For example in Debian Oldstable you will need:
+libpcre3
+libpcre3-dev
+libevent1
+libevent-dev
+libmysqlclient14
+libmysqlclient14-dev
+
 In order to build deb package you will need the folowing:
 sudo apt-get install devscripts
 sudo apt-get install fakeroot
 sudo apt-get install debhelper
 sudo apt-get install build-essential
 
-If you use default installation of FreeBSD you will need to run the following packages:
+
+If you use default installation of FreeBSD you will need to install the following packages:
 
 pkg_add -r bison
 pkg_add -r libevent
 pkg_add -r pcre
 pkg_add -r mysql51-client
+
