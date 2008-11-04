@@ -125,14 +125,17 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
             int temp2 = data[temp+1];
             if (temp2 == 0)
             {
-                logevent(SQL_DEBUG, "DATABASE: %s\n", data+temp+2);
-		db_name = "";
-		int db_name_len = strlen((const char*)data+temp+2);
-		if (db_name_len > size-temp-3)
-		  db_name_len = size-temp-3;
-		db_name.append((const char*)data+temp+2, db_name_len);
-		//logevent(SQL_DEBUG, "DATABASE2: %s\n", db_name.c_str());
-                db = dbmap_find(iProxyId, db_name);
+                int db_name_len = strlen((const char*)data+temp+2);
+                if (db_name_len > 0)
+                {
+                  logevent(SQL_DEBUG, "DATABASE: %s\n", data+temp+2);
+                  db_name = "";
+                  if (db_name_len > size-temp-3)
+                    db_name_len = size-temp-3;
+                  db_name.append((const char*)data+temp+2, db_name_len);
+                  //logevent(SQL_DEBUG, "DATABASE2: %s\n", db_name.c_str());
+                  db = dbmap_find(iProxyId, db_name);
+                }
             }
             else if (temp+temp2+2 < size)
             {
