@@ -38,6 +38,8 @@ static void cmp_fn(Expression * xp1, Expression * xp2);
 %token IS NULLX UNKNOWN FALSEX TRUEX DEFAULT
 %token EQUAL N_EQUAL PLUS MINUS MULTIPLY DIVIDE POWER NEWLINE SHIFT
 %token PERCENT
+%token BETWEEN
+%token CASE
 %token REGEXP
 %token HAVING
 %token LIMIT OFFSET
@@ -321,6 +323,7 @@ logical_exp: math_exp                     { if ($1->IsTrue()) clb_found_tautolog
             | math_exp NOT IN O_BRACE fn_args C_BRACE { cmp_fn($1,$5); }
             | math_exp IN O_BRACE select_cmd C_BRACE { cmp_fn($1, $4); }
             | math_exp NOT IN O_BRACE select_cmd C_BRACE { cmp_fn($1, $5); }
+            | math_exp BETWEEN math_exp AND math_exp { cmp_fn($1, $3); cmp_fn($1, $5); }
             | EXISTS O_BRACE select_cmd C_BRACE
             ;
 
