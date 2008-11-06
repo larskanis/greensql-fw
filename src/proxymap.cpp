@@ -78,8 +78,6 @@ void wrap_Proxy(int fd, short which, void * arg)
     logevent(NET_DEBUG, "[%d]frontend socket fired %d\n", proxy_id, fd);
     GreenSQLConfig * conf = GreenSQLConfig::getInstance();
 
-    GreenSQL * cls = proxies[proxy_id];
-    
     if (conf->bRunning == false)
     {
       GreenSQL * cls = proxies[proxy_id];
