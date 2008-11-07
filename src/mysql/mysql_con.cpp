@@ -40,6 +40,7 @@ bool MySQLConnection::checkBlacklist(std::string & query, std::string & reason)
 {
     //GreenSQLConfig * conf = GreenSQLConfig::getInstance();
     bool ret = false;
+    bool bad = false;
     if (db->CanAlter() == false)
     {
         ret = mysql_patterns.Match( SQL_ALTER,  query );
@@ -47,36 +48,40 @@ bool MySQLConnection::checkBlacklist(std::string & query, std::string & reason)
         {
             reason += "Detected attempt to change database/table structure.\n";
 	    logevent(DEBUG, "Detected attempt to change database/table structure.\n");
+	    bad = true;
         }
     }
-    if (ret == false && db->CanDrop() == false)
+    if (db->CanDrop() == false)
     {
         ret = mysql_patterns.Match( SQL_DROP,  query );
         if (ret == true)
         {
             reason += "Detected attempt to drop database/table/index.\n";
 	    logevent(DEBUG, "Detected attempt to drop database/table.\n");
+	    bad = true;
         }
     }
-    if (ret == false && db->CanCreate() == false)
+    if (db->CanCreate() == false)
     {
         ret = mysql_patterns.Match( SQL_CREATE,  query );
         if (ret == true)
         {
             reason += "Detected attempt to create database/table/index.\n";
 	    logevent(DEBUG, "Detected attempt to create database/table/index.\n");
+	    bad = true;
         }
     }
-    if (ret == false && db->CanGetInfo() == false)
+    if (db->CanGetInfo() == false)
     {
         ret = mysql_patterns.Match( SQL_INFO,  query );
         if (ret == true)
         {
             reason += "Detected attempt to discover db internal information.\n";
 	    logevent(DEBUG, "Detected attempt to discover db internal information.\n");
+	    bad = true;
         }
     }
-    return ret;
+    return bad;
 }
 
 bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
