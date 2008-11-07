@@ -31,6 +31,8 @@ low_priority        return LOW_PRIORITY;
 quick               return QUICK;
 
 set                 return SET;
+between             return BETWEEN;
+case                return CASE;
 
 index       return INDEX;
 key         return INDEX;
