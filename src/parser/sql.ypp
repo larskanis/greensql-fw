@@ -39,7 +39,7 @@ static void cmp_fn(Expression * xp1, Expression * xp2);
 %token EQUAL N_EQUAL PLUS MINUS MULTIPLY DIVIDE POWER NEWLINE SHIFT
 %token PERCENT
 %token BETWEEN
-%token CASE
+%token CASE WHEN THEN ELSE END_CASE
 %token REGEXP
 %token HAVING
 %token LIMIT OFFSET
@@ -67,6 +67,9 @@ static void cmp_fn(Expression * xp1, Expression * xp2);
 %type <exp_val> simple_table
 %type <exp_val> select_exps
 %type <exp_val> select_cmd
+%type <exp_val> case_fn
+%type <exp_val> case_case
+%type <exp_val> case_cases
 
 %left O_BRACE
 %left C_BRACE
@@ -163,6 +166,8 @@ select_exp:   math_op alias                   { $$=$1; }
             | STRING DOT NAME DOT MULTIPLY { clb_found_table($3); $$=new Expression(); $$->AddField($3); }
             | NAME DOT STRING DOT MULTIPLY { clb_found_table($3); $$=new Expression(); $$->AddField($3); }
             | NAME DOT NAME DOT MULTIPLY { clb_found_table($3); $$=new Expression(); $$->AddField($3); }
+            | math_exp BETWEEN math_exp AND math_exp  { $$=$1; }
+            | math_exp IN O_BRACE fn_args C_BRACE     { $$=$1; }
 //            | simple_table DOT simple_table   { $$=$3; } 
 //            | simple_table DOT MULTIPLY       { $$=$1; }
             ;
@@ -170,6 +175,7 @@ select_exp:   math_op alias                   { $$=$1; }
 math_op:     math_exp                         { $$=$1; }
             | math_op comp_operator math_exp        { $$->Add($3); }
             | math_op NOT comp_operator math_exp        { $$->Add($4); }
+            | case_fn                         { $$=$1; }
             ;
 
 math_exp:     field                           { $$=$1; }
@@ -325,6 +331,7 @@ logical_exp: math_exp                     { if ($1->IsTrue()) clb_found_tautolog
             | math_exp NOT IN O_BRACE select_cmd C_BRACE { cmp_fn($1, $5); }
             | math_exp BETWEEN math_exp AND math_exp { cmp_fn($1, $3); cmp_fn($1, $5); }
             | EXISTS O_BRACE select_cmd C_BRACE
+            | case_fn
             ;
 
 group_cond: /* empty */
@@ -376,6 +383,20 @@ set_cond:     table_field EQUAL math_exp
             | table_field EQUAL DEFAULT
             | set_cond COMMA field EQUAL math_exp
             | set_cond COMMA field EQUAL DEFAULT
+            ;
+
+case_fn:    CASE case_cases END_CASE { $$=$2; }
+            | CASE case_cases ELSE math_exp END_CASE { $$ = $2; $$->Add($4); }
+            | CASE math_exp case_cases END_CASE { $$=$2; cmp_fn($2,$3); }
+            | CASE math_exp case_cases ELSE math_exp END_CASE { $$=$2; cmp_fn($2,$3); cmp_fn($2,$5); $$->Add($5); }
+            ;
+
+
+case_cases: case_case                { $$ = $1; }
+            | case_cases case_case   { $$->Add($2); }
+            ;
+
+case_case: WHEN math_op THEN math_exp { $$=$2; }
             ;
 
 %%
