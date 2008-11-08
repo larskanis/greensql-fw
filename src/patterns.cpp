@@ -323,7 +323,7 @@ bool SQLPatterns::compile_pattern(std::string & str, pcre ** _re,
 }
 
 
-bool SQLPatterns::Match(MatchType type, std::string & str)
+bool SQLPatterns::Match(MatchType type, const std::string & str)
 {
     int rc;
     unsigned int len = str.length();

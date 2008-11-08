@@ -24,7 +24,7 @@ public:
     bool Load(std::string & file);
     void LoadPattern(std::string & section, std::string & line);
     bool CompilePatterns();
-    bool Match(MatchType type, std::string & str);
+    bool Match(MatchType type, const std::string & str);
     bool HasTrueConstantPatterns() { return true_constants_re != NULL; }
     bool HasBruteforcePatterns() { return bruteforce_functions_re != NULL; }
 
