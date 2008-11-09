@@ -27,6 +27,7 @@ public:
   {
     int_value = strlen(str);
     str_value = str;
+
     sql_strings.push_front(this);
     itr = sql_strings.begin();    
     if (*itr != this)
@@ -37,6 +38,7 @@ public:
   SQLString(std::string & str): str_value(str)
   {
     int_value = str.length();
+
     sql_strings.push_front(this);
     itr = sql_strings.begin();
   }
@@ -48,19 +50,20 @@ public:
   {
     return str_value.c_str();
   }
-  size_t Length()
+  size_t Length() const
   {
     return str_value.length();
   }
-  std::string * GetStr()
+  const std::string & GetStr() const
   {
-    return & str_value;
+    return str_value;
   }  
 private:
   int int_value;
-  std::string str_value;
+  //std::string str_value;
   std::list<SQLString *>::iterator itr;
 public:
+  std::string str_value;
   static std::list<SQLString *> sql_strings;
 };
 
