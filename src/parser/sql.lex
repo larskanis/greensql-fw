@@ -33,6 +33,11 @@ quick               return QUICK;
 set                 return SET;
 between             return BETWEEN;
 case                return CASE;
+when                return WHEN;
+then                return THEN;
+else                return ELSE;
+end\scase           return END_CASE;
+end                 return END_CASE;
 
 index       return INDEX;
 key         return INDEX;
