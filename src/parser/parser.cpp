@@ -90,15 +90,17 @@ void clb_found_comment()
   p_risk->has_comment = 1;
 }
 
-void clb_found_table(SQLString * s)
+void clb_found_table(const SQLString * s)
 {
-  if (*(s->Dump()) == 0)
+  if (s->Length() == 0)
     return;
 #ifndef PARSER_DEBUG
   GreenSQLConfig * conf = GreenSQLConfig::getInstance();
   if (patterns != NULL && conf->re_s_tables >= 0 )
-    if (patterns->Match( SQL_S_TABLES,  * s->GetStr() ) )
-      p_risk->has_s_table = 1; 
+  {
+    if (patterns->Match( SQL_S_TABLES, s->str_value ) )
+      p_risk->has_s_table = 1;
+  }
 #else
   p_risk->has_s_table = 1;
 #endif
@@ -106,26 +108,28 @@ void clb_found_table(SQLString * s)
 
 // this function check if filed is a stored variable
 // for example current_user in MySQL
-bool clb_check_true_constant(SQLString * s)
+bool clb_check_true_constant(const SQLString * s)
 {
-  if (*(s->Dump()) == 0)
+  if (s->Length() == 0)
     return false;
 #ifndef PARSER_DEBUG
   if (patterns != NULL && patterns->HasTrueConstantPatterns())
-    if (patterns->Match( SQL_TRUE_CONSTANTS,  * s->GetStr() ) )
+  {
+    if (patterns->Match( SQL_TRUE_CONSTANTS,  s->str_value ) )
       return true;
+  }
 #endif
   return false;
 }
 
 // check if the function name passed can be used to bruteforce db contents
-bool clb_check_bruteforce_function(SQLString * s )
+bool clb_check_bruteforce_function(const SQLString * s )
 {
-  if (*(s->Dump()) == 0)
+  if (s->Length() == 0)
     return false;
 #ifndef PARSER_DEBUG
   if (patterns != NULL && patterns->HasBruteforcePatterns() )
-    if (patterns->Match( SQL_BRUTEFORCE_FUNCTIONS, * s->GetStr() ) )
+    if (patterns->Match( SQL_BRUTEFORCE_FUNCTIONS, s->GetStr() ) )
     {
       p_risk->has_bruteforce_function = 1;
       return true;
