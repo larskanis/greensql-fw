@@ -26,8 +26,6 @@
 -- cat greensql-mysql-db.txt | mysql greendb
 --
 
-use greendb;
- 
 drop table if exists query;
 
 CREATE table query
