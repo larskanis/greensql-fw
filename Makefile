@@ -9,6 +9,7 @@ clean:
 	cd src; make clean; cd mysql; rm -rf *.o;
 	rm -rf greensql-fw *.o 
 	rm -rf src/greensql-fw
+	rm -rf debian/greensql-fw
 
 install:
 	cp greensql-fw ${DESTDIR}/usr/sbin
