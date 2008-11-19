@@ -40,6 +40,7 @@ static void cmp_fn(Expression * xp1, Expression * xp2);
 %token PERCENT
 %token BETWEEN
 %token CASE WHEN THEN ELSE END_CASE
+%token CAST DATA_TYPE BINARY
 %token REGEXP
 %token HAVING
 %token LIMIT OFFSET
@@ -70,6 +71,7 @@ static void cmp_fn(Expression * xp1, Expression * xp2);
 %type <exp_val> case_fn
 %type <exp_val> case_case
 %type <exp_val> case_cases
+%type <exp_val> cast_fn
 
 %left O_BRACE
 %left C_BRACE
@@ -166,16 +168,15 @@ select_exp:   math_op alias                   { $$=$1; }
             | STRING DOT NAME DOT MULTIPLY { clb_found_table($3); $$=new Expression(); $$->AddField($3); }
             | NAME DOT STRING DOT MULTIPLY { clb_found_table($3); $$=new Expression(); $$->AddField($3); }
             | NAME DOT NAME DOT MULTIPLY { clb_found_table($3); $$=new Expression(); $$->AddField($3); }
-            | math_exp BETWEEN math_exp AND math_exp  { $$=$1; }
-            | math_exp IN O_BRACE fn_args C_BRACE     { $$=$1; }
-//            | simple_table DOT simple_table   { $$=$3; } 
-//            | simple_table DOT MULTIPLY       { $$=$1; }
             ;
 
 math_op:     math_exp                         { $$=$1; }
             | math_op comp_operator math_exp        { $$->Add($3); }
             | math_op NOT comp_operator math_exp        { $$->Add($4); }
             | case_fn                         { $$=$1; }
+            | cast_fn                         { $$=$1; }
+            | math_op BETWEEN math_exp AND math_exp  { $$=$1; }
+            | math_op IN O_BRACE fn_args C_BRACE     { $$=$1; }
             ;
 
 math_exp:     field                           { $$=$1; }
@@ -332,6 +333,7 @@ logical_exp: math_exp                     { if ($1->IsTrue()) clb_found_tautolog
             | math_exp BETWEEN math_exp AND math_exp { cmp_fn($1, $3); cmp_fn($1, $5); }
             | EXISTS O_BRACE select_cmd C_BRACE
             | case_fn
+            | cast_fn
             ;
 
 group_cond: /* empty */
@@ -399,6 +401,11 @@ case_cases: case_case                { $$ = $1; }
 case_case: WHEN math_op THEN math_exp { $$=$2; }
             ;
 
+cast_fn:    CAST O_BRACE math_exp AS DATA_TYPE C_BRACE { $$=$3; }
+            | CAST O_BRACE math_exp AS BINARY C_BRACE  { $$=$3; }
+            | BINARY math_exp                          { $$=$2; }
+            ;
+           
 %%
 /*
 int main()
