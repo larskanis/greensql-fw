@@ -68,7 +68,7 @@ get_config() {
       echo "password=${MYSQL_ROOT_PASSWD}" >> $MY_CNF
     fi
     MRO="--defaults-file=$MY_CNF"
-    MUO="${MRO} -u${MYSQL_USER} -p${MYSQL_PASSWD}"
+    MUO="-u ${MYSQL_USER} -p${MYSQL_PASSWD} -h ${MYSQL_HOST} "
   fi
 }
 
@@ -82,23 +82,27 @@ create_db() {
   if [ $SETUP -ne 0 ]
   then
     DBSETUP="0"
-    if mysql $MRO -BNe 'show databases' | grep -q "$DATABASE"; then
+    if mysql $MRO -BNe 'show databases' | grep -q -E "^$DATABASE\$"; then
       echo "Database already exists, doing nothing."
     else
       DBSETUP="1"
       echo "Creating database..."
       mysqladmin $MRO -f create $DATABASE > /dev/null
-      echo "Adding user..."
-
-      if [ "$MYSQL_HOSTNAME" = "localhost" -o "$MYSQL_HOSTNAME" = "127.0.0.1" ]
-      then
-        mysql $MRO $DATABASE -f -e \
-          "GRANT ALL ON $DATABASE.* TO '${MYSQL_USER}'@'localhost'
-           IDENTIFIED BY '${MYSQL_PASSWD}'" > /dev/null
-      else
-        mysql $MRO $DATABASE -f -e "GRANT ALL ON $DATABASE.* TO ${MYSQL_USER}@'%' IDENTIFIED BY '${MYSQL_PASSWD}'" > /dev/null
-      fi
     fi
+    
+    echo "Adding user..."
+
+    if [ "$MYSQL_HOSTNAME" = "localhost" -o "$MYSQL_HOSTNAME" = "127.0.0.1" ]
+    then
+      mysql $MRO $DATABASE -f -e \
+        "GRANT ALL ON $DATABASE.* TO '${MYSQL_USER}'@'localhost'
+         IDENTIFIED BY '${MYSQL_PASSWD}'" > /dev/null
+    else
+      mysql $MRO $DATABASE -f -e "GRANT ALL ON $DATABASE.* TO ${MYSQL_USER}@'%' IDENTIFIED BY '${MYSQL_PASSWD}'" > /dev/null
+    fi
+
+    mysql $MRO $DATABASE -f -e "flush privileges" > /dev/null
+
   fi
 }
 
