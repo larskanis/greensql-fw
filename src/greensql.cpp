@@ -108,7 +108,7 @@ int GreenSQL::server_socket(std::string & ip, int port)
     addr.sin_addr.s_addr = inet_addr(ip.c_str());
 
     if (bind(sfd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
-        logevent(NET_DEBUG, "Failed to bind server socket\n");
+        logevent(NET_DEBUG, "Failed to bind server socket on %s:%d\n", ip.c_str(), port);
         socket_close(sfd);
         return -1;
     }
