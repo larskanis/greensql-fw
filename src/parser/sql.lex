@@ -39,6 +39,15 @@ else                return ELSE;
 end\scase           return END_CASE;
 end                 return END_CASE;
 
+cast                return CAST;
+unsigned            return DATA_TYPE;
+signed              return DATA_TYPE;
+time                return DATA_TYPE;
+decimal             return DATA_TYPE;
+datetime            return DATA_TYPE;
+char                return DATA_TYPE;
+binary              return BINARY;
+
 index       return INDEX;
 key         return INDEX;
 
