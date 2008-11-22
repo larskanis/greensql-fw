@@ -170,28 +170,47 @@ select_exp:   math_op alias                   { $$=$1; }
             | NAME DOT NAME DOT MULTIPLY { clb_found_table($3); $$=new Expression(); $$->AddField($3); }
             ;
 
-math_op:     math_exp                         { $$=$1; }
+math_op:     math_exp                               { $$=$1; }
             | math_op comp_operator math_exp        { $$->Add($3); }
-            | math_op NOT comp_operator math_exp        { $$->Add($4); }
-            | case_fn                         { $$=$1; }
-            | cast_fn                         { $$=$1; }
-            | math_op BETWEEN math_exp AND math_exp  { $$=$1; }
-            | math_op IN O_BRACE fn_args C_BRACE     { $$=$1; }
+            | math_op NOT comp_operator math_exp    { $$->Add($4); }
+            | case_fn                               { $$=$1; }
+            | cast_fn                               { $$=$1; }
+            | math_op BETWEEN math_exp AND math_exp { $$=$1; }
+            | math_op IN O_BRACE fn_args C_BRACE    { $$=$1; }
+            ;
+
+logical_exp: math_exp                               { if ($1->IsTrue()) clb_found_tautology(); }
+            | math_exp comp_operator math_exp       { cmp_fn($1,$3); }
+            | math_exp NOT comp_operator math_exp   { cmp_fn($1,$4); }
+            | math_exp NOT math_exp                 { cmp_fn($1,$3); }
+            | math_exp comp_operator math_exp comp_operator math_exp     { clb_found_tautology(); }
+            | math_exp NOT comp_operator math_exp comp_operator math_exp { clb_found_tautology(); }
+            | math_exp comp_operator math_exp NOT comp_operator math_exp { clb_found_tautology(); }
+            | math_exp NOT comp_operator math_exp NOT comp_operator math_exp { clb_found_tautology(); }
+            | math_exp IN O_BRACE fn_args C_BRACE     { cmp_fn($1,$4); }
+            | math_exp NOT IN O_BRACE fn_args C_BRACE { cmp_fn($1,$5); }
+            | math_exp IN O_BRACE select_cmd C_BRACE  { cmp_fn($1, $4); }
+            | math_exp NOT IN O_BRACE select_cmd C_BRACE { cmp_fn($1, $5); }
+            | math_exp BETWEEN math_exp AND math_exp  { cmp_fn($1, $3); cmp_fn($1, $5); }
+            | O_BRACE logical_exp C_BRACE
+            | EXISTS O_BRACE select_cmd C_BRACE
+            | case_fn
+            | cast_fn
             ;
 
 math_exp:     field                           { $$=$1; }
-            | math_exp PLUS     math_exp      { $$->Add($3); }
-	    | math_exp MINUS    math_exp      { $$->Add($3); }
-	    | math_exp MULTIPLY math_exp      { $$->Add($3); }
-	    | math_exp DIVIDE   math_exp      { $$->Add($3); }
-            | math_exp SHIFT    math_exp      { $$->Add($3); }
-            | math_exp BIT_OR   math_exp      { $$->Add($3); }
-            | math_exp BIT_AND  math_exp      { $$->Add($3); }
-            | math_exp BIT_NOT  math_exp      { $$->Add($3); }
-            | math_exp PERCENT  math_exp      { $$->Add($3); }
-	    | MINUS math_exp %prec NEG        { $$=$2; }
-            | BIT_NOT math_exp %prec NEG      { $$=$2; }
-	    | math_exp POWER math_exp         { $$->Add($3); /*bit xor*/ }
+            | math_exp PLUS     field         { $$->Add($3); }
+	    | math_exp MINUS    field         { $$->Add($3); }
+	    | math_exp MULTIPLY field         { $$->Add($3); }
+	    | math_exp DIVIDE   field         { $$->Add($3); }
+            | math_exp SHIFT    field         { $$->Add($3); }
+            | math_exp BIT_OR   field         { $$->Add($3); }
+            | math_exp BIT_AND  field         { $$->Add($3); }
+            | math_exp BIT_NOT  field         { $$->Add($3); }
+            | math_exp PERCENT  field         { $$->Add($3); }
+	    | MINUS field %prec NEG           { $$=$2; }
+            | BIT_NOT field %prec NEG         { $$=$2; }
+	    | math_exp POWER    field         { $$->Add($3); /*bit xor*/ }
 	    | O_BRACE math_exp C_BRACE        { $$=$2; }
             | O_BRACE select_cmd C_BRACE      { $$=$2; }
 	    ;
@@ -304,7 +323,7 @@ logical_operator: AND
             ;
 
 logical_exp_list: logical_exp_list logical_operator logical_exp
-	    | O_BRACE logical_exp_list C_BRACE
+//	    | O_BRACE logical_exp_list C_BRACE
 	    | NOT logical_exp
 	    | logical_exp
 	    ;
@@ -315,25 +334,6 @@ comp_operator:  EQUAL
             | REGEXP
             | IS NOT
             | IS
-            ;
-
-            
-logical_exp: math_exp                     { if ($1->IsTrue()) clb_found_tautology(); }
-            | math_exp NOT math_exp   { cmp_fn($1,$3); }
-            | math_exp comp_operator math_exp   { cmp_fn($1,$3); }
-            | math_exp NOT comp_operator math_exp   { cmp_fn($1,$4); }
-            | math_exp comp_operator math_exp comp_operator math_exp { clb_found_tautology(); }
-            | math_exp NOT comp_operator math_exp comp_operator math_exp { clb_found_tautology(); }
-            | math_exp comp_operator math_exp NOT comp_operator math_exp { clb_found_tautology(); }
-            | math_exp NOT comp_operator math_exp NOT comp_operator math_exp { clb_found_tautology(); }
-            | math_exp IN O_BRACE fn_args C_BRACE { cmp_fn($1,$4); }
-            | math_exp NOT IN O_BRACE fn_args C_BRACE { cmp_fn($1,$5); }
-            | math_exp IN O_BRACE select_cmd C_BRACE { cmp_fn($1, $4); }
-            | math_exp NOT IN O_BRACE select_cmd C_BRACE { cmp_fn($1, $5); }
-            | math_exp BETWEEN math_exp AND math_exp { cmp_fn($1, $3); cmp_fn($1, $5); }
-            | EXISTS O_BRACE select_cmd C_BRACE
-            | case_fn
-            | cast_fn
             ;
 
 group_cond: /* empty */
