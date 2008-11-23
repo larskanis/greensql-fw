@@ -13,7 +13,7 @@
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 DAEMON=/usr/sbin/greensql-fw
 NAME=greensql-fw
-DESC=greensql-fw
+DESC="GreenSQL Database Firewall"
 
 test -x $DAEMON || exit 0
 
@@ -55,12 +55,14 @@ case "$1" in
 	#	option to the "reload" entry above. If not, "force-reload" is
 	#	just the same as "restart".
 	#
-	echo -n "Restarting $DESC: "
-	start-stop-daemon --stop --quiet --pidfile \
-		/var/run/$NAME.pid --exec $DAEMON
-	sleep 1
-	start-stop-daemon --start --quiet --pidfile \
-		/var/run/$NAME.pid --exec $DAEMON -- $DAEMON_OPTS
+        echo -n "Stopping $DESC: "
+        start-stop-daemon --stop --quiet --pidfile /var/run/$NAME.pid \
+                --exec $DAEMON -o
+        sleep 1
+        echo "$NAME."
+        echo -n "Starting $DESC: "
+        start-stop-daemon --start --quiet -b -m --pidfile /var/run/$NAME.pid \
+                -c greensql:greensql --exec $DAEMON -- $DAEMON_OPTS
 	echo "$NAME."
 	;;
   *)
