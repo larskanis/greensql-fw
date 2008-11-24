@@ -1,3 +1,12 @@
+greensql-fw (0.9.6) unstable; urgency=low
+
+  * Fixed few risk calculation bugs.
+  * Fixed debian restart script
+  * Fixed debian installation package
+  * Fixed a bug in detection of database name
+
+ -- yuli <stremovsky@gmail.com>  Nov, 25 Tue 2008 01:10:00 +0300
+
 greensql-fw (0.9.4) unstable; urgency=low
 
   * More code optimization.
