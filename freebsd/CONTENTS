@@ -1,5 +1,5 @@
 @comment PKG_FORMAT_REVISION:1.1
-@name greensql-fw-0.9.4
+@name greensql-fw-0.9.6
 @comment ORIGIN:sysutils/greensql-fw
 @cwd /usr/local
 sbin/greensql-fw
