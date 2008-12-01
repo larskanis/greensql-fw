@@ -24,7 +24,7 @@ void DBPermObj::Init(std::string name, unsigned int id, long long perms,
     if (perms & (int)DROP_Q)
 	drop_perm = true;
     if (perms & (int)ALTER_Q)
-	drop_perm = true;
+	alter_perm = true;
     if (perms & (int)INFO_Q)
 	info_perm = true;
     if (perms & (int)BLOCK_Q)
