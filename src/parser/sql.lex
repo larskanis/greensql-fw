@@ -217,11 +217,35 @@ static int get_q_string(int delimeter)
     std::string str;
     int quoted = 0;
     int c;
+    int n;
 
     while ( (c = yyinput()) != EOF)
     {
         if (c == delimeter && quoted == 0)
         {
+            // handle the following queries:
+            // SELECT 'start''end'
+            if (delimeter == '\'' || delimeter == '"')
+            {
+              n = yyinput();
+              if (n == delimeter)
+              {
+                // continue as is
+                str.append( 1, (unsigned char) c );
+                continue; 
+              } else if (n == EOF)
+              {
+                buf->yy_buffer_status = YY_BUFFER_EOF_PENDING;
+
+                yylval.str_val = new SQLString(str);
+                if (delimeter == '\'')
+                  return Q_STRING;
+                return DQ_STRING;
+              }
+              // else return back next char
+              yyunput(n, buf->yy_ch_buf );
+            }
+            
             yylval.str_val = new SQLString(str);
             if (delimeter == '\'')
                 return Q_STRING;
