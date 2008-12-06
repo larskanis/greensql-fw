@@ -346,7 +346,16 @@ static unsigned int lookForChar(std::string & query, int start, char delimeter)
     {
         if (query[j] == delimeter && quoted == false)
 	{
-            return j;
+	    if (j+1 >= query.size())
+	    {
+              return j;
+	    }
+            if (query[j+1] == delimeter && (delimeter == '\'' || delimeter == '"'))
+	    {
+              j++;
+	    } else { 
+              return j;
+	    }
 	} else if (query[j] == '\\' && quoted == false)
 	{
             quoted = true;
