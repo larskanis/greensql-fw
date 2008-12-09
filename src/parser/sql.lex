@@ -47,6 +47,36 @@ decimal             return DATA_TYPE;
 datetime            return DATA_TYPE;
 char                return DATA_TYPE;
 binary              return BINARY;
+varbinary           return DATA_TYPE;
+varchar             return DATA_TYPE;
+integer             return DATA_TYPE;
+bigint              return DATA_TYPE;
+int                 return DATA_TYPE;
+float               return DATA_TYPE;
+double[ \t\r\n]+precision return DATA_TYPE; // mysql
+double              return DATA_TYPE;
+real                return DATA_TYPE;
+dec                 return DATA_TYPE; //mysql dec - decimal
+salary              return DATA_TYPE; //mysql
+blob                return DATA_TYPE;
+text                return DATA_TYPE;
+tiny(blob|text|int) return DATA_TYPE; //mysql specific
+small(blob|text|int) return DATA_TYPE; //mysql specific
+medium(blob|text|int) return DATA_TYPE; //mysql specific
+long(blob|text)     return DATA_TYPE; //mysql specific
+timestamp           return DATA_TYPE;
+long[ \t\r\n]+varchar return DATA_TYPE;
+longvar(char|binary) return DATA_TYPE;
+long                return DATA_TYPE;
+bit                 return DATA_TYPE;
+
+zerofill            ; // mysql specific
+
+latin1_(bin|german2_ci) ; //return ENCODING;
+_?latin1                ; //return ENCODING;
+utf8_bin                ; //return ENCODING;
+utf8                    ; //return ENCODING;
+_bin                    ; //return ENCODING;
 
 index       return INDEX;
 key         return INDEX;
@@ -110,6 +140,9 @@ false       return FALSEX;
 div         return DIVIDE;
 xor         return XOR;
 
+b[ \t\r\n]*'[0-9]+'   { yylval.int_val = 3; return INTEGER; }
+0x[0-9a-f]+ {  yylval.int_val = 3; return INTEGER; }
+
 [0-9]+      {  yylval.int_val = atoi(yytext);
                return INTEGER;
 	    }
@@ -149,7 +182,6 @@ version\((\ |\t|\r|\n)*\) {
 
 collate[ \t\r\n]+[a-z_][a-z0-9\._]* ; //ignore COLLATE language statement
 with[ \t\r\n]+rollup ; // group by modifier
-binary       ; // ignore binary statement
 
 [a-z_][a-z0-9\._]* {
                yylval.str_val = new SQLString(yytext);
