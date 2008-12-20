@@ -204,16 +204,15 @@ with[ \t\r\n]+rollup ; // group by modifier
 "<"           return N_EQUAL;
 ">>"          return SHIFT;
 "<<"          return SHIFT;
-"+"           return PLUS;
-"-"           return MINUS;
+
+[\+\-\~\!]+[ \t\r\n\+\-\~\!]*           return BASIC_OP;
+
 "*"           return MULTIPLY;
 "/"           return DIVIDE;
 "^"           return POWER;
 "%"           return PERCENT;
 "|"           return BIT_OR;
 "&"           return BIT_AND;
-"~"           return BIT_NOT;
-"!"           return BIT_NOT;
 
 ";"          {
                /* calculate number of bytes read so far */
