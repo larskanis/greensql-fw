@@ -36,7 +36,8 @@ static void cmp_fn(Expression * xp1, Expression * xp2);
 %token INTO
 %token AS IN ANY EXISTS
 %token IS NULLX UNKNOWN FALSEX TRUEX DEFAULT
-%token EQUAL N_EQUAL PLUS MINUS MULTIPLY DIVIDE POWER NEWLINE SHIFT
+%token EQUAL N_EQUAL MULTIPLY DIVIDE POWER NEWLINE SHIFT
+%token BASIC_OP
 %token PERCENT
 %token BETWEEN
 %token CASE WHEN THEN ELSE END_CASE
@@ -75,8 +76,8 @@ static void cmp_fn(Expression * xp1, Expression * xp2);
 
 %left O_BRACE
 %left C_BRACE
-%left PLUS MINUS SHIFT
-%left BIT_OR BIT_AND BIT_NOT
+%left BASIC_OP SHIFT
+%left BIT_OR BIT_AND
 %left PERCENT
 %left MULTIPLY DIVIDE
 %left NEG END COMMA AS
@@ -199,17 +200,14 @@ logical_exp: math_exp                               { if ($1->IsTrue()) clb_foun
             ;
 
 math_exp:     field                           { $$=$1; }
-            | math_exp PLUS     field         { $$->Add($3); }
-	    | math_exp MINUS    field         { $$->Add($3); }
+            | math_exp BASIC_OP field         { $$->Add($3); }
 	    | math_exp MULTIPLY field         { $$->Add($3); }
 	    | math_exp DIVIDE   field         { $$->Add($3); }
             | math_exp SHIFT    field         { $$->Add($3); }
             | math_exp BIT_OR   field         { $$->Add($3); }
             | math_exp BIT_AND  field         { $$->Add($3); }
-            | math_exp BIT_NOT  field         { $$->Add($3); }
             | math_exp PERCENT  field         { $$->Add($3); }
-	    | MINUS field %prec NEG           { $$=$2; }
-            | BIT_NOT field %prec NEG         { $$=$2; }
+	    | BASIC_OP field %prec NEG           { $$=$2; }
 	    | math_exp POWER    field         { $$->Add($3); /*bit xor*/ }
 	    | O_BRACE math_exp C_BRACE        { $$=$2; }
             | O_BRACE select_cmd C_BRACE      { $$=$2; }
