@@ -205,7 +205,7 @@ with[ \t\v\f\r\n\xA0]+rollup ; // group by modifier
 ">>"          return SHIFT;
 "<<"          return SHIFT;
 
-[\%\+\-\~\!]+[ \t\v\f\r\n\xA0\+\-\~\!]*           return BASIC_OP;
+[\%\+\-\~\!]+[ \t\v\f\r\n\xA0\+\-\~\!\%]*           return BASIC_OP;
 
 "*"           return MULTIPLY;
 "/"           return DIVIDE;
