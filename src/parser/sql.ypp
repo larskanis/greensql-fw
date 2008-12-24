@@ -38,10 +38,9 @@ static void cmp_fn(Expression * xp1, Expression * xp2);
 %token IS NULLX UNKNOWN FALSEX TRUEX DEFAULT
 %token EQUAL N_EQUAL MULTIPLY DIVIDE POWER NEWLINE SHIFT
 %token BASIC_OP
-%token PERCENT
 %token BETWEEN
 %token CASE WHEN THEN ELSE END_CASE
-%token CAST DATA_TYPE BINARY
+%token CAST DATA_TYPE BINARY CHAR_TYPE
 %token REGEXP
 %token HAVING
 %token LIMIT OFFSET
@@ -78,7 +77,6 @@ static void cmp_fn(Expression * xp1, Expression * xp2);
 %left C_BRACE
 %left BASIC_OP SHIFT
 %left BIT_OR BIT_AND
-%left PERCENT
 %left MULTIPLY DIVIDE
 %left NEG END COMMA AS
 %left DOT 
@@ -206,7 +204,6 @@ math_exp:     field                           { $$=$1; }
             | math_exp SHIFT    field         { $$->Add($3); }
             | math_exp BIT_OR   field         { $$->Add($3); }
             | math_exp BIT_AND  field         { $$->Add($3); }
-            | math_exp PERCENT  field         { $$->Add($3); }
 	    | BASIC_OP field %prec NEG           { $$=$2; }
 	    | math_exp POWER    field         { $$->Add($3); /*bit xor*/ }
 	    | O_BRACE math_exp C_BRACE        { $$=$2; }
@@ -304,10 +301,12 @@ index_list:   STRING
 	
 fn:           STRING O_BRACE fn_args C_BRACE { $$=$3; clb_check_bruteforce_function($1); }
             | STRING O_BRACE DISTINCT fn_args order_cond C_BRACE { $$=$4; clb_check_bruteforce_function($1); /* printf("fn\n"); */ } 
+            | CHAR_TYPE O_BRACE fn_args C_BRACE { $$=$3; }
             ;
 
 simple_fn:    STRING O_BRACE MULTIPLY C_BRACE { clb_check_bruteforce_function($1); }
             | STRING O_BRACE C_BRACE { clb_check_bruteforce_function($1); }
+            | CHAR_TYPE O_BRACE C_BRACE { /* $1 = new SQLString("char()"); */ }
             ;
 
 fn_args:       math_exp                  { $$=$1; }
@@ -401,6 +400,8 @@ case_case: WHEN math_op THEN math_exp { $$=$2; }
 
 cast_fn:    CAST O_BRACE math_exp AS DATA_TYPE C_BRACE { $$=$3; }
             | CAST O_BRACE math_exp AS DATA_TYPE O_BRACE fn_args C_BRACE C_BRACE { $$=$3; }
+            | CAST O_BRACE math_exp AS CHAR_TYPE C_BRACE  { $$=$3; }
+            | CAST O_BRACE math_exp AS CHAR_TYPE O_BRACE fn_args C_BRACE C_BRACE { $$=$3; }
             | CAST O_BRACE math_exp AS BINARY C_BRACE  { $$=$3; }
             | CAST O_BRACE math_exp AS BINARY O_BRACE fn_args C_BRACE C_BRACE  { $$=$3; }
             | BINARY math_exp                          { $$=$2; }
