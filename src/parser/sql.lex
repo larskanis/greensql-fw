@@ -45,15 +45,15 @@ signed              return DATA_TYPE;
 time                return DATA_TYPE;
 decimal             return DATA_TYPE;
 datetime            return DATA_TYPE;
-char                return DATA_TYPE;
 binary              return BINARY;
+char                return CHAR_TYPE;
 varbinary           return DATA_TYPE;
 varchar             return DATA_TYPE;
 integer             return DATA_TYPE;
 bigint              return DATA_TYPE;
 int                 return DATA_TYPE;
 float               return DATA_TYPE;
-double[ \t\r\n]+precision return DATA_TYPE; // mysql
+double[ \t\v\f\r\n\xA0]+precision return DATA_TYPE; // mysql
 double              return DATA_TYPE;
 real                return DATA_TYPE;
 dec                 return DATA_TYPE; //mysql dec - decimal
@@ -65,7 +65,7 @@ small(blob|text|int) return DATA_TYPE; //mysql specific
 medium(blob|text|int) return DATA_TYPE; //mysql specific
 long(blob|text)     return DATA_TYPE; //mysql specific
 timestamp           return DATA_TYPE;
-long[ \t\r\n]+varchar return DATA_TYPE;
+long[ \t\v\f\r\n\xA0]+varchar return DATA_TYPE;
 longvar(char|binary) return DATA_TYPE;
 long                return DATA_TYPE;
 bit                 return DATA_TYPE;
@@ -104,7 +104,7 @@ where       return WHERE;
 like        return LIKE;
 rlike       return LIKE;
 into        return INTO;
-sounds\slike return LIKE;
+sounds[ \t\v\f\r\n\xA0]+like return LIKE;
 
 as          return AS;
 in          return IN;
@@ -140,14 +140,14 @@ false       return FALSEX;
 div         return DIVIDE;
 xor         return XOR;
 
-b[ \t\r\n]*'[0-9]+'   { yylval.int_val = 3; return INTEGER; }
+b[ \t\v\f\r\n\xA0]*'[0-9]+'   { yylval.int_val = 3; return INTEGER; }
 0x[0-9a-f]+ {  yylval.int_val = 3; return INTEGER; }
 
 [0-9]+      {  yylval.int_val = atoi(yytext);
                return INTEGER;
 	    }
 
-version\((\ |\t|\r|\n)*\) {
+version\([ \t\v\f\r\n\xA0]*\) {
               yylval.str_val = new SQLString("version()");
               return STRING;
             }
@@ -180,8 +180,8 @@ version\((\ |\t|\r|\n)*\) {
 
 \#[^\r\n]*(\r|\n)*   { clb_found_comment(); }
 
-collate[ \t\r\n]+[a-z_][a-z0-9\._]* ; //ignore COLLATE language statement
-with[ \t\r\n]+rollup ; // group by modifier
+collate[ \t\v\f\r\n\xA0]+[a-z_][a-z0-9\._]* ; //ignore COLLATE language statement
+with[ \t\v\f\r\n\xA0]+rollup ; // group by modifier
 
 [a-z_][a-z0-9\._]* {
                yylval.str_val = new SQLString(yytext);
@@ -205,12 +205,11 @@ with[ \t\r\n]+rollup ; // group by modifier
 ">>"          return SHIFT;
 "<<"          return SHIFT;
 
-[\+\-\~\!]+[ \t\r\n\+\-\~\!]*           return BASIC_OP;
+[\%\+\-\~\!]+[ \t\v\f\r\n\xA0\+\-\~\!]*           return BASIC_OP;
 
 "*"           return MULTIPLY;
 "/"           return DIVIDE;
 "^"           return POWER;
-"%"           return PERCENT;
 "|"           return BIT_OR;
 "&"           return BIT_AND;
 
@@ -234,7 +233,7 @@ with[ \t\r\n]+rollup ; // group by modifier
 "\""         return get_q_string('\"');
 "`"          return get_q_string('`');
 
-[ \t\v\f\r\n]+  ; // return END;
+[ \t\v\f\r\n\xA0]+  ; // return END;
 
 .            { /* printf("invalid charachter %s\n", yytext); */ }
 
