@@ -2,43 +2,54 @@ GreenSQL Database Firewall Installation
 
 For installation you have a number of options:
 1. Download installation package for your favorite distribution 
-   and install it. You can do it from here:
+   from the following url and install it:
    http://www.greensql.net/download
 2. Build your own installation package.
-3. Manual installation: compile & installl from source.
+3. Manual installation: compile & install from source.
 
 
 Building your own installation package
 --------------------------------------
 If you distribution is not listed in the project download page, you
 can try to build a package for your operation system. We have build a
-special script that performs all job required to build package for
-popular operating systems. We support deb/rpm/bsd packages.
+special script that takes all steps required to build package for
+popular operating systems. It automatically builds deb/rpm/bsd packages.
 
-Before proceeding with the instalaltion you need to download source
-code of the greensql firewall. For example if can have the following
-name: greensql-fw_X.X.X.tar.gz .
+Before proceeding with the instalation you need to download source
+code of the greensql firewall. Download it from the project download 
+page: http://www.greensql.net/download
+
+Run the following commands:
 
   shell> tar -xzvf greensql-fw-X.X.X.tar.gz
   shell> cd greensql-fw
   shell> ./build.sh
 
-This script will create package for your OS. After installing this package
-you need to create configuration db by running the following command:
+Last script - build.sh will create package for your OS. After installing
+newly created package you need to install GreenSQL configuration db stored
+in MySQL. You can do it by running the following shell script:
 
   shell> greensql-create-db.sh
 
+Next step is to start the application. You can simply do it by running
+the following command as a root user:
+
+  shell> /etc/init.d/greensql-fw start
+
+For application troubleshooting check the log file:
+
+  shell> tail -f /var/log/greensql.log
 
 Manual Installation
 -------------------
 Before installing the application you need to compile it. Without going
-into details you can do it as followed:
+into much details you can do it as followed:
 
   shell> tar -xzvf greensql-fw-X.X.X.tar.gz
   shell> cd greensql-fw
   shell> ./build.sh
 
-The are a number of steps to perform in order to install application.
+There are a number of steps to perform in order to install application.
 They are:
 
 1. Create dedicated user for greensql service.
@@ -57,7 +68,7 @@ commands (run these commands as a root user):
   shell> groupadd greensql
   shell> useradd -M -g greensql -s /dev/null greensql
 
-Alternatively you can run the following commands:
+Alternatively you do the ame by execurting the following commands:
   
   shell> cd scripts/
   shell> ./setup_user.sh
@@ -75,12 +86,13 @@ Setting up configuration files
 ------------------------------
 
 You will find a number of configuration files in the ./conf/ directory.
-GreenSQL start up script expect to find configuration files in the
+GreenSQL start up script expects to find the configuration files in the
 following directory:
 
   /etc/greensql/
 
-Setting up configuration files is simple. Just run the following commands:
+You simply need to copy files from ./conf/* to /etc/greensql . You can do it
+as followed:
 
   shell> mkdir -p /etc/greensql
   shell> cp ./conf/* /etc/greensql/ -r
@@ -90,8 +102,11 @@ Setting up configuration files is simple. Just run the following commands:
 Alternativly you can run setup_conf.sh file located in the scripts 
 directory.
 
-afterwards, you need to alter /etc/greensql/greensql.conf file and specify
-correct db name, server, port, user and password.
+  shell> cd scripts/
+  shell> ./setup_conf.sh
+
+Next step is to alter /etc/greensql/greensql.conf file and specify correct 
+db name, server, port, user and password.
 
 
 Setting log file
@@ -107,7 +122,7 @@ the following commands:
   shell> touch /var/log/greensql.log
   shell> chown greensql:greensql /var/log/greensql.log
   shell> chmod 600 /var/log/greensql.log
-  shell> cp greensql.rotate /etc/logrotate.d/greensql
+  shell> cp scripts/greensql.rotate /etc/logrotate.d/greensql
 
 Alternatively you can run ./setup_log.sh script located in the scripts/
 directory.
@@ -117,14 +132,13 @@ Configure start up scripts
 --------------------------
 
 As a final step you need to copy greensql-fw binary to the /user/sbin/
-or /sbin directory, copy service initialization file to the /etc/init.d/
-directory.
+or /sbin directory and copy greensql service initialization script to the 
+/etc/init.d/ directory.
 
 Run the following commands:
  
   shell> cp greensql-fw /usr/sbin/
-  shell> cd scripts
-  shell> cp rc.greensql /etc/init.d/greensql
+  shell> cp scripts/rc.greensql /etc/init.d/greensql
 
 Another alternative is to run ./setup_binary.sh script located in the scripts/
 directory.
