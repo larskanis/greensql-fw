@@ -7,7 +7,8 @@ greensql-fw:
 
 clean:
 	cd src; make clean; cd mysql; rm -rf *.o;
-	rm -rf greensql-fw *.o 
+	rm -rf greensql-fw *.o
+	rm -rf configure-stamp build-stamp
 	rm -rf src/greensql-fw
 	rm -rf debian/greensql-fw
 
