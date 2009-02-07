@@ -86,8 +86,8 @@ bool MySQLConnection::checkBlacklist(std::string & query, std::string & reason)
 
 bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
 {
-    int size = request_in.size();
-    if (size < 3)
+    int full_size = request_in.size();
+    if (full_size < 3)
         return true;
 
     std::string query;
@@ -97,26 +97,29 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
     int request_size = (data[2]<<16 | data[1] << 8 | data[0]) + 4;
         
     //check if we got full packet
-    if (request_size > size)
+    if (request_size > full_size)
     {
-        // waite for more data
+        // waite for more data to decide
         return true;
     }
-    
+   
+    // this is a first request in the stream
+    // it must contain login information. 
     if (first_request == true)
     {
         loghex(SQL_DEBUG, data, request_size);
+	if (full_size < 10)
+	  return false;
+
         unsigned int type = (data[7] << 24 | data[6]<<16 | 
             data[5] << 8 | data[4]);
-        if (size < 10)
-            return false;
     
         if (type & 512)
             logevent(SQL_DEBUG, "PROTOCOL4.1\n");
         if (type & 1)
             logevent(SQL_DEBUG, "LONG PWD\n");
 
-        if ((type & 512) && size > 36)
+        if ((type & 512) && full_size > 36)
         {
             logevent(SQL_DEBUG, "USERNAME: %s\n", data+36);
             if (strlen((const char *)data+36) > 0)
@@ -125,7 +128,7 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
             }
             int temp = 36 + (int)strlen( (const char*)data+36);
             //check if we have space for dnbame and pwd
-            if (temp+1 > size)
+            if (temp+1 > full_size)
                 return false;
             int temp2 = data[temp+1];
             if (temp2 == 0)
@@ -135,21 +138,21 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
                 {
                   logevent(SQL_DEBUG, "DATABASE: %s\n", data+temp+2);
                   db_name = "";
-                  if (db_name_len > size-temp-3)
-                    db_name_len = size-temp-3;
+                  if (db_name_len > full_size-temp-3)
+                    db_name_len = full_size-temp-3;
                   db_name.append((const char*)data+temp+2, db_name_len);
                   //logevent(SQL_DEBUG, "DATABASE2: %s\n", db_name.c_str());
                   db = dbmap_find(iProxyId, db_name);
                 }
             }
-            else if (temp+temp2+2 < size)
+            else if (temp+temp2+2 < full_size)
             {
                 logevent(SQL_DEBUG, "DATABASE: %s\n", data+temp+temp2+2);
                 db_name = (const char *)data+temp+temp2+2;
                 db = dbmap_find(iProxyId, db_name);
             }
         }
-        else if (size > 10)
+        else if (full_size > 10)
         {
             logevent(SQL_DEBUG, "USERNAME: %s\n", data+9);
             if (strlen((const char *)data+9) > 0)
@@ -158,35 +161,39 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
             }
             
             int temp= 9 + (int)strlen((const char*)data+9) + 1;
-            if (temp > size)
+            if (temp > full_size)
             {
                 request_in.pop(request, request_size);
                 first_request = false;
                 return false;
             }
-            while(temp < size && data[temp] != '\0')
+            while(temp < full_size && data[temp] != '\0')
                 temp++;
-            if (temp == size)
+            if (temp == full_size)
             {
                 request_in.pop(request, request_size);
                 first_request = false;
                 return true;
             }
             temp++;
-            if (temp == size)
+            if (temp == full_size)
             {
                 request_in.pop(request, request_size);
                 first_request = false;
                 return true;
             }
             int end = temp;
-            while (end < size && data[end] != '\0')
+            while (end < full_size && data[end] != '\0')
                 end++;
             db_name = "";
             db_name.append((const char*)data+temp, end-temp);
             logevent(SQL_DEBUG, "DATABASE: %s\n", db_name.c_str());
         }
         first_request = false;
+        // we do not have any additional commands in first packet.
+	// just send everything we got so far.
+	request_in.pop(request, request_size);
+        return true;
     }
 
     lastCommandId = (MySQLType)(int)(data[4]);
