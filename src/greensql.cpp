@@ -73,6 +73,7 @@ void GreenSQL::Server_cb(int fd, short which, void * arg,
     logevent(NET_DEBUG, "size of the connection queue: %d\n", v_conn.size());
 	    
     v_conn.push_front(conn);
+
     conn->connections = &v_conn;
     conn->location = v_conn.begin();
 }
@@ -382,7 +383,15 @@ void Proxy_cb(int fd, short which, void * arg)
     int len = sizeof(data) - 1;
 
     if (which & EV_WRITE)
-        Proxy_write_cb(fd, which, arg);
+    {
+      // trying to send data
+      if (Proxy_write_cb(fd, conn) == false)
+      {
+        // failed to send data. close this socket.
+        CloseConnection(conn);
+	return;
+      }
+    }
 
     if (!(which & EV_READ))
         return;
@@ -405,10 +414,15 @@ void Proxy_cb(int fd, short which, void * arg)
     }
 }
 
-void Proxy_write_cb(int fd, short which, void * arg)
+bool Proxy_write_cb(int fd, Connection * conn)
 {
-    Connection * conn = (Connection *) arg;
     int len = conn->response_out.size();
+
+    if (len == 0)
+    {
+      return true;
+    }
+
     const unsigned char * data = conn->response_out.raw();
 
     if (socket_write(fd, (const char * )data, len) == true)
@@ -417,8 +431,9 @@ void Proxy_write_cb(int fd, short which, void * arg)
         conn->response_out.chop_back(len);
     } else {
         logevent(NET_DEBUG, "Failed to send, closing socket\n");
-        CloseConnection(conn);
-        return;
+	// no need to close socket object here
+	// it will be done in the caller function
+        return false;
     }
     if (conn->response_out.size() == 0)
     {
@@ -427,7 +442,8 @@ void Proxy_write_cb(int fd, short which, void * arg)
         event_set( &conn->proxy_event, fd, EV_READ | EV_PERSIST, 
         wrap_Proxy, (void *)conn);
         event_add( &conn->proxy_event, 0);
-    } 
+    }
+    return true;
 }
 
 void ProxyValidateClientRequest(Connection * conn)
@@ -442,6 +458,7 @@ void ProxyValidateClientRequest(Connection * conn)
     {
         logevent(NET_DEBUG, "Failed to parse request, closing socket.\n");
         CloseConnection(conn);
+	return;
     }
 
     len = (int)request.size();
@@ -466,6 +483,7 @@ void ProxyValidateClientRequest(Connection * conn)
     } else {
         logevent(NET_DEBUG, "Failed to write to backend server\n");
         CloseConnection(conn);
+	return;
     }
 
     //push request
@@ -490,8 +508,16 @@ void Backend_cb(int fd, short which, void * arg)
     char data[min_buf_size];
     int len = sizeof(data)-1;
 
+    // check if we can write to this socket
     if ( which & EV_WRITE )
-        Backend_write_cb(fd, which, arg);
+    {
+      if ( Backend_write_cb(fd, conn) == false )
+      {
+        // failed to write, close this socket
+        CloseConnection(conn);
+        return;
+      }
+    }
 
     if (!(which & EV_READ))
         return;
@@ -513,11 +539,15 @@ void Backend_cb(int fd, short which, void * arg)
     return;
 }
 
-void Backend_write_cb(int fd, short which, void * arg)
+bool Backend_write_cb(int fd, Connection * conn)
 {
     //we are real server client.
-    Connection * conn = (Connection *) arg;
     int len = conn->request_out.size();
+
+    if (len == 0)
+    {
+      return true;   
+    }
     const unsigned char * data = conn->request_out.raw();
 
     if (socket_write(fd, (const char *)data, len) == true)
@@ -527,8 +557,8 @@ void Backend_write_cb(int fd, short which, void * arg)
         conn->request_out.chop_back(len);
     } else {
         logevent(NET_DEBUG, "Failed to send data to client, closing socket\n");
-        CloseConnection(conn);
-        return;
+	// no need to close connection here
+        return false;
     }
     if (conn->request_out.size() == 0)
     {
@@ -538,6 +568,7 @@ void Backend_write_cb(int fd, short which, void * arg)
 			    wrap_Backend, (void *)conn);
         event_add( &conn->client_event, 0);
     }
+    return true;
 }
 
 void ProxyValidateServerResponse( Connection * conn )
@@ -587,6 +618,7 @@ void GreenSQL::Close()
     while ( v_conn.size() != 0)
     {
         conn = v_conn.front();
+	// we remove pointer to the conn object inside the close() function
         conn->close();
         delete conn;
     }
@@ -605,7 +637,7 @@ void GreenSQL::Close()
 void CloseConnection(Connection * conn)
 {
     /*
-    std::vector<Connection*>::iterator itr;
+    std::list<Connection*>::iterator itr;
 
     //remove from v_conn
 
@@ -615,7 +647,9 @@ void CloseConnection(Connection * conn)
         if (*itr == conn)
         {
             v_conn.erase(itr);
-            break;
+	    conn->close();
+	    delete conn;
+	    return;
         }
         itr++;
     }
