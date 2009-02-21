@@ -238,18 +238,21 @@ bool socket_read(int fd, char * data, int & size)
         size = 0;
 #ifdef WIN32
         int err = WSAGetLastError();
+	logevent(NET_DEBUG, "[%d] Socket read error %d\n", fd, err);
         if (err == WSAEINTR ||err == WSAEWOULDBLOCK|| err == WSAEINPROGRESS ) {
             return true;
         }
 #else
+	logevent(NET_DEBUG, "[%d] Socket read error %d\n", fd, errno);
         if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINPROGRESS) {
            return true;
         }
 #endif
         return false;
     }
-    if (size == 0)
+    if (size == 0 && errno != EAGAIN)
     {
+       logevent(NET_DEBUG, "[%d] Socket read error %d\n", fd, errno);
        return false;
     }
                    
@@ -263,11 +266,13 @@ bool socket_write(int fd, const char* data, int & size)
     {
 #ifdef WIN32
         int err = WSAGetLastError();
+	logevent(NET_DEBUG, "[%d] Socket write error %d\n", fd, err);
         if (err == WSAEINTR ||err == WSAEWOULDBLOCK|| err == WSAEINPROGRESS ) {
             size = 0;
             return true;
         }
 #else
+	logevent(NET_DEBUG, "[%d] Socket write error %d\n", fd, errno);
         if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINPROGRESS) {
            size = 0;
            return true;
@@ -398,7 +403,7 @@ void Proxy_cb(int fd, short which, void * arg)
 
     if (socket_read(fd, data, len) == false)
     {
-        logevent(NET_DEBUG, "Failed to read socket, closing socket\n");
+        logevent(NET_DEBUG, "[%d] Failed to read socket, closing socket\n", fd);
         CloseConnection(conn);
         return;
     }
@@ -410,7 +415,10 @@ void Proxy_cb(int fd, short which, void * arg)
         conn->request_in.append(data,len);
     
         //perform validation of the request
-        ProxyValidateClientRequest(conn);
+        if (ProxyValidateClientRequest(conn) == false)
+	{
+          CloseConnection(conn);
+	}
     }
 }
 
@@ -430,7 +438,7 @@ bool Proxy_write_cb(int fd, Connection * conn)
         logevent(NET_DEBUG, "Proxy data send\n");
         conn->response_out.chop_back(len);
     } else {
-        logevent(NET_DEBUG, "Failed to send, closing socket\n");
+        logevent(NET_DEBUG, "[%d] Failed to send, closing socket\n", fd);
 	// no need to close socket object here
 	// it will be done in the caller function
         return false;
@@ -446,7 +454,7 @@ bool Proxy_write_cb(int fd, Connection * conn)
     return true;
 }
 
-void ProxyValidateClientRequest(Connection * conn)
+bool ProxyValidateClientRequest(Connection * conn)
 {
     std::string request = "";
     bool hasResponse = false;
@@ -457,18 +465,20 @@ void ProxyValidateClientRequest(Connection * conn)
     if (conn->parseRequest(request, hasResponse) == false)
     {
         logevent(NET_DEBUG, "Failed to parse request, closing socket.\n");
-        CloseConnection(conn);
-	return;
+	return false;
     }
 
     len = (int)request.size();
 
     if (hasResponse == true)
     {
-       ProxyValidateServerResponse( conn ); 
+       if (ProxyValidateServerResponse(conn) == false)
+       {
+         return false;
+       }
     }
     if (len <= 0)
-        return;
+        return true;
 
     // we have some data to write
     //
@@ -477,13 +487,12 @@ void ProxyValidateClientRequest(Connection * conn)
     {
         if (request.size() == (unsigned int)len)
         {
-            return;
+            return true;
         }
         request.erase(0,len);
     } else {
-        logevent(NET_DEBUG, "Failed to write to backend server\n");
-        CloseConnection(conn);
-	return;
+        logevent(NET_DEBUG, "[%d] Failed to write to backend server\n", conn->client_event.ev_fd);
+	return false;
     }
 
     //push request
@@ -498,6 +507,7 @@ void ProxyValidateClientRequest(Connection * conn)
         wrap_Backend, (void *)conn);
         event_add( &conn->client_event,0);
     }
+    return true;
 }
 
 void Backend_cb(int fd, short which, void * arg)
@@ -533,7 +543,10 @@ void Backend_cb(int fd, short which, void * arg)
         //printf("received data\n");
         conn->response_in.append(data,len);
 
-        ProxyValidateServerResponse( conn );
+        if (ProxyValidateServerResponse(conn) == false)
+	{
+          CloseConnection(conn);
+	}
     }
 
     return;
@@ -556,7 +569,7 @@ bool Backend_write_cb(int fd, Connection * conn)
         //printf("client data send\n");
         conn->request_out.chop_back(len);
     } else {
-        logevent(NET_DEBUG, "Failed to send data to client, closing socket\n");
+        logevent(NET_DEBUG, "[%d] Failed to send data to client, closing socket\n", fd);
 	// no need to close connection here
         return false;
     }
@@ -571,7 +584,7 @@ bool Backend_write_cb(int fd, Connection * conn)
     return true;
 }
 
-void ProxyValidateServerResponse( Connection * conn )
+bool ProxyValidateServerResponse( Connection * conn )
 {
     std::string response;
     response.reserve(min_buf_size);
@@ -583,18 +596,18 @@ void ProxyValidateServerResponse( Connection * conn )
     if (len == 0)
     {
         // need to read more data to decide
-	return;
+	return true;
     }
     if (socket_write(conn->proxy_event.ev_fd, response.c_str(), len) == true)
     {
         if (response.size() == (unsigned int)len)
         {
-     	    return;
+     	    return true;
         }
         response.erase(0,len);
     } else {
-        CloseConnection(conn);
-        return;
+        logevent(NET_DEBUG, "[%d] Failed to send data to client, closing socket\n", conn->proxy_event.ev_fd);
+        return false;
     }
     
     //push respose
@@ -608,6 +621,7 @@ void ProxyValidateServerResponse( Connection * conn )
         event_set( &conn->proxy_event, fd, EV_READ | EV_WRITE | EV_PERSIST, wrap_Proxy, (void *)conn);
         event_add( &conn->proxy_event, 0);
     }
+    return true;
 }
 
 void GreenSQL::Close()
@@ -636,24 +650,6 @@ void GreenSQL::Close()
 
 void CloseConnection(Connection * conn)
 {
-    /*
-    std::list<Connection*>::iterator itr;
-
-    //remove from v_conn
-
-    itr = v_conn.begin();
-    while (itr != v_conn.end())
-    {
-        if (*itr == conn)
-        {
-            v_conn.erase(itr);
-	    conn->close();
-	    delete conn;
-	    return;
-        }
-        itr++;
-    }
-    */
     conn->close();
     delete conn;
 }
