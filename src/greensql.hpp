@@ -22,8 +22,8 @@ enum DBProxyType { DBTypeMySQL, DBTypePGSQL, DBTypeMSSQL };
 
 void Proxy_cb(int fd, short which, void * arg);
 bool Proxy_write_cb(int fd, Connection * conn);
-void ProxyValidateClientRequest(Connection*);
-void ProxyValidateServerResponse(Connection*);
+bool ProxyValidateClientRequest(Connection*);
+bool ProxyValidateServerResponse(Connection*);
 void Backend_cb(int fd, short which, void * arg);
 bool Backend_write_cb(int fd, Connection * conn);
 bool socket_read(int fd, char * data, int & size);
