@@ -23,21 +23,20 @@ Connection::Connection(int proxy_id)
     db_name = "";
     db_new_name = "";
     db_user = "";
-    deleted = false;
 }
 
 bool Connection::close()
 {
     logevent(NET_DEBUG, "connection close(), proxy socket %d, backend socket %d\n", 
-              proxy_event.ev_fd, client_event.ev_fd);
+              proxy_event.ev_fd, backend_event.ev_fd);
     GreenSQL::socket_close(proxy_event.ev_fd);
-    GreenSQL::socket_close(client_event.ev_fd);
+    GreenSQL::socket_close(backend_event.ev_fd);
     if (proxy_event.ev_fd != 0 && proxy_event.ev_fd != -1 && 
 		proxy_event.ev_flags & EVLIST_INIT)
         event_del(&proxy_event);
-    if (client_event.ev_fd != 0 && client_event.ev_fd != -1 && 
-		client_event.ev_flags & EVLIST_INIT)
-        event_del(&client_event);
+    if (backend_event.ev_fd != 0 && backend_event.ev_fd != -1 && 
+		backend_event.ev_flags & EVLIST_INIT)
+        event_del(&backend_event);
     connections->erase(location);
     return true;
 }

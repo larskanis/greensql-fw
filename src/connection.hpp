@@ -31,7 +31,7 @@ public:
     bool close();
     bool check_query(std::string & query);
     struct event proxy_event;
-    struct event client_event;
+    struct event backend_event;
     Buffer request_in;
     Buffer request_out;
     Buffer response_in;    
