@@ -67,9 +67,9 @@ void GreenSQL::Server_cb(int fd, short which, void * arg,
                wrap_Proxy, (void *)conn);
     event_add( &conn->proxy_event,0);
      
-    event_set( &conn->client_event, cfd, EV_READ | EV_PERSIST, 
+    event_set( &conn->backend_event, cfd, EV_READ | EV_PERSIST, 
                wrap_Backend, (void *)conn);
-    event_add( &conn->client_event,0);
+    event_add( &conn->backend_event,0);
     logevent(NET_DEBUG, "size of the connection queue: %d\n", v_conn.size());
 	    
     v_conn.push_front(conn);
@@ -483,7 +483,7 @@ bool ProxyValidateClientRequest(Connection * conn)
     // we have some data to write
     //
     //try to write without polling
-    if (socket_write(conn->client_event.ev_fd, request.c_str(), len) == true)
+    if (socket_write(conn->backend_event.ev_fd, request.c_str(), len) == true)
     {
         if (request.size() == (unsigned int)len)
         {
@@ -491,7 +491,7 @@ bool ProxyValidateClientRequest(Connection * conn)
         }
         request.erase(0,len);
     } else {
-        logevent(NET_DEBUG, "[%d] Failed to write to backend server\n", conn->client_event.ev_fd);
+        logevent(NET_DEBUG, "[%d] Failed to write to backend server\n", conn->backend_event.ev_fd);
 	return false;
     }
 
@@ -499,13 +499,13 @@ bool ProxyValidateClientRequest(Connection * conn)
     conn->request_out.append(request.c_str(), (int)request.size());
 
     //now we need to check if client event is set to WRITE
-    if (conn->client_event.ev_flags != (EV_READ | EV_WRITE | EV_PERSIST) )
+    if (conn->backend_event.ev_flags != (EV_READ | EV_WRITE | EV_PERSIST) )
     {
-        int fd = conn->client_event.ev_fd;
-        event_del( &conn->client_event);
-        event_set( &conn->client_event, fd, EV_READ | EV_WRITE | EV_PERSIST, 
+        int fd = conn->backend_event.ev_fd;
+        event_del( &conn->backend_event);
+        event_set( &conn->backend_event, fd, EV_READ | EV_WRITE | EV_PERSIST, 
         wrap_Backend, (void *)conn);
-        event_add( &conn->client_event,0);
+        event_add( &conn->backend_event,0);
     }
     return true;
 }
@@ -576,10 +576,10 @@ bool Backend_write_cb(int fd, Connection * conn)
     if (conn->request_out.size() == 0)
     {
         //we can clear the WRITE event flag
-        event_del( &conn->client_event);
-        event_set( &conn->client_event, fd, EV_READ | EV_PERSIST, 
+        event_del( &conn->backend_event);
+        event_set( &conn->backend_event, fd, EV_READ | EV_PERSIST, 
 			    wrap_Backend, (void *)conn);
-        event_add( &conn->client_event, 0);
+        event_add( &conn->backend_event, 0);
     }
     return true;
 }
