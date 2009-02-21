@@ -23,11 +23,13 @@ Connection::Connection(int proxy_id)
     db_name = "";
     db_new_name = "";
     db_user = "";
+    deleted = false;
 }
 
 bool Connection::close()
 {
-    logevent(NET_DEBUG, "connection close()\n");
+    logevent(NET_DEBUG, "connection close(), proxy socket %d, backend socket %d\n", 
+              proxy_event.ev_fd, client_event.ev_fd);
     GreenSQL::socket_close(proxy_event.ev_fd);
     GreenSQL::socket_close(client_event.ev_fd);
     if (proxy_event.ev_fd != 0 && proxy_event.ev_fd != -1 && 
