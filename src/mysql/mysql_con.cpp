@@ -256,6 +256,7 @@ bool MySQLConnection::parseResponse(std::string & response)
     unsigned int full_size = 0;
     int n_fields = 0;
     unsigned int temp = 0;
+    unsigned int row_size = 0;
 
     if (size < 3)
     {
@@ -377,31 +378,37 @@ bool MySQLConnection::parseResponse(std::string & response)
         }
     }
 
-    if (longResponseData == true && full_size <= size)
+    if (longResponseData == true && full_size + 5 <= size)
     {
         logevent(NET_DEBUG, "Data packet, size left %d\n", size - full_size);
 
-        temp = (data[full_size+2] <<16 |
-                data[full_size+1] << 8 |
-                data[full_size+0]) + 4;
-    
-        while ((data[full_size+4] != MYSQL_ENDROW) &&
-           (full_size+temp+5 <= size))
-        {
-            // data packet
-            full_size += temp;
-            temp = (data[full_size+2] <<16 |
+        row_size = (data[full_size+2] <<16 |
                     data[full_size+1] << 8 |
                     data[full_size+0]) + 4;
+    
+        while ( (full_size + row_size + 5 <= size) && 
+                (data[full_size+4] != MYSQL_ENDROW))
+        {
+            // data packet
+            full_size += row_size;
+            row_size = (data[full_size+2] <<16 |
+                        data[full_size+1] << 8 |
+                        data[full_size+0]) + 4;
         }
 
         if (data[full_size+4] == MYSQL_ENDROW &&
-            full_size+temp <= size)
+            full_size + row_size <= size)
         {
-            full_size += temp;
+            full_size += row_size;
             longResponseData = false;
             logevent(NET_DEBUG, "End of long response.\n");
-        }
+        } else if (full_size + row_size <= size)
+        {
+	    full_size += row_size;
+	    logevent(NET_DEBUG, "End not reached, left in packet %d\n", size-full_size);
+        } else {
+            logevent(NET_DEBUG, "End not reached, next row size: %d, left in packet %d\n", row_size, size-full_size);
+	}
     }
     
     response_in.pop(response, full_size);
