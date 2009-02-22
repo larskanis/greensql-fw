@@ -373,7 +373,7 @@ bool MySQLConnection::parseResponse(std::string & response)
             logevent(NET_DEBUG, "End of header-start of data (left %d bytes).\n", size - header_size);
             full_size = header_size;
         } else {
-            logevent(NET_DEBUG, "Failed to get end of packet\n");
+            logevent(NET_DEBUG, "Failed to get end of header in this packet\n");
             return false;
         }
     }
