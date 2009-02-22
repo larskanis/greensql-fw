@@ -105,7 +105,9 @@ void wrap_Backend(int fd, short which, void * arg)
     {
       GreenSQL * cls = proxies[proxy_id];
       if (cls)
+      {
         cls->Close();
+      }
     }
     else
     {
