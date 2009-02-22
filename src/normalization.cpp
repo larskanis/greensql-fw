@@ -71,12 +71,24 @@ bool removeSpaces(std::string & query)
             }
         }
     }
+    for (i = 0; i <= query.size() -1; i++)
+    {
+	if (query[i] == ' ' &&
+            (query[i+1] == ')' || query[i+1] == ','))
+	{
+          query.erase(i,1);
+	}	
+        if (i+1 <= query.size() && query[i+1] == ' ' && 
+            (query[i] == '(' || query[i] == ','))
+	{
+            query.erase(i+1,1);
+	}
+    }
     // remove last space
     j = query.size()-1;
-    if (query[j] == '\r' || query[j] == '\n' ||
-        query[j] == '\t' || query[j] == ' ')
+    if (query[j] == ' ')
     {
-        query.erase(j,query.size());
+        query.erase(j,1);
     }
     return true;
 }
