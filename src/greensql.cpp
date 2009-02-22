@@ -250,7 +250,7 @@ bool socket_read(int fd, char * data, int & size)
 #endif
         return false;
     }
-    if (size == 0 && errno != EAGAIN)
+    if (size == 0)
     {
        logevent(NET_DEBUG, "[%d] Socket read error %d\n", fd, errno);
        return false;
@@ -428,6 +428,11 @@ bool Proxy_write_cb(int fd, Connection * conn)
 
     if (len == 0)
     {
+      //we can clear the WRITE event flag
+      event_del( &conn->proxy_event);
+      event_set( &conn->proxy_event, fd, EV_READ | EV_PERSIST,
+      wrap_Proxy, (void *)conn);
+      event_add( &conn->proxy_event, 0);
       return true;
     }
 
@@ -591,36 +596,27 @@ bool ProxyValidateServerResponse( Connection * conn )
 
     conn->parseResponse(response);
     
-    //try to write without polling
-    int len = (int)response.size();
-    if (len == 0)
+    //push respose
+    if (response.size() > 0)
     {
-        // need to read more data to decide
-	return true;
+      conn->response_out.append(response.c_str(), (int)response.size());
     }
-    if (socket_write(conn->proxy_event.ev_fd, response.c_str(), len) == true)
+    if (Proxy_write_cb( conn->proxy_event.ev_fd, conn) == false)
     {
-        if (response.size() == (unsigned int)len)
-        {
-     	    return true;
-        }
-        response.erase(0,len);
-    } else {
-        logevent(NET_DEBUG, "[%d] Failed to send data to client, closing socket\n", conn->proxy_event.ev_fd);
-        return false;
+      // an error occured while sending data, this socket will be closed.
+      return false;
     }
     
-    //push respose
-    conn->response_out.append(response.c_str(), (int)response.size());
-
     //now we need to check if proxy event is set to WRITE
-    if (conn->proxy_event.ev_flags != (EV_READ | EV_WRITE | EV_PERSIST) )
+    if (conn->response_out.size() > 0 &&
+        conn->proxy_event.ev_flags != (EV_READ | EV_WRITE | EV_PERSIST) )
     {
         int fd = conn->proxy_event.ev_fd;
         event_del( &conn->proxy_event);
         event_set( &conn->proxy_event, fd, EV_READ | EV_WRITE | EV_PERSIST, wrap_Proxy, (void *)conn);
         event_add( &conn->proxy_event, 0);
     }
+
     return true;
 }
 
