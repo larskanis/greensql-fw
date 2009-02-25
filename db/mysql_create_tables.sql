@@ -39,7 +39,7 @@ db_name        char(50) NOT NULL,
 perms          bigint unsigned NOT NULL default '0',
 perms2         bigint unsigned NOT NULL default '0',
 status         smallint unsigned NOT NULL default '0',
-status_changed datetime NOT NULL,
+status_changed datetime NOT NULL default '00-00-0000 00:00:00',
 INDEX (proxyid, db_name)
 );
 
