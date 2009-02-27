@@ -197,7 +197,7 @@ db_name        char(50) NOT NULL,
 perms          bigint unsigned NOT NULL default '0',
 perms2         bigint unsigned NOT NULL default '0',
 status         smallint unsigned NOT NULL default '0',
-status_changed datetime NOT NULL,
+status_changed datetime NOT NULL default '00-00-0000 00:00:00',
 INDEX (proxyid, db_name)
 );" > /dev/null
 
@@ -221,7 +221,7 @@ mysql $MRO $GREENSQL_DB_NAME -e \
 (
 alertid             int unsigned NOT NULL auto_increment primary key,
 agroupid            int unsigned NOT NULL default '0',
-event_time          datetime NOT NULL,
+event_time          datetime NOT NULL default '00-00-0000 00:00:00',
 risk                smallint unsigned NOT NULL default '0',
 block               smallint unsigned NOT NULL default '0',
 user                varchar(50) NULL default '',
@@ -236,7 +236,7 @@ mysql $MRO $GREENSQL_DB_NAME -e \
 agroupid            int unsigned NOT NULL auto_increment primary key,
 proxyid             int unsigned NOT NULL default '1',
 db_name             char(50) NOT NULL default '',
-update_time         datetime NOT NULL,
+update_time         datetime NOT NULL default '00-00-0000 00:00:00',
 status              smallint NOT NULL default 0,
 pattern             text NOT NULL,
 INDEX(update_time)
