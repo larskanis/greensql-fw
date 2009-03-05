@@ -140,7 +140,8 @@ bool dbmap_reload()
 	if (proxy_id == 0)
 	{
             // default db
-	    default_db->Init(db_name, proxy_id, perms, perms2, status);
+	    default_db->Init("", proxy_id, perms, perms2, status);
+            default_db->LoadWhitelist();
 	}
 	else if (itr == dbs.end())
         {
