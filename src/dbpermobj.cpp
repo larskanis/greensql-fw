@@ -10,12 +10,13 @@
 #include "misc.hpp"
 #include "log.hpp"
 
-void DBPermObj::Init(std::string name, unsigned int id, long long perms,
+void DBPermObj::Init(std::string name, unsigned int id, long long p,
 		     long long perms2, unsigned int status)
 {
     db_name = name;
     proxy_id = id;
     block_status = (DBBlockStatus) status;
+    perms = p;
 
     if (perms == 0)
       return;

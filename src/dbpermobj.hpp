@@ -85,7 +85,12 @@ public:
     {
 	    return block_status;
     }
+    long long GetPerms()
+    {
+            return perms;
+    }
 private: 
+    long long perms;
     bool create_perm;
     bool drop_perm;
     bool alter_perm;
