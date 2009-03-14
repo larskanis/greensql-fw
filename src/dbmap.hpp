@@ -13,8 +13,8 @@ bool dbmap_init();
 
 bool dbmap_reload();
 bool dbmap_close();
-DBPermObj * dbmap_default();
-DBPermObj * dbmap_find(int pid, std::string &name);
+DBPermObj * dbmap_default(int proxy_id, const char * const db_type);
+DBPermObj * dbmap_find(int pid, std::string &name, const char * const db_type);
 
 
 #endif

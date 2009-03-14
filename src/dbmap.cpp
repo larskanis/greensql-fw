@@ -20,6 +20,9 @@ static DBPermObj * default_db = NULL;
 static const char * const q_db = "SELECT dbpid, proxyid, db_name, "
                                  "perms, perms2, status "
 				 "FROM db_perm ";
+static const char * const q_no_db = "SELECT distinct proxy.proxyid, proxy.dbtype "
+                                    "FROM query, proxy where db_name = ''";
+
 // the following query is used to swith db from learning mode to active protection
 static const char * const q_learning3 = "UPDATE db_perm SET status = 4 "
 	"WHERE status = 11 AND now() > status_changed + INTERVAL 3 day";
@@ -56,28 +59,56 @@ bool dbmap_close()
     return true;
 }
 
-DBPermObj * dbmap_default()
+DBPermObj * dbmap_default(int proxy_id, const char * const db_type)
 {
+    // try to find default database fot the specific db type
+    std::map<std::string, DBPermObj * >::iterator itr;
+    std::string key;
+    DBPermObj * db;
+
+    key = itoa(proxy_id);
+    key += ",";
+    key += db_type;
+    itr = dbs.find(key);
+    if (itr != dbs.end())
+    {
+      db = itr->second;
+      return db;
+    }
     return default_db;
 }
-DBPermObj * dbmap_find(int proxy_id, std::string &name)
-{
 
-    DBPermObj * db = NULL;
+DBPermObj * dbmap_find(int proxy_id, std::string &db_name, const char * const db_type)
+{
+    std::map<std::string, DBPermObj * >::iterator itr;
+    DBPermObj * db;
 	
     std::string key;
     key = itoa(proxy_id);
     key += ",";
-    key += name;
+    key += db_name;
+    key += ",";
+    key += db_type;
+
     str_lowercase(key); 
 
-    std::map<std::string, DBPermObj * >::iterator itr;
     itr = dbs.find(key);
-    if (itr == dbs.end())
-        return default_db;
-    db = itr->second;
-
-    return db;
+    if (itr != dbs.end())
+    {
+      db = itr->second;
+      return db;
+    }
+    // try to find default database for the specific db type
+    key = itoa(proxy_id);
+    key += ",";
+    key += db_type;
+    itr = dbs.find(key);
+    if (itr != dbs.end())
+    {
+      db = itr->second;
+      return db;
+    }
+    return default_db;
 }
 
 bool dbmap_reload()
@@ -93,6 +124,7 @@ bool dbmap_reload()
 
     unsigned int proxy_id = 0;
     std::string db_name = "";
+    std::string db_type = "";
     unsigned int status = 0;
     long long perms = 0;
     long long perms2 = 0;
@@ -141,7 +173,6 @@ bool dbmap_reload()
 	{
             // default db
 	    default_db->Init("", proxy_id, perms, perms2, status);
-            default_db->LoadWhitelist();
 	}
 	else if (itr == dbs.end())
         {
@@ -159,6 +190,57 @@ bool dbmap_reload()
     }
     /* Release memory used to store results. */
     mysql_free_result(res);
+
+
+    /* LOAD WHITELIST for queries with empty db name */
+
+    /* read new urls from the database */
+    if( mysql_query(dbConn, q_no_db) )
+    {
+        /* Make query */
+        logevent(STORAGE,"%s\n",mysql_error(dbConn));
+        return false;
+    }
+
+    /* Download result from server */
+    res=mysql_store_result(dbConn);
+    if (res == NULL)
+    {
+        //logevent(STORAGE, "Records Found: 0, error:%s\n", mysql_error(dbConn));
+        return false;
+    }
+
+    /* Get a row from the results */
+    while ((row=mysql_fetch_row(res)))
+    {
+        proxy_id = atoi(row[0]);
+        db_type = row[1];
+
+        perms = default_db->GetPerms();
+        perms2 = 0;
+        status = default_db->GetBlockStatus();
+
+        key = itoa(proxy_id);
+        key += ",";
+        key += db_type;
+        str_lowercase(key);
+
+        std::map<std::string, DBPermObj * >::iterator itr;
+        itr = dbs.find(key);
+        if (itr == dbs.end())
+        {
+            DBPermObj * db = new DBPermObj();
+     
+            db->Init("", proxy_id, perms, perms2, status);
+            db->LoadWhitelist();
+            dbs[key] = db;
+        } else {
+            //reload settings
+            DBPermObj * db = itr->second;
+            db->Init("", proxy_id, perms, perms2, status);
+            db->LoadWhitelist();
+        }
+    }
 
     return true;
 }
