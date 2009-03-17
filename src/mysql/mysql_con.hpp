@@ -28,7 +28,7 @@ enum MySQLType {
 class MySQLConnection: public Connection
 {
 public: 
-	MySQLConnection(int a);
+	MySQLConnection(int id);
 	~MySQLConnection();
 	bool checkBlacklist(std::string & query, std::string & reason);
 	bool parseRequest(std::string & request, bool & hasResponse );
