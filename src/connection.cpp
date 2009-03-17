@@ -19,7 +19,7 @@ Connection::Connection(int proxy_id)
     iProxyId = proxy_id;
     logevent(NET_DEBUG, "connection init()\n");
     first_request = true;
-    db = dbmap_default();
+    db = NULL;
     db_name = "";
     db_new_name = "";
     db_user = "";
