@@ -30,6 +30,7 @@ MySQLConnection::MySQLConnection(int id): Connection(id)
     longResponse = false;
     longResponseData = false;
     lastCommandId = (MySQLType)0;
+    db = dbmap_default(id, "mysql");
 }
 
 MySQLConnection::~MySQLConnection()
@@ -142,14 +143,14 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
                     db_name_len = full_size-temp-3;
                   db_name.append((const char*)data+temp+2, db_name_len);
                   //logevent(SQL_DEBUG, "DATABASE2: %s\n", db_name.c_str());
-                  db = dbmap_find(iProxyId, db_name);
+                  db = dbmap_find(iProxyId, db_name, "mysql");
                 }
             }
             else if (temp+temp2+2 < full_size)
             {
                 logevent(SQL_DEBUG, "DATABASE: %s\n", data+temp+temp2+2);
                 db_name = (const char *)data+temp+temp2+2;
-                db = dbmap_find(iProxyId, db_name);
+                db = dbmap_find(iProxyId, db_name, "mysql");
             }
         }
         else if (full_size > 10)
@@ -286,7 +287,7 @@ bool MySQLConnection::parseResponse(std::string & response)
         db_name = db_new_name;
 
         //load new db settings
-        db = dbmap_find(iProxyId, db_name);
+        db = dbmap_find(iProxyId, db_name, "mysql");
     }
     if (longResponse == false && 
         longResponseData == false)
