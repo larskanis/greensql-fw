@@ -333,7 +333,7 @@ bool MySQLConnection::parseResponse(std::string & response)
                 temp = (data[header_size+2] <<16 |
                         data[header_size+1] << 8 |
                         data[header_size+0]) + 4;
-                logevent(NET_DEBUG, "Additionla Header size %d, type %d.\n",
+                logevent(NET_DEBUG, "Additional Header size %d, type %d.\n",
                          temp, data[header_size + 4]);
             }
         }
