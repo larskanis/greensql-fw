@@ -1,3 +1,12 @@
+greensql-fw (1.0.0) unstable; urgency=low
+
+  * Fixed few risk calculation bugs
+  * Fixed few critical application bugs
+  * Code optimization
+  * Add whitelist for database with empty dbname
+
+ -- yuli <stremovsky@gmail.com>  Mar, 20 Fri 2009 01:10:00 +0300
+
 greensql-fw (0.9.6) unstable; urgency=low
 
   * Fixed few risk calculation bugs.
