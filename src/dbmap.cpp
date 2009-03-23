@@ -87,8 +87,6 @@ DBPermObj * dbmap_find(int proxy_id, std::string &db_name, const char * const db
     key = itoa(proxy_id);
     key += ",";
     key += db_name;
-    key += ",";
-    key += db_type;
 
     str_lowercase(key); 
 
