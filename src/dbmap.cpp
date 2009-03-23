@@ -242,6 +242,9 @@ bool dbmap_reload()
         }
     }
 
+    /* Release memory used to store results. */
+    mysql_free_result(res);
+
     return true;
 }
 
