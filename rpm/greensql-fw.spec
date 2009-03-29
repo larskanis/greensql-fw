@@ -18,6 +18,10 @@ BuildRequires: libevent-devel
 BuildRequires: libevent
 %endif
 
+%if %{_vendor} == "suse" && %{suse_version} == 1110
+BuildRequires: libevent-devel
+%endif
+
 %description
 GreenSQL is an Open Source database firewall used to protect
 databases from SQL injection attacks. GreenSQL works in a 
