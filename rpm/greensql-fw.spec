@@ -18,8 +18,10 @@ BuildRequires: libevent-devel
 BuildRequires: libevent
 %endif
 
-%if %{_vendor} == "suse" && %{suse_version} == 1110
+%if %{_vendor} == "suse"
+%if %{suse_version} == 1110
 BuildRequires: libevent-devel
+%endif
 %endif
 
 %description
