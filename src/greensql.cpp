@@ -76,6 +76,13 @@ void GreenSQL::Server_cb(int fd, short which, void * arg,
 
     conn->connections = &v_conn;
     conn->location = v_conn.begin();
+
+    // get db user ip address
+    struct sockaddr_in ss;
+    unsigned int len = sizeof(struct sockaddr_in);
+
+    getpeername(sfd,(struct sockaddr*)&ss,&len);
+    conn->db_user_ip = ntohl(ss.sin_addr.s_addr);
 }
 
 
