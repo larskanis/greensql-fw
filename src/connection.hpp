@@ -46,6 +46,7 @@ public:
     std::string db_name;
     std::string db_new_name;
     std::string db_user;
+    unsigned int db_user_ip;
     DBPermObj * db;
     std::list<Connection*>::iterator location;
     std::list<Connection*> * connections;
