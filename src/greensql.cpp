@@ -8,11 +8,11 @@
 
 #include "greensql.hpp"
 
-
 #include "config.hpp"
 #include "connection.hpp"
 #include "proxymap.hpp"
 
+#include <string.h>
 
 #ifdef WIN32
 #include <winsock2.h>
@@ -31,6 +31,7 @@ static const int min_buf_size = 10240;
 
 GreenSQL::GreenSQL()
 {
+    memset(&serverEvent, 0, sizeof(struct event));
     //v_conn.reserve(10);
 }
 
