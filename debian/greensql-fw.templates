@@ -16,7 +16,7 @@ Template: greensql/setup
 Type: boolean
 Default: true
 Description: Would you like to set up the database and tables automatically?
- GreenSQL could initialise and upgrade your database and tables automatically.
+ GreenSQL could initialize and upgrade your database and tables automatically.
  You'll need access to a MySQL root user for the script to work properly.
 
 Template: greensql/mysql_root_user
