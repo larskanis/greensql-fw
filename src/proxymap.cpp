@@ -18,25 +18,6 @@ static const char * const q_proxy = "SELECT proxyid, INET_NTOA(frontend_ip), "
 
 
 	    
-class GreenMySQL : public GreenSQL
-{
-public:
-    virtual void Server_cb(int fd, short which, void * arg,
-            Connection * conn, int sfd, int cfd)
-    {
-        logevent(NET_DEBUG, "MySQL Server_cb(), sfd=%d, cfd=%d\n", sfd, cfd);
-        if(PrepareNewConn(fd, sfd, cfd))
-        {
-            conn = new MySQLConnection(iProxyId);
-            GreenSQL::Server_cb(fd, which, arg, conn, sfd, cfd);
-        }
-        else
-        {
-            return;
-        }
-    }
-};
-
 static std::map<int, GreenSQL * > proxies;
 
 void wrap_Server(int fd, short which, void * arg)
