@@ -8,6 +8,8 @@
 #ifndef GREENSQL_MISC_HPP
 #define GREENSQL_MISC_HPP
 
+#include <string>
+
 std::string itoa(const int & i);
 void TrimStr(std::string & str);
 bool ParseConfLine(std::string & str, std::string & key, std::string & value);
