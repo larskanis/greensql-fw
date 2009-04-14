@@ -31,6 +31,7 @@ MySQLConnection::MySQLConnection(int id): Connection(id)
     longResponseData = false;
     lastCommandId = (MySQLType)0;
     db = dbmap_default(id, "mysql");
+    db_type = "mysql";
 }
 
 MySQLConnection::~MySQLConnection()
