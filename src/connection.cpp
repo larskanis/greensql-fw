@@ -23,6 +23,7 @@ Connection::Connection(int proxy_id)
     db_name = "";
     db_new_name = "";
     db_user = "";
+    db_type = "";
     db_user_ip = 0;
 }
 
