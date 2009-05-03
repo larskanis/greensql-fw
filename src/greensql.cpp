@@ -51,8 +51,8 @@ bool GreenSQL::PrepareNewConn(int fd, int & sfd, int & cfd)
     if (cfd == -1)
     {
         socket_close(sfd);
-	logevent(NET_DEBUG, "Failed to connect to backend db server (%s:%d)\n", sBackendName.c_str(), iBackendPort);
-	return false;
+        logevent(NET_DEBUG, "Failed to connect to backend db server (%s:%d)\n", sBackendName.c_str(), iBackendPort);
+        return false;
     }
     
     //logevent(NET_DEBUG, "client (to mysql backend) connection established\n");
@@ -60,7 +60,7 @@ bool GreenSQL::PrepareNewConn(int fd, int & sfd, int & cfd)
 }
 
 void GreenSQL::Server_cb(int fd, short which, void * arg, 
-		Connection * conn, int sfd, int cfd)
+     Connection * conn, int sfd, int cfd)
 {
     logevent(NET_DEBUG, "GreenSQL Server_cb(), sfd=%d, cfd=%d\n", sfd, cfd);
         
@@ -72,7 +72,7 @@ void GreenSQL::Server_cb(int fd, short which, void * arg,
                wrap_Backend, (void *)conn);
     event_add( &conn->backend_event,0);
     logevent(NET_DEBUG, "size of the connection queue: %d\n", v_conn.size());
-	    
+
     v_conn.push_front(conn);
 
     conn->connections = &v_conn;
@@ -172,7 +172,7 @@ int GreenSQL::client_socket(std::string & server, int port)
         }
 #endif
         socket_close(sfd);
-	return -1;
+        return -1;
     }
     return sfd;
 }
@@ -205,7 +205,7 @@ int GreenSQL::socket_accept(int serverfd)
             perror("connect()");
         }
     #endif
-	socket_close(sfd);
+        socket_close(sfd);
         return -1;
     }
     
@@ -215,7 +215,7 @@ int GreenSQL::socket_accept(int serverfd)
     {
         perror("setting O_NONBLOCK");
         socket_close(sfd);
-	return -1;
+        return -1;
     }
     #else
     int flags;
@@ -223,7 +223,7 @@ int GreenSQL::socket_accept(int serverfd)
          fcntl(sfd, F_SETFL, flags | O_NONBLOCK) < 0) {
         perror("setting O_NONBLOCK");
         socket_close(sfd);
-	return -1;
+        return -1;
     }
     #endif
     return sfd;
@@ -246,12 +246,12 @@ bool socket_read(int fd, char * data, int & size)
         size = 0;
 #ifdef WIN32
         int err = WSAGetLastError();
-	logevent(NET_DEBUG, "[%d] Socket read error %d\n", fd, err);
+        logevent(NET_DEBUG, "[%d] Socket read error %d\n", fd, err);
         if (err == WSAEINTR ||err == WSAEWOULDBLOCK|| err == WSAEINPROGRESS ) {
             return true;
         }
 #else
-	logevent(NET_DEBUG, "[%d] Socket read error %d\n", fd, errno);
+        logevent(NET_DEBUG, "[%d] Socket read error %d\n", fd, errno);
         if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINPROGRESS) {
            return true;
         }
@@ -274,13 +274,13 @@ bool socket_write(int fd, const char* data, int & size)
     {
 #ifdef WIN32
         int err = WSAGetLastError();
-	logevent(NET_DEBUG, "[%d] Socket write error %d\n", fd, err);
+        logevent(NET_DEBUG, "[%d] Socket write error %d\n", fd, err);
         if (err == WSAEINTR ||err == WSAEWOULDBLOCK|| err == WSAEINPROGRESS ) {
             size = 0;
             return true;
         }
 #else
-	logevent(NET_DEBUG, "[%d] Socket write error %d\n", fd, errno);
+        logevent(NET_DEBUG, "[%d] Socket write error %d\n", fd, errno);
         if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINPROGRESS) {
            size = 0;
            return true;
@@ -301,21 +301,21 @@ int GreenSQL::new_socket() {
     SOCKET sock;
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         logevent(NET_DEBUG, "Failed to create socket\n");
-	return -1;
+        return -1;
     }
 
     if (ioctlsocket(sock, FIONBIO, &nonblock) == SOCKET_ERROR)
     {
         perror("setting O_NONBLOCK");
         socket_close((int)sock);
-	return -1;
+        return -1;
     }
     sfd = (int) sock;
 #else
 
     if ((sfd = (int)socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         logevent(NET_DEBUG, "Failed to create socket\n");
-	return -1;
+        return -1;
     }
 
     int flags;
@@ -324,7 +324,7 @@ int GreenSQL::new_socket() {
     {
         perror("setting O_NONBLOCK");
         socket_close(sfd);
-	return -1;
+        return -1;
     }
 #endif
     return sfd;
@@ -332,7 +332,7 @@ int GreenSQL::new_socket() {
 
 
 bool GreenSQL::ProxyInit(int proxyId, std::string & proxyIp, int proxyPort,
-		std::string & backendIp, int backendPort, std::string & dbType)
+        std::string & backendIp, int backendPort, std::string & dbType)
 {
    
     sProxyIP = proxyIp;
@@ -366,15 +366,13 @@ bool GreenSQL::ProxyInit(int proxyId, std::string & proxyIp, int proxyPort,
 }
 
 bool GreenSQL::ProxyReInit(int proxyId, std::string & proxyIp, int proxyPort,
-		                std::string & backendIp, int backendPort,
-				std::string & dbType)
+        std::string & backendIp, int backendPort,
+        std::string & dbType)
 {
     if (ServerInitialized())
     {
         event_del(&serverEvent);
-	
-	socket_close(serverEvent.ev_fd);
-	
+        socket_close(serverEvent.ev_fd);
         serverEvent.ev_fd = 0;
     }
     return ProxyInit(proxyId, proxyIp, proxyPort, backendIp, backendPort, dbType);
@@ -384,7 +382,7 @@ bool GreenSQL::ProxyReInit(int proxyId, std::string & proxyIp, int proxyPort,
 bool GreenSQL::ServerInitialized()
 {
     if (serverEvent.ev_fd != 0 && serverEvent.ev_fd != -1 && 
-		serverEvent.ev_flags & EVLIST_INIT)
+        serverEvent.ev_flags & EVLIST_INIT)
         return true;
     return false;
 }
@@ -402,7 +400,7 @@ void Proxy_cb(int fd, short which, void * arg)
       {
         // failed to send data. close this socket.
         CloseConnection(conn);
-	return;
+        return;
       }
     }
 
@@ -424,9 +422,9 @@ void Proxy_cb(int fd, short which, void * arg)
     
         //perform validation of the request
         if (ProxyValidateClientRequest(conn) == false)
-	{
-          CloseConnection(conn);
-	}
+        {
+            CloseConnection(conn);
+        }
     }
 }
 
@@ -436,32 +434,44 @@ bool Proxy_write_cb(int fd, Connection * conn)
 
     if (len == 0)
     {
-      //we can clear the WRITE event flag
-      event_del( &conn->proxy_event);
-      event_set( &conn->proxy_event, fd, EV_READ | EV_PERSIST,
-      wrap_Proxy, (void *)conn);
-      event_add( &conn->proxy_event, 0);
-      return true;
+        if (conn->proxy_event.ev_flags & EV_WRITE)
+        {
+            //we can clear the WRITE event flag
+            event_del( &conn->proxy_event);
+            event_set( &conn->proxy_event, fd, EV_READ | EV_PERSIST,
+                       wrap_Proxy, (void *)conn);
+            event_add( &conn->proxy_event, 0);
+        }
+        return true;
     }
 
     const unsigned char * data = conn->response_out.raw();
 
     if (socket_write(fd, (const char * )data, len) == true)
     {
-        logevent(NET_DEBUG, "Proxy data send\n");
+        logevent(NET_DEBUG, "Send data to client\n");
         conn->response_out.chop_back(len);
     } else {
         logevent(NET_DEBUG, "[%d] Failed to send, closing socket\n", fd);
-	// no need to close socket object here
-	// it will be done in the caller function
+        // no need to close socket object here
+        // it will be done in the caller function
         return false;
     }
-    if (conn->response_out.size() == 0)
+    if (conn->response_out.size() == 0 &&
+        conn->proxy_event.ev_flags & EV_WRITE)
     {
         //we can clear the WRITE event flag
         event_del( &conn->proxy_event);
         event_set( &conn->proxy_event, fd, EV_READ | EV_PERSIST, 
-        wrap_Proxy, (void *)conn);
+                   wrap_Proxy, (void *)conn);
+        event_add( &conn->proxy_event, 0);
+    } else if (conn->response_out.size() > 0 &&
+        !(conn->proxy_event.ev_flags & EV_WRITE))
+    {
+        // we need to enable WRITE event flag
+        event_del( &conn->proxy_event);
+        event_set( &conn->proxy_event, fd, EV_READ | EV_WRITE | EV_PERSIST,
+                   wrap_Proxy, (void *)conn);
         event_add( &conn->proxy_event, 0);
     }
     return true;
@@ -478,7 +488,7 @@ bool ProxyValidateClientRequest(Connection * conn)
     if (conn->parseRequest(request, hasResponse) == false)
     {
         logevent(NET_DEBUG, "Failed to parse request, closing socket.\n");
-	return false;
+        return false;
     }
 
     len = (int)request.size();
@@ -493,34 +503,10 @@ bool ProxyValidateClientRequest(Connection * conn)
     if (len <= 0)
         return true;
 
-    // we have some data to write
-    //
-    //try to write without polling
-    if (socket_write(conn->backend_event.ev_fd, request.c_str(), len) == true)
-    {
-        if (request.size() == (unsigned int)len)
-        {
-            return true;
-        }
-        request.erase(0,len);
-    } else {
-        logevent(NET_DEBUG, "[%d] Failed to write to backend server\n", conn->backend_event.ev_fd);
-	return false;
-    }
-
     //push request
     conn->request_out.append(request.c_str(), (int)request.size());
 
-    //now we need to check if client event is set to WRITE
-    if (conn->backend_event.ev_flags != (EV_READ | EV_WRITE | EV_PERSIST) )
-    {
-        int fd = conn->backend_event.ev_fd;
-        event_del( &conn->backend_event);
-        event_set( &conn->backend_event, fd, EV_READ | EV_WRITE | EV_PERSIST, 
-        wrap_Backend, (void *)conn);
-        event_add( &conn->backend_event,0);
-    }
-    return true;
+    return Backend_write_cb(conn->backend_event.ev_fd, conn);
 }
 
 void Backend_cb(int fd, short which, void * arg)
@@ -557,9 +543,9 @@ void Backend_cb(int fd, short which, void * arg)
         conn->response_in.append(data,len);
 
         if (ProxyValidateServerResponse(conn) == false)
-	{
+        {
           CloseConnection(conn);
-	}
+        }
     }
 
     return;
@@ -572,26 +558,42 @@ bool Backend_write_cb(int fd, Connection * conn)
 
     if (len == 0)
     {
-      return true;   
+        if (conn->backend_event.ev_flags & EV_WRITE)
+        {
+            //we can clear the WRITE event flag
+            event_del( &conn->backend_event);
+            event_set( &conn->backend_event, fd, EV_READ | EV_PERSIST, 
+                       wrap_Backend, (void *)conn);
+            event_add( &conn->backend_event, 0);
+        }
+        return true;   
     }
     const unsigned char * data = conn->request_out.raw();
 
     if (socket_write(fd, (const char *)data, len) == true)
     {
-        logevent(NET_DEBUG, "sending data to client\n");
-        //printf("client data send\n");
+        logevent(NET_DEBUG, "sending data to backend server\n");
         conn->request_out.chop_back(len);
     } else {
         logevent(NET_DEBUG, "[%d] Failed to send data to client, closing socket\n", fd);
-	// no need to close connection here
+        // no need to close connection here
         return false;
     }
-    if (conn->request_out.size() == 0)
+    if (conn->request_out.size() == 0 && 
+        conn->backend_event.ev_flags & EV_WRITE)
     {
         //we can clear the WRITE event flag
         event_del( &conn->backend_event);
         event_set( &conn->backend_event, fd, EV_READ | EV_PERSIST, 
-			    wrap_Backend, (void *)conn);
+                   wrap_Backend, (void *)conn);
+        event_add( &conn->backend_event, 0);
+    } else if (conn->request_out.size() > 0 && 
+        !(conn->backend_event.ev_flags & EV_WRITE))
+    {
+        // we need to enable WRITE event flag
+        event_del( &conn->backend_event);
+        event_set( &conn->backend_event, fd, EV_READ | EV_WRITE | EV_PERSIST, 
+                   wrap_Backend, (void *)conn);
         event_add( &conn->backend_event, 0);
     }
     return true;
@@ -605,27 +607,13 @@ bool ProxyValidateServerResponse( Connection * conn )
     conn->parseResponse(response);
     
     //push respose
-    if (response.size() > 0)
+    if (response.size() == 0)
     {
-      conn->response_out.append(response.c_str(), (int)response.size());
+        return true;
     }
-    if (Proxy_write_cb( conn->proxy_event.ev_fd, conn) == false)
-    {
-      // an error occured while sending data, this socket will be closed.
-      return false;
-    }
-    
-    //now we need to check if proxy event is set to WRITE
-    if (conn->response_out.size() > 0 &&
-        conn->proxy_event.ev_flags != (EV_READ | EV_WRITE | EV_PERSIST) )
-    {
-        int fd = conn->proxy_event.ev_fd;
-        event_del( &conn->proxy_event);
-        event_set( &conn->proxy_event, fd, EV_READ | EV_WRITE | EV_PERSIST, wrap_Proxy, (void *)conn);
-        event_add( &conn->proxy_event, 0);
-    }
-
-    return true;
+    conn->response_out.append(response.c_str(), (int)response.size());
+    // if an error occured while sending data, this socket will be closed.
+    return Proxy_write_cb( conn->proxy_event.ev_fd, conn);
 }
 
 void GreenSQL::Close()
@@ -636,7 +624,7 @@ void GreenSQL::Close()
     while ( v_conn.size() != 0)
     {
         conn = v_conn.front();
-	// we remove pointer to the conn object inside the close() function
+        // we remove pointer to the conn object inside the close() function
         conn->close();
         delete conn;
     }
