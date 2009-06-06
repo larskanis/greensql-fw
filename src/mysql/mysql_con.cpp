@@ -88,7 +88,7 @@ bool MySQLConnection::checkBlacklist(std::string & query, std::string & reason)
 
 bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
 {
-    int full_size = request_in.size();
+    unsigned int full_size = request_in.size();
     if (full_size < 3)
         return true;
 
@@ -96,7 +96,7 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
     std::string response = "";
 
     const unsigned char * data = request_in.raw();
-    int request_size = (data[2]<<16 | data[1] << 8 | data[0]) + 4;
+    unsigned int request_size = (data[2]<<16 | data[1] << 8 | data[0]) + 4;
         
     //check if we got full packet
     if (request_size > full_size)
@@ -123,35 +123,42 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
 
         if ((type & 512) && full_size > 36)
         {
-            logevent(SQL_DEBUG, "USERNAME: %s\n", data+36);
-            if (strlen((const char *)data+36) > 0)
+            unsigned int db_user_len = strlen((const char *)data+36);
+            if (db_user_len + 36 > full_size)
             {
+                db_user_len = full_size - 37;
+                db_user.append((const char*)data+36, db_user_len);
+                logevent(SQL_DEBUG, "USERNAME: %s\n", db_user.c_str());
+            } else {
+
+              logevent(SQL_DEBUG, "USERNAME: %s\n", data+36);
+              if (db_user_len > 0)
+              {
                 db_user = (const char *)data+36;
-            }
-            int temp = 36 + (int)strlen( (const char*)data+36);
-            //check if we have space for dnbame and pwd
-            if (temp+1 > full_size)
+              }
+              //check if we have space for dnbame and pwd
+              if (db_user_len + 36 + 1 >= full_size)
                 return false;
-            int temp2 = data[temp+1];
-            if (temp2 == 0)
-            {
-                int db_name_len = strlen((const char*)data+temp+2);
+              int temp2 = data[db_user_len+36+1];
+              if (temp2 == 0)
+              {
+                unsigned int db_name_len = strlen((const char*)data+db_user_len+36+2);
                 if (db_name_len > 0)
                 {
-                  logevent(SQL_DEBUG, "DATABASE: %s\n", data+temp+2);
                   db_name = "";
-                  if (db_name_len > full_size-temp-3)
-                    db_name_len = full_size-temp-3;
-                  db_name.append((const char*)data+temp+2, db_name_len);
-                  //logevent(SQL_DEBUG, "DATABASE2: %s\n", db_name.c_str());
+                  if (db_name_len > full_size-db_user_len-36-3)
+                    db_name_len = full_size-db_user_len-36-3;
+                  db_name.append((const char*)data+db_user_len+36+2, db_name_len);
+                  logevent(SQL_DEBUG, "DATABASE2: %s\n", db_name.c_str());
                   db = dbmap_find(iProxyId, db_name, "mysql");
                 }
-            }
-            else if (temp+temp2+2 < full_size)
-            {
-                logevent(SQL_DEBUG, "DATABASE: %s\n", data+temp+temp2+2);
-                db_name = (const char *)data+temp+temp2+2;
+              }
+              else if (db_user_len+36+temp2+2 < full_size)
+              {
+                logevent(SQL_DEBUG, "DATABASE: %s\n", data+db_user_len+36+temp2+2);
+                db_name = (const char *)data+db_user_len+36+temp2+2;
                 db = dbmap_find(iProxyId, db_name, "mysql");
+              }
             }
         }
         else if (full_size > 10)
@@ -162,7 +169,7 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
                 db_user = (const char*)data+9;
             }
             
-            int temp= 9 + (int)strlen((const char*)data+9) + 1;
+            unsigned int temp= 9 + (int)strlen((const char*)data+9) + 1;
             if (temp > full_size)
             {
                 request_in.pop(request, request_size);
@@ -184,7 +191,7 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
                 first_request = false;
                 return true;
             }
-            int end = temp;
+            unsigned int end = temp;
             while (end < full_size && data[end] != '\0')
                 end++;
             db_name = "";
