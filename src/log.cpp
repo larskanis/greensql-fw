@@ -8,7 +8,7 @@
 #include "log.hpp"
 #include <time.h>
 #include <string.h>
-#include <syslog.h>
+//#include <syslog.h>
 #include "config.hpp"
 #include <stdarg.h> //for va_list 
 #include <stdio.h>  //for STDOUT
@@ -101,28 +101,28 @@ void logevent(ErrorType type, const char * fmt, ...)
     switch (type)
     {
         case CRIT:      error = "CRIT      ";
-			facility = LOG_CRIT;
+			//facility = LOG_CRIT;
 	                break;
 	case ERR:       error = "ERROR       ";
-		        facility = LOG_ERR;
+		        //facility = LOG_ERR;
 			break;
 	case INFO:      error = "INFO      ";
-			facility = LOG_INFO;
+			//facility = LOG_INFO;
 	                break;
         case DEBUG:     error = "DEBUG     ";
-			facility = LOG_DEBUG;
+			//facility = LOG_DEBUG;
                         break;
         case NET_DEBUG: error = "NET_DEBUG ";
-			facility = LOG_NOTICE;
+			//facility = LOG_NOTICE;
                         break;
 	case SQL_DEBUG: error = "SQL_DEBUG ";
-			facility = LOG_NOTICE;
+			//facility = LOG_NOTICE;
 			break;
 	case STORAGE:   error = "STORAGE   ";
-			facility = LOG_NOTICE;
+			//facility = LOG_NOTICE;
 			break;
         default:        error = "UNKNOWN   ";
-			facility = LOG_NOTICE;
+			//facility = LOG_NOTICE;
                         break;
     }
     
