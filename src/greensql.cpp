@@ -83,7 +83,7 @@ void GreenSQL::Server_cb(int fd, short which, void * arg,
     unsigned int len = sizeof(struct sockaddr_in);
 
     getpeername(sfd,(struct sockaddr*)&ss,&len);
-    conn->db_user_ip = ntohl(ss.sin_addr.s_addr);
+    conn->db_user_ip = inet_ntoa(ss.sin_addr);
 }
 
 
@@ -495,10 +495,17 @@ bool ProxyValidateClientRequest(Connection * conn)
 
     if (hasResponse == true)
     {
-       if (ProxyValidateServerResponse(conn) == false)
-       {
-         return false;
-       }
+        // we can push response to response_in or response_out queues
+        if (conn->response_in.size() != 0)
+        {
+            if (ProxyValidateServerResponse(conn) == false)
+            {
+                return false;
+            }
+        } else if (conn->response_out.size() != 0)
+        {
+            Proxy_write_cb( conn->proxy_event.ev_fd, conn);
+        }
     }
     if (len <= 0)
         return true;
@@ -520,12 +527,12 @@ void Backend_cb(int fd, short which, void * arg)
     // check if we can write to this socket
     if ( which & EV_WRITE )
     {
-      if ( Backend_write_cb(fd, conn) == false )
-      {
-        // failed to write, close this socket
-        CloseConnection(conn);
-        return;
-      }
+        if ( Backend_write_cb(fd, conn) == false )
+        {
+            // failed to write, close this socket
+            CloseConnection(conn);
+            return;
+        }
     }
 
     if (!(which & EV_READ))
@@ -544,7 +551,7 @@ void Backend_cb(int fd, short which, void * arg)
 
         if (ProxyValidateServerResponse(conn) == false)
         {
-          CloseConnection(conn);
+            CloseConnection(conn);
         }
     }
 
@@ -606,13 +613,13 @@ bool ProxyValidateServerResponse( Connection * conn )
 
     conn->parseResponse(response);
     
-    //push respose
+    //push response
     if (response.size() == 0)
     {
         return true;
     }
     conn->response_out.append(response.c_str(), (int)response.size());
-    // if an error occured while sending data, this socket will be closed.
+    // if an error occurred while sending data, this socket will be closed.
     return Proxy_write_cb( conn->proxy_event.ev_fd, conn);
 }
 
