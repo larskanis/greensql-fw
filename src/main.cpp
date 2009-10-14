@@ -39,10 +39,6 @@ int initLinux();
 void clb_timeout(int fd, short which, void * arg);
 void Killer(int);
 
-#ifdef WIN32
-_CrtMemState s1, s2, s3;
-#endif
-
 //GreenSQLConfig * cfg = NULL;
 
 void Killer(int)
@@ -79,7 +75,6 @@ int main(int argc, char *argv[])
     {
 #ifdef WIN32
         SetConsoleCtrlHandler( (PHANDLER_ROUTINE) Hook, TRUE );
-        _CrtMemCheckpoint(&s1);
 #endif
 	GreenSQLConfig * cfg = GreenSQLConfig::getInstance();
         std::string conf_path = "";
@@ -231,7 +226,7 @@ void clb_timeout(int fd, short which, void * arg)
         evtimer_set(tEvent, clb_timeout, tEvent);
         evtimer_add(tEvent, &delay);
 	counter++;
-	if (counter == 10)
+	if (counter == 5)
 	{
             //logevent(INFO, "Timer fired 1000 times\n");
 	    counter = 0;
