@@ -17,7 +17,7 @@ static const char * const q_proxy = "SELECT proxyid, INET_NTOA(frontend_ip), "
             "FROM proxy";
 
 
-	    
+        
 static std::map<int, GreenSQL * > proxies;
 
 void wrap_Server(int fd, short which, void * arg)
@@ -114,11 +114,11 @@ bool proxymap_close()
 
     while (proxies.size() != 0)
     {
-	iter = proxies.begin();
-	cls = iter->second;
+        iter = proxies.begin();
+        cls = iter->second;
         cls->Close();
         delete cls;
-	proxies.erase(iter);
+        proxies.erase(iter);
     }
     return true;
 }
@@ -138,21 +138,14 @@ bool proxymap_reload()
     std::string proxyIP;
     int proxyPort;
     int proxy_id = 99;
-    std::string dbType;
+    std::string dbType = "mysql";
     
     backendIP = "127.0.0.1";
     backendPort = 3306;
 
     proxyIP = "127.0.0.1";
     proxyPort = 3305;
-    
-    dbType = "mysql";
-    //        GreenSQL * cls = new GreenSQL();
-    //        cls->ProxyInit(proxy_id, proxyIP, proxyPort,
-    //                        backendIP, backendPort);
-    //        proxies[proxy_id] = cls;
-    //return true;
-    
+
     /* read new urls from the database */
     if( mysql_query(dbConn, q_proxy) )
     {
@@ -165,7 +158,7 @@ bool proxymap_reload()
     res=mysql_store_result(dbConn);
     if (res == NULL)
     {
-	logevent(STORAGE, "Records Found: 0, error:%s\n", mysql_error(dbConn));
+    logevent(STORAGE, "Records Found: 0, error:%s\n", mysql_error(dbConn));
         return false;
     }
     //my_ulonglong mysql_num_rows(MYSQL_RES *result)
@@ -181,39 +174,39 @@ bool proxymap_reload()
         // backendServer = row[3]
         backendIP = row[4];
         backendPort = atoi(row[5]);
-	dbType = row[6];
+        dbType = row[6];
         //new object
         
-	std::map<int, GreenSQL * >::iterator itr;
-	itr = proxies.find(proxy_id);
-	
+        std::map<int, GreenSQL * >::iterator itr;
+        itr = proxies.find(proxy_id);
+    
         if (itr == proxies.end())
-	{
+        {
             cls = new GreenSQL();
 
             bool ret = cls->ProxyInit(proxy_id, proxyIP, proxyPort, 
-			    backendIP, backendPort, dbType);
-	    if (ret == false)
-	    {
+                backendIP, backendPort, dbType);
+            if (ret == false)
+            {
                 // failed to init proxy
-		proxymap_set_db_status(proxy_id, 2);
-		cls->Close();
-		delete cls;
-	    } else {
-		proxymap_set_db_status(proxy_id, 1);
+                proxymap_set_db_status(proxy_id, 2);
+                cls->Close();
+                delete cls;
+            } else {
+                proxymap_set_db_status(proxy_id, 1);
                 proxies[proxy_id] = cls;
-	    }
+            }
             continue; 
         }
 
-        // found proxy object	
+        // found proxy object
         cls = itr->second;
 
         // check if db settings has been changed
         if (cls->sProxyIP != proxyIP ||
             cls->iProxyPort != proxyPort ||
-	    cls->sDBType != dbType)
-	{
+            cls->sDBType != dbType)
+        {
             ret = cls->ProxyReInit(proxy_id, proxyIP, proxyPort,
                                    backendIP, backendPort, dbType);
             if (ret == false)
@@ -222,21 +215,21 @@ bool proxymap_reload()
             } else {
                 proxymap_set_db_status(proxy_id, 1);
             }
-	    continue;
+            continue;
         } else if (cls->sBackendIP != backendIP ||
                    cls->iBackendPort != backendPort)
         {
             // may be backend ip has been changed
             cls->sBackendIP = backendIP;
             cls->iBackendPort = backendPort;
-	}
+        }
 
         if (cls->ServerInitialized() == true)
         {
             proxymap_set_db_status(proxy_id, 1);
         } else {
             // we failed to open this server object,
-	    // try once again
+            // try once again
             ret = cls->ProxyReInit(proxy_id, proxyIP, proxyPort,
                                backendIP, backendPort, dbType);
             if (ret == false)
@@ -244,8 +237,8 @@ bool proxymap_reload()
                 proxymap_set_db_status(proxy_id, 2);
             } else {
                 proxymap_set_db_status(proxy_id, 1);
-	    }
-	}
+        }
+    }
         
     }
     /* Release memory used to store results. */
@@ -269,8 +262,8 @@ bool proxymap_set_db_status(unsigned int proxy_id, int status )
     char query[1024];
 
     snprintf(query, sizeof(query), 
-		    "UPDATE proxy set status=%d where proxyid=%d",
-		    status, proxy_id);
+            "UPDATE proxy set status=%d where proxyid=%d",
+            status, proxy_id);
 
     if( mysql_query(dbConn, query) )
     {
