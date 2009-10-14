@@ -20,7 +20,7 @@ build_deb()
 {
   make clean >/dev/null 2>&1
   cd debian
-  debuild --linda -us -uc
+  debuild -us -uc
   rm -rf debian/greensql-fw
   cd ../../
   echo
