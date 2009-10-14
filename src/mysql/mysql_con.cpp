@@ -30,8 +30,8 @@ MySQLConnection::MySQLConnection(int id): Connection(id)
     longResponse = false;
     longResponseData = false;
     lastCommandId = (MySQLType)0;
-    db = dbmap_default(id, "mysql");
     db_type = "mysql";
+    db = dbmap_default(id, "mysql");
 }
 
 MySQLConnection::~MySQLConnection()
@@ -49,8 +49,8 @@ bool MySQLConnection::checkBlacklist(std::string & query, std::string & reason)
         if (ret == true)
         {
             reason += "Detected attempt to change database/table structure.\n";
-	    logevent(DEBUG, "Detected attempt to change database/table structure.\n");
-	    bad = true;
+        logevent(DEBUG, "Detected attempt to change database/table structure.\n");
+        bad = true;
         }
     }
     if (db->CanDrop() == false)
@@ -59,8 +59,8 @@ bool MySQLConnection::checkBlacklist(std::string & query, std::string & reason)
         if (ret == true)
         {
             reason += "Detected attempt to drop database/table/index.\n";
-	    logevent(DEBUG, "Detected attempt to drop database/table.\n");
-	    bad = true;
+        logevent(DEBUG, "Detected attempt to drop database/table.\n");
+        bad = true;
         }
     }
     if (db->CanCreate() == false)
@@ -69,8 +69,8 @@ bool MySQLConnection::checkBlacklist(std::string & query, std::string & reason)
         if (ret == true)
         {
             reason += "Detected attempt to create database/table/index.\n";
-	    logevent(DEBUG, "Detected attempt to create database/table/index.\n");
-	    bad = true;
+        logevent(DEBUG, "Detected attempt to create database/table/index.\n");
+        bad = true;
         }
     }
     if (db->CanGetInfo() == false)
@@ -79,8 +79,8 @@ bool MySQLConnection::checkBlacklist(std::string & query, std::string & reason)
         if (ret == true)
         {
             reason += "Detected attempt to discover db internal information.\n";
-	    logevent(DEBUG, "Detected attempt to discover db internal information.\n");
-	    bad = true;
+        logevent(DEBUG, "Detected attempt to discover db internal information.\n");
+        bad = true;
         }
     }
     return bad;
@@ -110,8 +110,8 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
     if (first_request == true)
     {
         loghex(SQL_DEBUG, data, request_size);
-	if (full_size < 10)
-	  return false;
+    if (full_size < 10)
+      return false;
 
         unsigned int type = (data[7] << 24 | data[6]<<16 | 
             data[5] << 8 | data[4]);
@@ -200,8 +200,8 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
         }
         first_request = false;
         // we do not have any additional commands in first packet.
-	// just send everything we got so far.
-	request_in.pop(request, request_size);
+        // just send everything we got so far.
+        request_in.pop(request, request_size);
         return true;
     }
 
@@ -230,14 +230,21 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
         if (query[0] != '\0')
         {
             //hasResponse = false;
-	    //return true;
+        //return true;
 
             if ( check_query(query) == false)
             {
                 // bad query - block it
                 request = ""; // do not send it to backend server
                 blockResponse(response);
-                response_in.append(response.c_str(), response.size());
+                if (response_in.size() != 0)
+                {
+                    // push it to the server response parsing queue
+                    response_in.append(response.c_str(), response.size());
+                } else {
+                    // push it to the client
+                    response_out.append(response.c_str(), response.size());
+                }
                 hasResponse = true;
             } else {
                 hasResponse = false;
@@ -413,11 +420,11 @@ bool MySQLConnection::parseResponse(std::string & response)
             logevent(NET_DEBUG, "End of long response.\n");
         } else if (full_size + row_size <= size)
         {
-	    full_size += row_size;
-	    logevent(NET_DEBUG, "End not reached, left in packet %d\n", size-full_size);
+        full_size += row_size;
+        logevent(NET_DEBUG, "End not reached, left in packet %d\n", size-full_size);
         } else {
             logevent(NET_DEBUG, "End not reached, next row size: %d, left in packet %d\n", row_size, size-full_size);
-	}
+    }
     }
     
     response_in.pop(response, full_size);
