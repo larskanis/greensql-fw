@@ -132,7 +132,13 @@ bool DBPermObj::AddToWhitelist(std::string & dbuser, std::string & pattern)
     {
         // nothing to do here, query is aready in whitelist
         delete [] q;
+        /* Release memory used to store results. */
+        mysql_free_result(res);
         return true;
+    } else if (res != NULL)
+    {
+        /* Release memory used to store results. */
+        mysql_free_result(res);
     }
 
     // add pattern to the whitelist
