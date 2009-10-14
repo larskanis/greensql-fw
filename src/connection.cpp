@@ -24,7 +24,7 @@ Connection::Connection(int proxy_id)
     db_new_name = "";
     db_user = "";
     db_type = "";
-    db_user_ip = 0;
+    db_user_ip = "";
 }
 
 bool Connection::close()
