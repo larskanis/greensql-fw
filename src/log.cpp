@@ -82,7 +82,7 @@ void logevent(ErrorType type, const char * fmt, ...)
     //va_start(ap, fmt);
     const char * error;
     char month[10];
-    int facility;
+    //int facility;
     struct tm *now;
     time_t tval;
     
