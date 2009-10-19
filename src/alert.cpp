@@ -10,6 +10,7 @@
 #include "alert.hpp"
 
 #include <map>
+#include <stdio.h>
 
 static unsigned int agroup_get(int p_id, std::string & dbn, std::string & p);
 static unsigned int agroup_add(int p_id, std::string & dbn, std::string & p);

@@ -9,6 +9,7 @@
 #include "dbpermobj.hpp"
 #include "misc.hpp"
 #include "log.hpp"
+#include <stdio.h>
 
 void DBPermObj::Init(std::string name, unsigned int id, long long p,
 		     long long perms2, unsigned int status)

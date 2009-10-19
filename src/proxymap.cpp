@@ -9,6 +9,7 @@
 #include "proxymap.hpp"
 #include "mysql/mysql_con.hpp"
 
+#include <stdio.h>
 #include<map>
 
 static const char * const q_proxy = "SELECT proxyid, INET_NTOA(frontend_ip), "
