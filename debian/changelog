@@ -1,3 +1,12 @@
+greensql-fw (1.1.0) unstable; urgency=low
+
+  * Added support for MySQL protocol 5.0
+  * Code optimization
+  * New patterns added
+  * Memory leak fixed
+
+ -- yuli <stremovsky@gmail.com>  Oct, 19 Mon 2009 01:10:00 +0300
+
 greensql-fw (1.0.0) unstable; urgency=low
 
   * Fixed few risk calculation bugs
