@@ -213,6 +213,7 @@ int GreenSQL::socket_accept(int serverfd)
     unsigned long nonblock  = 1;
     if (ioctlsocket(sfd, FIONBIO, &nonblock) == SOCKET_ERROR)
     {
+        logevent(NET_DEBUG, "[%d] Failed to swith socket to non-blocking mode\n", sfd);
         socket_close(sfd);
         return -1;
     }
@@ -305,7 +306,7 @@ int GreenSQL::new_socket() {
 
     if (ioctlsocket(sock, FIONBIO, &nonblock) == SOCKET_ERROR)
     {
-        logevent(NET_DEBUG, "[%d] Failed to swith socket to non-blocking mode\n", fd);
+        logevent(NET_DEBUG, "[%d] Failed to swith socket to non-blocking mode\n", sock);
         socket_close((int)sock);
         return -1;
     }
