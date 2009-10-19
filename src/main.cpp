@@ -188,7 +188,9 @@ int initWin()
 {
     WSADATA wsaData;
     if (NO_ERROR != WSAStartup(MAKEWORD(2, 2), &wsaData))
-    perror("WSAStartup");
+    {
+        // failed to init windows networking.
+    }
 
     return 1;
 }

@@ -158,17 +158,17 @@ int GreenSQL::client_socket(std::string & server, int port)
         if (err == WSAEINTR ||err == WSAEWOULDBLOCK|| err == WSAEINPROGRESS ) {
             return sfd;
         } else if (err == WSAEMFILE) {
-            perror("Too many open connections\n");
+            logevent(NET_DEBUG, "[%d] Failed to connect to backend server, too many open sockets\n", sfd);
         } else {
-            perror("connect()");
+            logevent(NET_DEBUG, "[%d] Failed to connect to backend server\n", sfd);
         }
 #else
         if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINPROGRESS) {
             return sfd;
         } else if (errno == EMFILE) {
-            perror("Too many open connections\n");
+            logevent(NET_DEBUG, "[%d] Failed to connect to backend server, too many open sockets\n", sfd);
         } else {
-            perror("connect()");
+            logevent(NET_DEBUG, "[%d] Failed to connect to backend server\n", sfd);
         }
 #endif
         socket_close(sfd);
@@ -192,17 +192,17 @@ int GreenSQL::socket_accept(int serverfd)
         if (err == WSAEINTR ||err == WSAEWOULDBLOCK|| err == WSAEINPROGRESS ) {
             return sfd;
         } else if (err == WSAEMFILE) {
-            perror("Too many open connections\n");
+            logevent(NET_DEBUG, "[%d] Failed to accept client socket, too many open sockets\n", serverfd);
         } else {
-            perror("connect()");
+            logevent(NET_DEBUG, "[%d] Failed to accept client socket\n", serverfd);
         }
     #else
         if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINPROGRESS) {
             return sfd;
         } else if (errno == EMFILE) {
-            perror("Too many open connections\n");
+            logevent(NET_DEBUG, "[%d] Failed to accept client socket, too many open sockets\n", serverfd);
         } else {
-            perror("connect()");
+            logevent(NET_DEBUG, "[%d] Failed to accept client socket\n", serverfd);
         }
     #endif
         socket_close(sfd);
@@ -213,7 +213,6 @@ int GreenSQL::socket_accept(int serverfd)
     unsigned long nonblock  = 1;
     if (ioctlsocket(sfd, FIONBIO, &nonblock) == SOCKET_ERROR)
     {
-        perror("setting O_NONBLOCK");
         socket_close(sfd);
         return -1;
     }
@@ -221,7 +220,7 @@ int GreenSQL::socket_accept(int serverfd)
     int flags;
     if ((flags = fcntl(sfd, F_GETFL, 0)) < 0 ||
          fcntl(sfd, F_SETFL, flags | O_NONBLOCK) < 0) {
-        perror("setting O_NONBLOCK");
+        logevent(NET_DEBUG, "[%d] Failed to swith socket to non-blocking mode\n", sfd); 
         socket_close(sfd);
         return -1;
     }
@@ -306,7 +305,7 @@ int GreenSQL::new_socket() {
 
     if (ioctlsocket(sock, FIONBIO, &nonblock) == SOCKET_ERROR)
     {
-        perror("setting O_NONBLOCK");
+        logevent(NET_DEBUG, "[%d] Failed to swith socket to non-blocking mode\n", fd);
         socket_close((int)sock);
         return -1;
     }
@@ -322,7 +321,7 @@ int GreenSQL::new_socket() {
     if ((flags = fcntl(sfd, F_GETFL, 0)) < 0 || 
          fcntl(sfd, F_SETFL, flags | O_NONBLOCK) < 0)
     {
-        perror("setting O_NONBLOCK");
+        logevent(NET_DEBUG, "[%d] Failed to swith socket to non-blocking mode\n", sfd);
         socket_close(sfd);
         return -1;
     }
