@@ -13,8 +13,15 @@ clean:
 	rm -rf debian/greensql-fw
 
 install:
-	cp greensql-fw ${DESTDIR}/usr/sbin
-	cp scripts/greensql-create-db.sh ${DESTDIR}/usr/sbin/
+	cp greensql-fw ${DESTDIR}/usr/sbin/greensql-fw
+	cp src/lib/libgsql-mysql.so.1  ${DESTDIR}/usr/lib/libgsql-mysql.so.1
+	cp src/lib/libgsql-pgsql.so.1 ${DESTDIR}/usr/lib/libgsql-pgsql.so.1
+	cp scripts/greensql-create-db.sh ${DESTDIR}/usr/sbin/greensql-create-db
 	cp conf/greensql.conf ${DESTDIR}/etc/greensql/
 	cp conf/mysql.conf ${DESTDIR}/etc/greensql/
+	cp conf/pgsql.conf ${DESTDIR}/etc/greensql/
 	touch ${DESTDIR}/var/log/greensql.log
+
+install-web:
+	cp conf/greensql-apache.conf ${DESTDIR}/etc/greensql/
+	cp -R ../greensql-console/* ${DESTDIR}/usr/share/greensql-fw/

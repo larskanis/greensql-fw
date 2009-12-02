@@ -6,6 +6,7 @@ libmysqlclient
 libevent
 flex
 bison
+libpq
 
 For Ubuntu and Debian I had to install:
 
@@ -13,7 +14,7 @@ libmysqlclient15-dev
 libevent-dev
 libpcre3-dev
 libpcre3
-
+libpq-dev
 
 For example in Debian Oldstable you will need:
 libpcre3
@@ -22,6 +23,7 @@ libevent1
 libevent-dev
 libmysqlclient14
 libmysqlclient14-dev
+libpq-dev
 
 In order to build deb package you will need the folowing:
 sudo apt-get install devscripts
@@ -34,6 +36,7 @@ sudo apt-get install libevent-dev
 sudo apt-get install libmysqlclient15-dev
 sudo apt-get install libpcre3
 sudo apt-get install libpcre3-dev
+sudo apt-get install libpq-dev
 
 If you use default installation of FreeBSD you will need to install the following packages:
 

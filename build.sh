@@ -48,8 +48,10 @@ build_bsd()
   cp ../docs/tautology.txt         $VIRTDIR/share/doc/greensql-fw/
   cp ../install.txt                $VIRTDIR/share/doc/greensql-fw/
   cp ../license.txt                $VIRTDIR/share/doc/greensql-fw/
+#  mkdir -p $VIRTDIR/www/greensql-fw/
+#  cp -R ../../greensql-console/* $VIRTDIR/www/greensql-fw/
 
-  pkg_create -v -c ./COMMENT -d ./DESC -f ./CONTENTS -i ./INSTALL -S $CURDIR -p /usr/local greensql-fw.tbz
+  pkg_create -v -d pkg-descr -f pkg-plist -i pkg-install -S $CURDIR -p /usr/local greensql-fw.tbz
   rm -rf ./usr
   mv greensql-fw.tbz ../../
   cd ../../
@@ -70,7 +72,9 @@ build_rpm()
   fi
 
   GREEN_VER=`grep Version rpm/greensql-fw.spec | sed -e "s/^[a-zA-Z]*:\s*//"`
+  cp -R ../greensql-console .
   cp -r ./ ../greensql-fw-$GREEN_VER
+  rm -rf greensql-console
   cd ..
   rm -rf greensql-fw-$GREEN_VER.tar.gz 
   tar -czf greensql-fw-$GREEN_VER.tar.gz greensql-fw-$GREEN_VER/
