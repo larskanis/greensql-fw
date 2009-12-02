@@ -5,20 +5,114 @@
 # License: GPL v2 (http://www.gnu.org/licenses/gpl.html)
 #
 
-MYSQL_ADMIN_USER="root"
-MYSQL_ADMIN_PWD=""
-MYSQL_HOST="127.0.0.1"
-MYSQL_HOSTNAME=""
-MYSQL_PORT=""
+VER=1.2
+SQL="mysql"
 GREENSQL_DB_USER="green"
 GREENSQL_DB_PWD="pwd"
 GREENSQL_DB_NAME="greendb"
-GREENSQL_CONFIG_FILE="/etc/greensql/greensql.conf"
+CONF="/etc/greensql/greensql.conf"
+CONFWEB="/usr/share/greensql-fw/config.php"
 MY_CNF=""
 MRO=""
 
-change_conf()
+PSQL=`which psql`
+if [ -z $PSQL ]; then
+  PSQL=`find /opt/PostgreSQL/*/bin -name psql | grep psql -m 1`
+fi
+
+if [ -d /usr/share/doc/greensql-fw-$VER/ ]; then
+  DOCDIR="/usr/share/doc/greensql-fw-$VER"
+elif [ -d /usr/share/doc/greensql-fw/ ]; then
+  DOCDIR="/usr/share/doc/greensql-fw"
+else
+  echo "No Doc Dir Found."
+  echo "Probably greensql-fw is not installed"
+  echo ""
+  exit 1;
+fi
+
+###############################
+## PgSQL Authentication Type ##
+###############################
+
+data_dir=`ps ax | grep "postgres" | grep "\-D" | grep -iv grep | perl -e 'if (<STDIN> =~ m/\-D\s*(.*?)\s/) {print $1;}'`
+if [ -z "$data_dir" ]; then
+  data_dir=`ps ax | grep "postmaster" | grep "\-D" | grep -iv grep | perl -e 'if (<STDIN> =~ m/\-D\s*(.*?)\s/) {print $1;}'`
+fi
+
+if [ ! -z "$data_dir" ]; then
+  pgsql_conf=`ps ax | grep "postgres" | grep "\-D" | grep -iv grep | perl -e 'if (<STDIN> =~ m/config_file\s*=\s*(.*?)\s/) {print $1}'`
+
+  if [ -z $pgsql_conf ]; then
+    pgsql_conf="${data_dir}/postgresql.conf"
+  fi
+
+  ## get hba_file from configuration file
+  hba_file=`grep -E "^\s*hba_file" $pgsql_conf`
+  if [ ! -z "$hba_file" ]; then
+    hba_file=`echo $hba_file | tr -d "'"`
+    hba_file=`echo $hba_file | perl -e 'if (<STDIN> =~ m/hba_file\s*=\s*(.*?)\s/) { print $1;}'`
+  else
+    ## couldnt find hba_file directive in configuration so try the data dir
+    hba_file="${data_dir}/pg_hba.conf"
+  fi
+
+  if [ ! -f $hba_file ]; then
+    echo "file doesnt exist: $hba_file"
+  elif [ ! -r $hba_file ]; then
+    echo "failed to read file: $hba_file"
+  fi
+
+  rule=`grep -E "^\W*local\W*all\W*all\W*ident" $hba_file` || true
+  if [ ! -z "$rule" ]; then
+    POSTGRES_AUTH="ident"
+  else
+    rule=`grep -E "^\W*local\W*all\W*all\W*md5" $hba_file` || true
+    if [ ! -z "$rule" ]; then
+      POSTGRES_AUTH="md5"
+    fi
+  fi
+fi
+
+main_fn()
 {
+  echo -n "Database type (mysql or pgsql) [$SQL]: "
+  read cont
+  if [ "$cont" != "" ]; then
+    SQL=$cont
+  fi
+
+  if [ "$SQL" = "mysql" ]; then
+    mysql_config
+  elif [ "$SQL" = "pgsql" ]; then
+    pgsql_config
+  else
+    echo "no valid database type was chosen"
+    exit 0;
+  fi
+}
+
+
+## mysql configuration function 
+mysql_config()
+{
+  MYSQL_HOST="127.0.0.1"
+  MYSQL_PORT="3306"
+  MYSQL_ADMIN_USER="root"
+  MYSQL_ADMIN_PWD="pwd"
+
+  echo -n "MySQL server address [$MYSQL_HOST]: "
+  read cont
+  if [ "$cont" != "" ]; then
+    MYSQL_HOST=$cont
+  fi
+
+  echo -n "MySQL port number [$MYSQL_PORT]: "
+  read cont
+  if [ "$cont" != "" ]; then
+    MYSQL_PORT=$cont
+  fi
+
   echo -n "MySQL admin user [$MYSQL_ADMIN_USER]: "
   read cont
   if [ "$cont" != "" ]; then
@@ -30,76 +124,133 @@ change_conf()
   if [ "$cont" != "" ]; then
     MYSQL_ADMIN_PWD=$cont
   fi
-
-  echo -n "MySQL server address (you can use ip:port string) [$MYSQL_HOST]: "
+  
+  ## file for automatically connecting to server through script
+  create_user_questions
+  echo -n "Would you like to set up the database and tables automatically [Y/n]: "
   read cont
-  if [ "$cont" != "" ]; then
-    MYSQL_HOST=$cont
-  fi
-
-  echo -n "GreenSQL config db name [$GREENSQL_DB_NAME]: "
-  read cont
-  if [ "$cont" != "" ]; then
-    GREENSQL_DB_NAME=$cont
-  fi
-
-  echo -n "GreenSQL DB user name [$GREENSQL_DB_USER]: "
-  read cont
-  if [ "$cont" != "" ]; then
-    GREENSQL_DB_USER=$cont
-  fi
-
-  echo -n "GreenSQL DB user password [$GREENSQL_DB_PWD]: "
-  read cont
-  if [ "$cont" != "" ]; then
-    GREENSQL_DB_PWD=$cont
-  fi
-
-  main_fn
-#  create_mysql_config
-#  create_db
-#  clean_mysql_config
-#  exit
-}
-
-change_pwd()
-{
-  echo -n "Use the following password [$GREENSQL_DB_PWD]: "
-  read cont
-  if [ "$cont" != "" ]; then  
-    GREENSQL_DB_PWD=$cont
+  if [ "$cont" = "n" ] || [ "$cont" = "N" ]; then
+    echo " "
+  else
+    echo $cont
+    create_mysql_config
+    create_mysql_db
+    clean_mysql_config
   fi
 }
 
-print_settings()
+## main postgresql configuration function
+pgsql_config()
 {
-  echo ""
-  echo "MySQL admin user: [$MYSQL_ADMIN_USER]"
-  echo "MySQL admin password: [$MYSQL_ADMIN_PWD]"
-  echo "MySQL server address: [$MYSQL_HOST]"
-  echo ""
-  echo "GreenSQL configuration DB name: [$GREENSQL_DB_NAME]"
-  echo "DB user to create: [$GREENSQL_DB_USER]"
-  echo "Password to set: [$GREENSQL_DB_PWD]"
-  echo ""
-}
+  POSTGRES_LOCATION="local"
 
-
-main_fn()
-{
-  echo ""
-  echo "---------------------------------------------"
-  echo "The following settings will be used:"
-  print_settings
-  echo -n "Do you want to change anything? [y/N] "
+  echo -n "location database or remote database (local or remote) [$POSTGRES_LOCATION]: "
   read cont
-  echo ""
-
-  if [ "$cont" == "y" ] || [ "$cont" == "yes" ] || [ "$cont" = "Y" ]; then
-    change_conf
-    echo ""
+  if [ "$cont" != "" ]; then
+    POSTGRES_LOCATION=$cont
   fi
 
+  if [ "$POSTGRES_LOCATION" = "local" ]; then
+    if [ -z $POSTGRES_AUTH ]; then
+      echo -n "PostgreSQL Authentication Type (ident or md5) [ident]: "
+      read cont
+      if [ "$cont" = "ident" ]; then
+        POSTGRES_AUTH="ident"
+      elif [ "$cont" = "md5" ]; then
+        POSTGRES_AUTH="md5"
+      else
+        POSTGRES_AUTH="ident"
+      fi
+    fi
+  elif [ "$POSTGRES_LOCATION" = "remote" ]; then
+    pgsql_config_remote
+    POSTGRES_AUTH="md5"
+  fi
+
+  if [ "$POSTGRES_AUTH" = "md5" ]; then
+    pgsql_config_credentials
+  fi
+
+  create_user_questions
+
+  echo -n "Would you like to set up the database and tables automatically[Y/n]: "
+  read cont
+  if [ "$cont" = "n" ] || [ "$cont" = "N" ]; then
+    echo " "
+  else
+    echo $cont
+    create_pgsql_config
+    create_pgsql_db
+    clean_pgsql_config
+  fi
+}
+
+create_pgsql_config()
+{
+  MY_PGPASS=~/.pgpass
+
+  if [ -f $MY_PGPASS ]; then
+    mv $MY_PGPASS ~/.pgpass-temp
+  fi
+
+  touch $MY_PGPASS
+  chmod 0600 $MY_PGPASS
+
+  if [ $POSTGRES_LOCATION = "local" ]; then
+    ## administrator rules already working on localhost automatically due to ident
+    if [ "$POSTGRES_AUTH" = "md5" ]; then
+      echo "127.0.0.1:*:postgres:$POSTGRES_ADMIN_USER:$POSTGRES_ADMIN_PWD" >> $MY_PGPASS
+      echo "localhost:*:postgres:$POSTGRES_ADMIN_USER:$POSTGRES_ADMIN_PWD" >> $MY_PGPASS
+      echo "127.0.0.1:*:$GREENSQL_DB_NAME:$POSTGRES_ADMIN_USER:$POSTGRES_ADMIN_PWD" >> $MY_PGPASS
+      echo "localhost:*:$GREENSQL_DB_NAME:$POSTGRES_ADMIN_USER:$POSTGRES_ADMIN_PWD" >> $MY_PGPASS
+    fi
+
+    ## new user rule - md5 anyway since it's not a system user
+    echo "localhost:*:$GREENSQL_DB_NAME:$GREENSQL_DB_USER:$GREENSQL_DB_PWD" >> $MY_PGPASS
+    echo "127.0.0.1:*:$GREENSQL_DB_NAME:$GREENSQL_DB_USER:$GREENSQL_DB_PWD" >> $MY_PGPASS
+  elif [ $POSTGRES_LOCATION = "remote" ]; then
+    ## administrator rules
+    echo "$POSTGRES_HOST:$POSTGRES_PORT:postgres:$POSTGRES_ADMIN_USER:$POSTGRES_ADMIN_PWD" >> $MY_PGPASS
+    echo "$POSTGRES_HOST:$POSTGRES_PORT:$GREENSQL_DB_NAME:$POSTGRES_ADMIN_USER:$POSTGRES_ADMIN_PWD" >> $MY_PGPASS
+    ## user rule
+    echo "$POSTGRES_HOST:$POSTGRES_PORT:$GREENSQL_DB_NAME:$GREENSQL_DB_USER:$GREENSQL_DB_PWD" >> $MY_PGPASS
+  fi
+}
+
+## postgresql configuration function for REMOTE servers
+pgsql_config_remote()
+{
+  POSTGRES_HOST="127.0.0.1"
+  POSTGRES_PORT="5432"
+
+  echo -n "PostgreSQL server address [$POSTGRES_HOST]: "
+  read cont
+  if [ "$cont" != "" ]; then
+    POSTGRES_HOST=$cont
+  fi
+
+  echo -n "PostgreSQL port number [$POSTGRES_PORT]: "
+  read cont
+  if [ "$cont" != "" ]; then
+    POSTGRES_POST=$cont
+  fi
+}
+
+pgsql_config_credentials()
+{
+  POSTGRES_ADMIN_USER="postgres"
+
+  echo -n "PostgreSQL admin user [$POSTGRES_ADMIN_USER]: "
+  read cont
+  if [ "$cont" != "" ]; then
+    POSTGRES_ADMIN_USER=$cont
+  fi
+
+  echo -n "PostgreSQL admin password [$POSTGRES_ADMIN_PWD]: "
+  read cont
+  if [ "$cont" != "" ]; then
+    POSTGRES_ADMIN_PWD=$cont
+  fi
 }
 
 create_mysql_config()
@@ -107,18 +258,6 @@ create_mysql_config()
   # Create a custom temporary MySQL configuration file for the root user.
   MY_CNF=`mktemp /tmp/greensql.my-cnf.XXXXXXXXXX`
   chmod 0600 $MY_CNF
-
-  # Split MYSQL_HOST for the host:port pair, give an empty string for the
-  # port if it isn't specified, save it into MYSQL_PORT otherwise.
-  mysql_h="`echo $MYSQL_HOST|cut -d: -f1`"
-  mysql_p="`echo $MYSQL_HOST|cut -d: -f2`"
-  if [ "$mysql_h" != "$mysql_p" -a "x$mysql_p" != "x" ]; then
-    MYSQL_HOSTNAME="$mysql_h"
-    MYSQL_PORT="$mysql_p"
-  else
-    MYSQL_HOSTNAME="$MYSQL_HOST"
-    MYSQL_PORT=""
-  fi
 
   echo "[client]
         host=${MYSQL_HOST}
@@ -137,178 +276,481 @@ clean_mysql_config()
   fi
 }
 
-create_db()
+clean_pgsql_config()
 {
-  if mysql $MRO -BNe 'show databases' | grep -q "$GREENSQL_DB_NAME"; then
-    echo "Database already exists, doing nothing."
-  else
-    echo "Creating MySQL database..."
-    mysqladmin $MRO -f create $GREENSQL_DB_NAME > /dev/null
-    echo "Adding MySQL user..."
-    if [ "$MYSQL_HOSTNAME" = "localhost" -o "$MYSQL_HOSTNAME" = "127.0.0.1" ]
-    then
-      mysql $MRO $GREENSQL_DB_NAME -f -e "GRANT ALL ON $GREENSQL_DB_NAME.* TO '$GREENSQL_DB_USER'@'localhost' IDENTIFIED BY '${GREENSQL_DB_PWD}'" > /dev/null
-    else 
-      mysql $MRO $GREENSQL_DB_NAME -f -e "GRANT ALL ON $GREENSQL_DB_NAME.* TO '$GREENSQL_DB_USER'@'%' IDENTIFIED BY '${GREENSQL_DB_PWD}'"
+  if [ -f ~/.pgpass-temp ]; then
+    mv ~/.pgpass-temp ~/.pgpass
+  fi
+}
+
+create_pgsql_db()
+{
+  SKIP_DB=0
+  EXISTS_DB=0
+
+  if [ "$POSTGRES_LOCATION" = "local" ]; then
+    if [ "$POSTGRES_AUTH" = "ident" ]; then
+      if su - postgres -c "$PSQL -c \"select * from pg_database where datname='$GREENSQL_DB_NAME';\" | grep -q \"$GREENSQL_DB_NAME\""; then
+        SKIP_DB=1
+        EXISTS_DB=1
+        echo " "
+        echo "database $GREENSQL_DB_NAME already exists."
+        echo -n "Do you want to drop and recreate database $GREENSQL_DB_NAME [N/y]: "
+        read cont
+        if [ "$cont" = "Y" ] || [ "$cont" = "y" ]; then
+          SKIP_DB=0
+        else
+          SKIP_DB=1
+          echo "Skipping database and user creation"
+        fi
+      fi
+
+      if [ "$SKIP_DB" = "0" ]; then
+        if [ "$EXISTS_DB" = "1" ]; then
+          if ! su - postgres -c "$PSQL -c \"DROP DATABASE $GREENSQL_DB_NAME\""; then
+            echo "failed to drop database $GREENSQL_DB_NAME"
+          fi
+        fi
+
+        ## creating user
+        create_user_pgsql
+
+        echo "Adding database $GREENSQL_DB_NAME..."
+        if ! su - postgres -c "$PSQL -c \"CREATE DATABASE $GREENSQL_DB_NAME OWNER $GREENSQL_DB_USER\""; then
+          echo "failed to create database $GREENSQL_DB_NAME"
+        else 
+          create_tables_pgsql
+        fi
+      fi
+    elif [ "$POSTGRES_AUTH" = "md5" ]; then
+      if $PSQL -h 127.0.0.1 postgres $POSTGRES_ADMIN_USER -c "select * from pg_database where datname='$GREENSQL_DB_NAME';" | grep -q "$GREENSQL_DB_NAME"; then
+        SKIP_DB=1
+        EXISTS_DB=1
+        echo " "
+        echo "database $GREENSQL_DB_NAME already exists."
+        echo -n "Do you want to drop and recreate database $GREENSQL_DB_NAME [N/y]: "
+        read cont
+        if [ "$cont" = "Y" ] || [ "$cont" = "y" ]; then
+          SKIP_DB=0
+        else
+          SKIP_DB=1
+          echo "Skipping database and user creation"
+        fi
+      fi
+
+      if [ "$SKIP_DB" = "0" ]; then
+        if [ "$EXISTS_DB" = "1" ]; then
+          echo "Dropping database $GREENSQL_DB_NAME..."
+          if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ADMIN_USER -c "DROP DATABASE $GREENSQL_DB_NAME"; then
+            echo "failed to drop database $GREENSQL_DB_NAME"
+          fi
+        fi
+
+        ## creating user
+        create_user_pgsql
+
+        echo "Adding database $GREENSQL_DB_NAME..."
+        if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ADMIN_USER -c "CREATE DATABASE $GREENSQL_DB_NAME OWNER $GREENSQL_DB_USER"; then
+          echo "failed to create database $GREENSQL_DB_NAME"
+        else
+          create_tables_pgsql
+        fi
+      fi
     fi
-    create_tables
+  elif [ "$POSTGRES_LOCATION" = "remote" ]
+  then
+    if $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ADMIN_USER postgres -c "select * from pg_database where datname='$GREENSQL_DB_NAME';"| grep -q "$GREENSQL_DB_NAME"
+    then
+        SKIP_DB=1
+        EXISTS_DB=1
+        echo " "
+        echo "database $GREENSQL_DB_NAME already exists."
+        echo -n "Do you want to drop and recreate database $GREENSQL_DB_NAME [N/y]: "
+        read cont
+        if [ "$cont" = "Y" ] || [ "$cont" = "y" ]; then
+          SKIP_DB=0
+        else
+          SKIP_DB=1
+          echo "Skipping database and user creation"
+        fi
+    fi
+
+    if [ "$SKIP_DB" = "0" ]; then
+      if [ "$EXISTS_DB" = "1" ]; then
+        echo "Dropping database $GREENSQL_DB_NAME..."
+        if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ADMIN_USER postgres -c "CREATE DATABASE $GREENSQL_DB_NAME OWNER $GREENSQL_DB_USER"; then
+          echo "failed to drop database $GREENSQL_DB_NAME"
+        fi
+      fi
+
+      ## creating user
+      create_user_pgsql
+
+      echo "Adding database $GREENSQL_DB_NAME..."
+      if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ADMIN_USER postgres -c "CREATE DATABASE $GREENSQL_DB_NAME OWNER $GREENSQL_DB_USER"; then
+        echo "failed to create database $GREENSQL_DB_NAME"
+      else
+        create_tables_pgsql
+      fi
+    fi
+  fi
+}
+
+create_mysql_db()
+{
+  SKIP_DB=0
+  EXISTS_DB=0
+
+  if mysql $MRO -BNe 'show databases' | grep -q "$GREENSQL_DB_NAME"; then
+    EXISTS_DB=1
+    echo " "
+    echo "database $GREENSQL_DB_NAME already exists."
+    echo -n "Do you want to drop and recreate database $GREENSQL_DB_NAME [N/y]: "
+    read cont
+    if [ "$cont" = "Y" ] || [ "$cont" = "y" ]; then
+      SKIP_DB=0
+    else
+      SKIP_DB=1
+      echo "Skipping database and user creation"
+    fi
   fi
 
+  if [ "$SKIP_DB" = "0" ]; then
+    if [ "$EXISTS_DB" = "1" ]; then
+      echo "dropping MySQL database $GREENSQL_DB_NAME..."
+      if ! mysqladmin $MRO -f drop $GREENSQL_DB_NAME; then
+        echo "failed to drop database $GREENSQL_DB_NAME"
+      fi
+    fi
+
+    echo "Creating MySQL database..."
+    if ! mysqladmin $MRO -f create $GREENSQL_DB_NAME; then
+      echo "failed to create database $GREENSQL_DB_NAME"
+    fi
+
+    create_user_mysql
+    create_tables_mysql
+  fi
 }
 
-create_tables()
+create_tables_mysql()
 {
-echo "Creating MySQL tables..."
-mysql $MRO $GREENSQL_DB_NAME -e \
-"CREATE table query
-(
-queryid int unsigned NOT NULL auto_increment primary key,
-proxyid        int unsigned NOT NULL default '0',
-perm           smallint unsigned NOT NULL default 1,
-db_name        char(50) NOT NULL,
-query          text NOT NULL,
-INDEX(proxyid,db_name)
-);" > /dev/null
-
-mysql $MRO $GREENSQL_DB_NAME -e \
-"CREATE table proxy
-(
-proxyid        int unsigned NOT NULL auto_increment primary key,
-proxyname      char(50) NOT NULL default '',
-frontend_ip    int unsigned NOT NULL default 0,
-frontend_port  smallint unsigned NOT NULL default 0,
-backend_server char(50) NOT NULL default '',
-backend_ip     int unsigned NOT NULL default 0,
-backend_port   smallint unsigned NOT NULL default 0,
-dbtype         char(20) NOT NULL default 'mysql',
-status         smallint unsigned NOT NULL default '1'
-);" > /dev/null
-
-mysql $MRO $GREENSQL_DB_NAME -e \
-"insert into proxy values (0,'Default Proxy',INET_ATON('127.0.0.1'),3305,
-'localhost',INET_ATON('127.0.0.1'),3306,'mysql',1);" > /dev/null
-
-mysql $MRO $GREENSQL_DB_NAME -e \
-"CREATE table db_perm
-(
-dbpid          int unsigned NOT NULL auto_increment primary key,
-proxyid        int unsigned NOT NULL default '0',
-db_name        char(50) NOT NULL,
-perms          bigint unsigned NOT NULL default '0',
-perms2         bigint unsigned NOT NULL default '0',
-status         smallint unsigned NOT NULL default '0',
-status_changed datetime NOT NULL default '00-00-0000 00:00:00',
-INDEX (proxyid, db_name)
-);" > /dev/null
-
-mysql $MRO $GREENSQL_DB_NAME -e \
-"insert into db_perm (dbpid, proxyid, db_name) values (0,0,'defaultdb');" > /dev/null
-
-mysql $MRO $GREENSQL_DB_NAME -e \
-"CREATE table user
-(
-userid         int unsigned NOT NULL auto_increment primary key,
-name           char(50) NOT NULL default '',
-pwd            char(50) NOT NULL default '',
-email          char(50) NOT NULL default ''
-);" > /dev/null
-
-mysql $MRO $GREENSQL_DB_NAME -e \
-"insert into user values(0,'admin',sha1('pwd'),'');" > /dev/null
-
-mysql $MRO $GREENSQL_DB_NAME -e \
-"CREATE table alert
-(
-alertid             int unsigned NOT NULL auto_increment primary key,
-agroupid            int unsigned NOT NULL default '0',
-event_time          datetime NOT NULL default '00-00-0000 00:00:00',
-risk                smallint unsigned NOT NULL default '0',
-block               smallint unsigned NOT NULL default '0',
-user                varchar(50) NULL default '',
-query               text NOT NULL,
-reason              text NOT NULL
-);" > /dev/null
-
-
-mysql $MRO $GREENSQL_DB_NAME -e \
-"CREATE table alert_group
-(
-agroupid            int unsigned NOT NULL auto_increment primary key,
-proxyid             int unsigned NOT NULL default '1',
-db_name             char(50) NOT NULL default '',
-update_time         datetime NOT NULL default '00-00-0000 00:00:00',
-status              smallint NOT NULL default 0,
-pattern             text NOT NULL,
-INDEX(update_time)
-);" > /dev/null
-
+  echo "Creating MySQL tables..."
+  cat $DOCDIR/greensql-mysql-db.txt |  mysql $MRO -f $GREENSQL_DB_NAME > /dev/null 2>&1
 }
 
-# next function s used to update greensqll config file
+create_tables_pgsql()
+{
+  echo "Creating PgSQL tables..."
+
+  if [ "$POSTGRES_LOCATION" = "local" ]; then
+    $PSQL -h 127.0.0.1 -f $DOCDIR/greensql-postgresql-db.txt $GREENSQL_DB_NAME $GREENSQL_DB_USER > /dev/null 2>&1
+  elif [ "$POSTGRES_LOCATION" = "remote" ]; then
+    $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT -f $DOCDIR/greensql-postgresql-db.txt $GREENSQL_DB_NAME $GREENSQL_DB_USER > /dev/null 2>&1
+  fi
+}  
+
+create_user_questions()
+{
+  echo -n "GreenSQL config db name [$GREENSQL_DB_NAME]: "
+  read cont
+  if [ "$cont" != "" ]; then
+    GREENSQL_DB_NAME=$cont
+  fi
+
+  echo -n "GreenSQL DB user name [$GREENSQL_DB_USER]: "
+  read cont
+  if [ "$cont" != "" ]; then
+    GREENSQL_DB_USER=$cont
+  fi
+
+  echo -n "GreenSQL DB user password [$GREENSQL_DB_PWD]: "
+  read cont
+  if [ "$cont" != "" ]; then
+    GREENSQL_DB_PWD=$cont
+  fi
+}
+
+create_user_mysql()
+{
+  echo "Adding MySQL user $GREENSQL_DB_USER..."
+  if [ "$MYSQL_HOST" = "localhost" -o "$MYSQL_HOST" = "127.0.0.1" ]
+  then
+    if ! mysql $MRO $GREENSQL_DB_NAME -f -e "GRANT ALL ON $GREENSQL_DB_NAME.* TO '$GREENSQL_DB_USER'@'localhost' IDENTIFIED BY '${GREENSQL_DB_PWD}'"; then
+      echo "failed to create user $GREENSQL_DB_USER"
+    fi
+  else
+   if ! mysql $MRO $GREENSQL_DB_NAME -f -e "GRANT ALL ON $GREENSQL_DB_NAME.* TO '$GREENSQL_DB_USER'@'%' IDENTIFIED BY '${GREENSQL_DB_PWD}'"; then
+      echo "failed to create user $GREENSQL_DB_USER"
+   fi
+  fi
+}
+
+create_user_pgsql()
+{
+  SKIP_USER=0
+  EXISTS_USER=0
+
+  if [ "$POSTGRES_LOCATION" = "local" ]; then
+    if [ "$POSTGRES_AUTH" = "ident" ]; then
+      if su - postgres -c "$PSQL -c \"select * from pg_roles where rolname='$GREENSQL_DB_USER';\" | grep -q \"$GREENSQL_DB_USER\""; then
+        SKIP_USER=0
+        EXISTS_USER=1
+        echo " "
+        echo "user $GREENSQL_DB_USER already exists"
+        echo -n "Do you want to drop and recreate user $GREENSQL_DB_USER [Y/n]: "
+        read cont
+        if [ "$cont" = "N" ] || [ "$cont" = "n" ]; then
+          SKIP_USER=1
+        else
+          SKIP_USER=0
+        fi
+      fi
+
+      if [ "$SKIP_USER" = "0" ]; then
+        if [ "$EXISTS_USER" = "1" ]; then
+          echo "Dropping User $GREENSQL_DB_USER"
+          if ! su - postgres -c "$PSQL -c \"DROP USER $GREENSQL_DB_USER\""; then
+            echo "failed to drop user $GREENSQL_DB_USER"
+          fi
+        fi
+
+        echo "Adding User $GREENSQL_DB_USER"
+        if ! su - postgres -c "$PSQL -c \"CREATE USER $GREENSQL_DB_USER WITH PASSWORD '$GREENSQL_DB_PWD';\""; then
+          echo "failed to create user $GREENSQL_DB_USER"
+        fi
+      fi
+    elif [ "$POSTGRES_AUTH" = "md5" ]; then
+      if $PSQL -h 127.0.0.1 postgres $POSTGRES_ADMIN_USER -c "select * from pg_roles where rolname='$GREENSQL_DB_USER';" | grep -q "$GREENSQL_DB_USER"; then
+        SKIP_USER=0
+        EXISTS_USER=1
+        echo " "
+        echo "user $GREENSQL_DB_USER already exists"
+        echo -n "Do you want to drop and recreate user $GREENSQL_DB_USER [Y/n]: "
+        read cont
+        if [ "$cont" = "N" ] || [ "$cont" = "n" ]; then
+          SKIP_USER=1
+        else
+          SKIP_USER=0
+        fi
+      fi
+
+      if [ "$SKIP_USER" = "0" ]; then
+        if [ "$EXISTS_USER" = "1" ]; then
+          echo "Dropping User $GREENSQL_DB_USER" 
+          if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ADMIN_USER -c "DROP USER $GREENSQL_DB_USER;"; then
+            echo "failed to drop user $GREENSQL_DB_USER"
+          fi
+        fi
+
+        echo "Adding User $GREENSQL_DB_USER"
+        if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ADMIN_USER -c "CREATE USER $GREENSQL_DB_USER WITH PASSWORD '$GREENSQL_DB_PWD';"; then
+          echo "failed to create user $GREENSQL_DB_USER"
+        fi
+      fi
+    fi
+  elif [ "$POSTGRES_LOCATION" = "remote" ]; then
+    if $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ADMIN_USER postgres -c "select * from pg_roles where rolname='$GREENSQL_DB_USER';" | grep -q "$GREENSQL_DB_USER"; then
+      SKIP_USER=0
+      EXISTS_USER=1
+      echo " "
+      echo "user $GREENSQL_DB_USER already exists"
+      echo -n "Do you want to drop and recreate user $GREENSQL_DB_USER [Y/n]: "
+      read cont
+      if [ "$cont" = "N" ] || [ "$cont" = "n" ]; then
+        SKIP_USER=1
+      else
+        SKIP_USER=0
+      fi
+    fi
+
+    if [ "$SKIP_USER" = "0" ]; then
+      if [ "$EXISTS_USER" = "1" ]; then
+        echo "Dropping User $GREENSQL_DB_USER"
+        if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ADMIN_USER postgres -c "DROP USER $GREENSQL_DB_USER;"; then
+          echo "failed to drop user $GREENSQL_DB_USER"
+        fi
+
+        echo "Adding User $GREENSQL_DB_USER"
+        if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ADMIN_USER postgres -c "CREATE USER $GREENSQL_DB_USER WITH PASSWORD '$GREENSQL_DB_PWD';"; then
+          echo "failed to create user $GREENSQL_DB_USER"
+        fi
+      fi
+    fi
+  fi
+}
+
 update_greensql_config()
 {
-# check if the file is writable
-if [ ! -w $GREENSQL_CONFIG_FILE ]; then
-  echo ""
-  echo "GreenSQL configuration file is not writable!!!"
-  echo "Check that [database] section contains the following settings in"
-  echo "$GREENSQL_CONFIG_FILE" 
-  echo ""
-  echo "[database]"
-  echo "dbhost=$MYSQL_HOSTNAME"
-  echo "dbname=$GREENSQL_DB_NAME"
-  echo "dbuser=$GREENSQL_DB_USER"
-  echo "dbpass=$GREENSQL_DB_PWD"
-  if [ "$MYSQL_PORT" != "" ] && [ "$MYSQL_PORT" != "3306" ]; then
-    echo "dbport=${MYSQL_PORT}"
-  else
-    echo "# dbport=3306"
+  echo "Modifing $CONF..."
+
+  if [ $SQL = "pgsql" ]; then
+    SQL="postgresql"
   fi
-  echo ""
-  return
-fi
 
-echo "Modifing $GREENSQL_CONFIG_FILE..."
+  # save start and end of the config file
+  start_cfg=`perl -p0777 -e 's/\[database\].*$//s' $CONF`
+  end_cfg=`perl -p0777 -e 's/^.*\[database\][^\[]*\[/\[/s' $CONF`
 
-# save start and end of the config file
-start_cfg=`perl -p0777 -e 's/\[database\].*$//s' $GREENSQL_CONFIG_FILE`
-end_cfg=`perl -p0777 -e 's/^.*\[database\][^\[]*\[/\[/s' $GREENSQL_CONFIG_FILE`
+  echo "$start_cfg
 
-  echo \
-"$start_cfg
+[database]" > $CONF
 
-[database]
-dbhost=$MYSQL_HOSTNAME
-dbname=$GREENSQL_DB_NAME
+  if [ "$SQL" = "postgresql" ]; then
+    if [ -z $POSTGRES_HOST ]; then
+      POSTGRES_HOST="127.0.0.1"
+    fi
+
+    echo "dbhost=$POSTGRES_HOST" >> $CONF
+  elif [ "$SQL" = "mysql" ]; then
+    if [ -z $MYSQL_HOST ]; then
+      MYSQL_HOST="127.0.0.1"
+    fi
+
+    echo "dbhost=$MYSQL_HOST" >> $CONF
+  fi
+
+  if [ $SQL = "mysql" ]; then
+    DBTYPE=mysql
+  elif [ $SQL = "postgresql" ]; then
+    DBTYPE=pgsql
+  else
+    DBTYPE=mysql
+  fi
+
+  echo "dbname=$GREENSQL_DB_NAME
 dbuser=$GREENSQL_DB_USER
-dbpass=$GREENSQL_DB_PWD" > $GREENSQL_CONFIG_FILE
+dbpass=$GREENSQL_DB_PWD
+dbtype=$DBTYPE" >> $CONF
 
-  if [ "$MYSQL_PORT" != "" ] && [ "$MYSQL_PORT" != "3306" ]; then
-    echo "dbport=${MYSQL_PORT}" >> $GREENSQL_CONFIG_FILE
-  else
-    echo "# dbport=3306" >> $GREENSQL_CONFIG_FILE
+  if [ "$SQL" = "postgresql" ] && [ "$POSTGRES_LOCATION" = "remote" ]; then
+    if [ "$POSTGRES_PORT" != "" ] && [ "$POSTGRES_PORT" != "5432" ]; then
+      echo "dbport=${POSTGRES_PORT}" >> $CONF
+    else
+      echo "# dbport=5432" >> $CONF
+    fi
+  elif [ "$SQL" = "mysql" ]; then
+    if [ "$MYSQL_PORT" != "" ] && [ "$MYSQL_PORT" != "3306" ]; then
+      echo "dbport=${MYSQL_PORT}" >> $CONF
+    else
+      echo "# dbport=3306" >> $CONF
+    fi
   fi
-echo \
-"
-$end_cfg" >> $GREENSQL_CONFIG_FILE
+
+  echo "
+$end_cfg" >> $CONF
 }
 
 # execution of the script start here:
 main_fn
-if [ "$GREENSQL_DB_PWD" == "pwd" ]; then
-  echo "The following password for [$GREENSQL_DB_USER] user will be set: [$GREENSQL_DB_PWD]"
-  echo ""
-  echo -n "Do you want to change default password? [Y/n] "
-  read cont
-  echo ""
-  if [ "$cont" == "" ] || [ "$cont" == "y" ] || [ "$cont" == "yes" ] || [ "$cont" = "Y" ]; then
-    change_pwd
+update_greensql_config
+
+
+########################
+##   WEB CONFIG FILE  ##
+########################
+
+if test -f $CONFWEB
+then
+  cp -a $CONFWEB ${CONFWEB}-old
+else
+  if [ -f $DOCDIR/config.php ]; then
+    cp $DOCDIR/config.php $CONFWEB
   fi
 
+  cp -a $CONFWEB ${CONFWEB}-old
 fi
 
-create_mysql_config
-create_db
-clean_mysql_config
-update_greensql_config
+## code to merge the new variables now in the configuration file also to the web console conf file
+perl <<'EOF'
+
+my @data;
+my ($db_type,$db_name,$db_host,$db_port,$db_user,$db_pass);
+my $CONFWEB;
+
+$CONF = '/etc/greensql/greensql.conf';
+$CONFWEB = '/usr/share/greensql-fw/config.php';
+
+##########################################
+## extract the data from the config file #
+##########################################
+open(CONF,"$CONF") or die $!;
+while(<CONF>) { $data .= $_; }
+close(CONF);
+
+## quotes before split
+$data =~ s/\\/\\\\/g;
+@data = split("\n", $data);
+foreach my $line ( @data )
+{
+  $line =~ s/\#.*//;
+
+  ## db type (commercial version)
+  if ($line =~ m/dbtype\s*=\s*(.*)/i) {
+    $db_type = $1;
+  }
+
+  ## db host
+  if ($line =~ m/dbhost\s*=\s*(.*)/i) {
+    $db_host = $1;
+  }
+
+  ## db port
+  if ($line =~ m/dbport\s*=\s*(\d*)/i) {
+    $db_port = $1;
+  }
+
+  # db name
+  if ($line =~ m/dbname\s*=\s*(.*)/i) {
+    $db_name = $1;
+  }
+
+  ## db user
+  if ($line =~ m/dbuser\s*=\s*(.*)/i) {
+    $db_user = $1;
+  }
+
+  # db pass
+  if ($line =~ m/dbpass\s*=\s*(.*)/i) {
+    $db_pass = $1;
+  }
+}
+
+$data = '';
+open(CONFWEB,$CONFWEB) or die $!;
+while(<CONFWEB>) {
+  $data .= $_;
+}
+close(CONFWEB);
+
+@data = split("\n", $data);
+open(CONFWEB,">$CONFWEB") or die $!;
+foreach my $data ( @data )
+{
+  if ( $data =~ m/\#.*/) {
+    ## happens alot so lets speed up process
+    print CONFWEB $data . "\n";
+  }
+  elsif ($db_type && $data =~ m/db_type/) {
+    print CONFWEB '$db_type = "' . $db_type . '";' . "\n";
+  }
+  elsif ($db_host && $data =~ m/db_host/) {
+    print CONFWEB '$db_host = "' . $db_host . '";' . "\n";
+  }
+  elsif ($db_port && $data =~ m/db_port/) {
+    print CONFWEB '$db_port = "' . $db_port . '";' . "\n";
+  }
+  elsif ($db_name && $data =~ m/db_name/) {
+    print CONFWEB '$db_name = "' . $db_name . '";' . "\n";
+  }
+  elsif ($db_user && $data =~ m/db_user/) {
+    print CONFWEB '$db_user = "' . $db_user . '";' . "\n";
+  }
+  elsif ($db_pass && $data =~ m/db_pass/) {
+    print CONFWEB '$db_pass = "' . $db_pass . '";' . "\n";
+  }
+  else { print CONFWEB $data . "\n";}
+}
+close(CONFWEB);
+EOF
 
