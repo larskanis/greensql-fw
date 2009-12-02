@@ -1,0 +1,59 @@
+#!/bin/sh
+
+# this file was adopted from mysql5-server package 
+
+PATH=/bin:/usr/sbin
+
+case $2 in
+POST-INSTALL)
+	USER=greensql
+	GROUP=${USER}
+	UID=748
+	GID=${UID}
+
+	if pw group show "${GROUP}" > /dev/null 2>&1; then
+		echo "You already have a group \"${GROUP}\", so I will use it."
+	else
+		if pw groupadd ${GROUP} -g ${GID}; then
+			echo "Added group \"${GROUP}\"."
+		else
+			echo "Adding group \"${GROUP}\" failed..."
+			exit 1
+		fi
+	fi
+
+	if pw user show "${USER}" > /dev/null 2>&1; then
+		echo "You already have a user \"${USER}\", so I will use it."
+	else
+		if pw useradd ${USER} -u ${UID} -g ${GROUP} -h - \
+			-d /nonexistent -s /sbin/nologin -c "greensql user"
+		then
+			echo "Added user \"${USER}\"."
+		else
+			echo "Adding user \"${USER}\" failed..."
+			exit 1
+		fi
+	fi
+
+        # change file permissions
+        chown -R greensql:greensql /usr/local/etc/greensql/
+        chmod 0400 /usr/local/etc/greensql/*.conf 
+        chmod 0700 /usr/local/etc/greensql/
+
+        # configure log rotation
+        if `/usr/bin/grep "^/var/log/greensql.log" /etc/newsyslog.conf >/dev/null 2>&1`
+        then
+          echo "Log rotation for /var/log/greensql.log is already enabled."
+        else
+          echo "Enabling log rotation for /var/log/greensql.log"
+          echo "/var/log/greensql.log	greensql:greensql 644 5 1000 * JCB" >> /etc/newsyslog.conf
+        fi
+        echo
+        echo "GreenSQL database firewall is almost installed."
+        echo "The last step is to configure database."
+        echo "Just run the following script:"
+        echo
+        echo "/usr/local/sbin/greensql-create-db.sh"
+        echo
+        ;;
+esac

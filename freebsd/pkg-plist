@@ -1,0 +1,19 @@
+@comment PKG_FORMAT_REVISION:1.1
+@name greensql-fw-1.0.0
+@comment ORIGIN:sysutils/greensql-fw
+@cwd /usr/local
+@display pkg-display
+sbin/greensql-fw
+sbin/greensql-create-db.sh
+etc/greensql/greensql.conf
+etc/greensql/mysql.conf
+etc/rc.d/greensql-fw
+share/doc/greensql-fw/greensql-mysql-db.txt
+share/doc/greensql-fw/install.txt
+share/doc/greensql-fw/license.txt
+share/doc/greensql-fw/tautology.txt
+www/greensql-fw/
+
+@dirrm etc/greensql
+@dirrm share/doc/greensql-fw
+@dirrm www/greensql-fw
