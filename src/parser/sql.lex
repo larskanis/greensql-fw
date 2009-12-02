@@ -7,6 +7,8 @@ int yyparse();
 static YY_BUFFER_STATE buf;
 %}
 
+%option never-interactive
+
 %%
 
 select      return SELECT;
