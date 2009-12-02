@@ -25,6 +25,7 @@
 #include "config.hpp"
 #include "greensql.hpp"
 #include "mysql/mysql_con.hpp"
+#include "pgsql/pgsql_con.hpp"
 #include "proxymap.hpp"
 #include "dbmap.hpp"
 #include "alert.hpp"
@@ -131,6 +132,11 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Failed to load MySQL list of patterns.\n");
             return -1;
         }
+		if (pgsql_patterns_init(conf_path) == false)
+		{
+			fprintf(stderr, "Failed to load PGSQL list of patterns.\n");
+			return -1;
+		}
 #if WIN32
         initWin();
 #else
@@ -147,7 +153,11 @@ int main(int argc, char *argv[])
         evtimer_set(&tEvent, clb_timeout, &tEvent);
         evtimer_add(&tEvent, &delay);
        
-        proxymap_init();
+        if (proxymap_init() == false)
+        {
+           logevent(DEBUG, "Failed to open all server sockets, closing application\n");
+           exit(0);
+        }
         dbmap_init();
 	agroupmap_init();
 		

@@ -9,9 +9,9 @@
 #include "config.hpp"
 #include "log.hpp"
 #include "misc.hpp"
-
 #include <iostream>
 #include <fstream> //ifstream
+#define DEFAULT_MYSQL_PORT 3306
 
 GreenSQLConfig* GreenSQLConfig::_obj = NULL;
 
@@ -51,10 +51,11 @@ void GreenSQLConfig::init()
     bRunning = true;
 
     sDbHost = "127.0.0.1";
-    iDbPort = 3306;
+    iDbPort = DEFAULT_MYSQL_PORT;
     sDbName = "greendb";
     sDbUser = "green";
     sDbPass = "green";
+    sDbType = DB_MYSQL;
 
     re_block_level = 30;
     re_warn_level = 20;
@@ -69,6 +70,7 @@ void GreenSQLConfig::init()
     re_bruteforce = 15;
     
     log_level = 3;
+
     log_file = "/var/log/greensql.log";
 }
 
@@ -147,6 +149,17 @@ bool GreenSQLConfig::load(std::string & path)
     }
     return true;
 }
+backend_db GreenSQLConfig::ParseDbType(const std::string& type)
+{
+    if(type == "mysql") {
+        return DB_MYSQL;
+    }
+    else if(type == "pgsql" || type == "postgresql") {
+        return DB_PGSQL;
+    }
+
+    return DB_MYSQL;
+}
 
 bool GreenSQLConfig::parse_db_setting(std::string & key, std::string & value)
 {
@@ -165,6 +178,11 @@ bool GreenSQLConfig::parse_db_setting(std::string & key, std::string & value)
     } else if (key == "dbport")
     {
        iDbPort = atoi(value.c_str());
+    } else if (key == "dbtype")
+    {
+       sDbType = ParseDbType(value);
+       if(sDbType == DB_PGSQL && iDbPort == DEFAULT_MYSQL_PORT)
+           iDbPort = 5432;
     }
     return true;
 }
@@ -224,32 +242,27 @@ bool GreenSQLConfig::parse_log_setting(std::string & key, std::string & value)
 
 bool GreenSQLConfig::load_db()
 {
-    if ( !mysql_init(&dbConn) )
-    {
-        logevent(DEBUG, "Mysql error: %s\n", mysql_error(&dbConn));
-	return false;
+    if(sDbType == DB_MYSQL) {
+      if (! db_init("mysql")) {
+        return false;
+      }
+    }
+    else if(sDbType == DB_PGSQL) {
+      if (! db_init("pgsql")) {
+        return false;
+      }
     }
 
-#if MYSQL_VERSION_ID >= 50013
-    my_bool trueval = 1;
-    mysql_options(&dbConn, MYSQL_OPT_RECONNECT, &trueval);
-#endif
-	
-    if(!mysql_real_connect(&dbConn, sDbHost.c_str(), sDbUser.c_str(),
-                           sDbPass.c_str(), sDbName.c_str(),
-                           iDbPort, NULL, 0))
+    if (db_load(sDbHost.c_str(),sDbUser.c_str(),sDbPass.c_str(),sDbName.c_str(),iDbPort) == 0)
     {
-        logevent(DEBUG, "Mysql error: %s\n", mysql_error(&dbConn));
+        logevent(STORAGE, "Failed to connect to backend db, error: %s\n", db_error());
         return false;
     }
-
     return true;
 }
 
 bool GreenSQLConfig::close_db()
 {
-    mysql_close(&dbConn);
-    mysql_library_end();
+    db_close();
     return true;
 }
-

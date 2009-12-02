@@ -53,7 +53,7 @@ bool Connection::check_query(std::string & query)
     // convert query to lower case
     str_lowercase(query);
     // perform normalization - make a pattern of the query
-    normalizeQuery(query);
+    normalizeQuery( (DBProxyType) dbType, query);
     // we will make the reference out of query
     std::string & pattern = query;
 
@@ -132,14 +132,14 @@ bool Connection::check_query(std::string & query)
         db->AddToWhitelist(db_user, pattern);
         if (risk >= conf->re_block_level)
         {
-            logwhitelist(iProxyId, db_name, db_user, original_query,
+            logwhitelist(iProxyId, db_name,db_user,original_query,
                      pattern, reason, risk, (int)HIGH_RISK);
         } else if (risk >= conf->re_warn_level)
         {
-            logwhitelist(iProxyId, db_name, db_user, original_query,
+            logwhitelist(iProxyId, db_name, db_user,original_query,
                      pattern, reason, risk, (int)WARN);
         } else {
-            logwhitelist(iProxyId, db_name, db_user, original_query,
+            logwhitelist(iProxyId, db_name, db_user,original_query,
                      pattern, reason, risk, (int)LOW);
 	}
 
@@ -154,7 +154,7 @@ bool Connection::check_query(std::string & query)
 
     if (risk >= conf->re_block_level) 
     {
-        logalert(iProxyId, db_name, db_user, original_query,
+        logalert(iProxyId, db_name, db_user,original_query,
                  pattern, reason, risk, (int)risk_block_level);
         if (risk_block_level == BLOCKED)
             return false;
@@ -162,7 +162,7 @@ bool Connection::check_query(std::string & query)
     else if (risk >= conf->re_warn_level)
     {
         //warn level
-        logalert(iProxyId, db_name, db_user, original_query,
+        logalert(iProxyId, db_name,db_user, original_query,
                  pattern, reason, risk, (int)WARN);
     }
 

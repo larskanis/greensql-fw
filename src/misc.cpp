@@ -4,10 +4,10 @@
 // Copyright (c) 2007 GreenSQL.NET <stremovsky@gmail.com>
 // License: GPL v2 (http://www.gnu.org/licenses/gpl.html)
 //
-
+#include "misc.hpp"
 #include <sstream>
-#include <string>
 
+#define BUFF_SIZE 4096
 std::string itoa(const int & i)
 {
     std::ostringstream o;
@@ -15,7 +15,21 @@ std::string itoa(const int & i)
 	    return "ERROR";
     return o.str();
 }
+std::string ltoa(const long & i)
+{
+    std::ostringstream o;
+    if (!(o<<i))
+        return "ERROR";
+    return o.str();
+}
 
+std::string lltoa(const long long & i)
+{
+    std::ostringstream o;
+    if (!(o<<i))
+        return "ERROR";
+    return o.str();
+}
 void TrimStr(std::string & str)
 {
    // first remove comment
@@ -95,4 +109,67 @@ void str_lowercase(std::string &str)
         i++;
     }
 }
-
+void CutStringToVector(const std::string& str,std::vector<std::string>& vec,char sep)
+{
+    int oi,i;
+    for (oi=0 ; (i=str.find(sep,oi))>=0 ; )
+    {
+        vec.push_back(str.substr(oi,i-oi));
+        oi=i+1;
+    }
+    if((str.size()-oi) >0)
+        vec.push_back(str.substr(oi));
+}
+std::string TrimString(std::string& value,char sep)
+{
+    unsigned int start=0,end = value.size();
+    bool checkFirst = true,checkLast = true;
+    std::string::iterator iter = value.begin();
+    std::string::reverse_iterator eiter = value.rbegin();
+    for(;iter != value.end() && eiter != value.rend() &&(checkFirst || checkLast);++iter,++eiter)
+    {
+        if(checkFirst)
+        {
+            if(*iter != sep)
+                checkFirst = false;
+            else
+                start++;
+        }
+        if(checkLast)
+        {
+            if(*eiter != sep)
+                checkLast = false;
+            else
+                end--;
+        }
+    }
+    return value.substr(start,end - start);
+}
+std::string TrimRightString(std::string& value,char sep)
+{
+    unsigned int end = value.size();
+    bool checkLast = true;
+    std::string::reverse_iterator eiter = value.rbegin();
+    for(;eiter != value.rend() && checkLast;++eiter)
+    {
+        if(*eiter != sep)
+            checkLast = false;
+        else
+            end--;
+    }
+    return value.substr(0,end);
+}
+std::string TrimLeftString(std::string& value,char sep)
+{
+    unsigned int start=0;
+    bool checkFirst = true;
+    std::string::iterator iter = value.begin();
+    for(;iter != value.end() && checkFirst;++iter)
+    {
+        if(*iter != sep)
+            checkFirst = false;
+        else
+            start++;
+    }
+    return value.substr(start,value.size() - start);
+}

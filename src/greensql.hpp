@@ -18,7 +18,6 @@
 #include <event.h>
 #include <string>
 #include <list>
-enum DBProxyType { DBTypeMySQL, DBTypePGSQL, DBTypeMSSQL };
 
 void Proxy_cb(int fd, short which, void * arg);
 bool Proxy_write_cb(int fd, Connection * conn);

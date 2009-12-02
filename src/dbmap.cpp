@@ -13,22 +13,15 @@
 
 #include <map>
 //#include <string>
-
 static std::map<std::string, DBPermObj * > dbs;
 static DBPermObj * default_db = NULL;
 
-static const char * const q_db = "SELECT dbpid, proxyid, db_name, "
-                                 "perms, perms2, status "
-				 "FROM db_perm ";
-static const char * const q_no_db = "SELECT distinct proxy.proxyid, proxy.dbtype "
-                                    "FROM query, proxy where db_name = ''";
+static const char * q_db = "SELECT db_perm.dbpid, proxy.proxyid, db_perm.db_name, "
+    "db_perm.perms, db_perm.perms2, db_perm.status, proxy.dbtype "
+    "FROM db_perm, proxy WHERE proxy.proxyid=db_perm.proxyid";
 
-// the following query is used to swith db from learning mode to active protection
-static const char * const q_learning3 = "UPDATE db_perm SET status = 4 "
-	"WHERE status = 11 AND now() > status_changed + INTERVAL 3 day";
-static const char * const q_learning7 = "UPDATE db_perm SET status = 4 "
-        "WHERE status = 12 AND now() > status_changed + INTERVAL 7 day";
-	
+static const char * q_default_db = "SELECT dbpid, proxyid, db_name, "
+    "perms, perms2, status, sysdbtype FROM db_perm where proxyid=0";
 
 bool dbmap_init()
 {
@@ -66,9 +59,13 @@ DBPermObj * dbmap_default(int proxy_id, const char * const db_type)
     std::string key;
     DBPermObj * db;
 
-    key = itoa(proxy_id);
-    key += ",";
-    key += db_type;
+    if (strcmp(db_type, "mysql") == 0)
+    {
+      key = "empty_mysql";
+    } else if (strcmp(db_type, "pgsql") == 0)
+    {
+      key = "default_pgsql";
+    }
     itr = dbs.find(key);
     if (itr != dbs.end())
     {
@@ -88,8 +85,6 @@ DBPermObj * dbmap_find(int proxy_id, std::string &db_name, const char * const db
     key += ",";
     key += db_name;
 
-    str_lowercase(key); 
-
     itr = dbs.find(key);
     if (itr != dbs.end())
     {
@@ -97,9 +92,16 @@ DBPermObj * dbmap_find(int proxy_id, std::string &db_name, const char * const db
       return db;
     }
     // try to find default database for the specific db type
-    key = itoa(proxy_id);
-    key += ",";
-    key += db_type;
+    if (strcmp(db_type, "mysql") == 0)
+    {
+      if (db_name.length() == 0)
+        key = "empty_mysql";
+      else
+        key = "default_mysql";
+    } else if (strcmp(db_type, "pgsql") == 0)
+    {
+       key = "default_pgsql";
+    }
     itr = dbs.find(key);
     if (itr != dbs.end())
     {
@@ -111,11 +113,12 @@ DBPermObj * dbmap_find(int proxy_id, std::string &db_name, const char * const db
 
 bool dbmap_reload()
 {
+    std::map<std::string, DBPermObj * >::iterator itr;
     GreenSQLConfig * conf = GreenSQLConfig::getInstance();
-    MYSQL * dbConn = &conf->dbConn;
-    //get records from the database
-    MYSQL_RES *res; /* To be used to fetch information into */
-    MYSQL_ROW row;
+    db_struct db;
+
+    char * q_learning3;
+    char * q_learning7;
     //"SELECT dpid, db_perm.pid, db_name, "
     //"create_perm, drop_perm, alter_perm, "
     //"info_perm, block_q_perm "
@@ -129,119 +132,105 @@ bool dbmap_reload()
 
     std::string key;
 
-    /* update state -> from learning to active protection */
-    mysql_query(dbConn, q_learning3);
-    mysql_query(dbConn, q_learning7);
-
-    /* read new urls from the database */
-    if( mysql_query(dbConn, q_db) )
+    if ( conf->sDbType == DB_MYSQL)
     {
-        /* Make query */
-        logevent(STORAGE,"%s\n",mysql_error(dbConn));
-        return false;
+        q_learning3 = "UPDATE db_perm SET status = 4 WHERE status = 11 AND now() > status_changed + INTERVAL 3 day";
+        q_learning7 = "UPDATE db_perm SET status = 4 WHERE status = 12 AND now() > status_changed + INTERVAL 7 day";
+    }
+    else if ( conf->sDbType == DB_PGSQL)
+    {
+        q_learning3 = "UPDATE db_perm SET status = 4 WHERE status = 11 AND now() > status_changed + INTERVAL '3 day'";
+        q_learning7 = "UPDATE db_perm SET status = 4 WHERE status = 11 AND now() > status_changed + INTERVAL '7 day'";
     }
 
-    /* Download result from server */
-    res=mysql_store_result(dbConn);
-    if (res == NULL)
-    {
-        //logevent(STORAGE, "Records Found: 0, error:%s\n", mysql_error(dbConn));
+    /* update state -> from learning to active protection */        
+    if (!db_exec(q_learning3)) { logevent(STORAGE,"DB config erorr: %s\n",db_error()); return false; }
+    if (!db_exec(q_learning7)) { logevent(STORAGE,"DB config erorr: %s\n",db_error()); return false; }
+
+    /* read all database */
+    if (!db_query(&db,q_db,256)) {
+        logevent(STORAGE,"DB config erorr: %s\n",db_error());
+        db_cleanup(&db);
         return false;
-    }
-    //my_ulonglong mysql_num_rows(MYSQL_RES *result)
-    //logevent(STORAGE, "Records Found: %lld\n", mysql_num_rows(res) );
+    } 
 
     /* Get a row from the results */
-    while ((row=mysql_fetch_row(res)))
+    while (db_fetch_row(&db))
     {
-        proxy_id = atoi(row[1]);
-        db_name = row[2];
-        perms = atoll(row[3]);
-        perms2 = atoll(row[4]);
-        status = atoi(row[5]);
+        proxy_id = db_col_int(&db,1);
+        db_name = (char *) db_col_text(&db,2);
+        perms = db_col_long_long(&db,3);
+        perms2 = db_col_long_long(&db,4);
+        status = db_col_int(&db,5);
+        db_type = (char *) db_col_text(&db,6);
 
         key = itoa(proxy_id);
         key += ",";
         key += db_name;
-        str_lowercase(key);
 
-        std::map<std::string, DBPermObj * >::iterator itr;
         itr = dbs.find(key);
-	if (proxy_id == 0)
-	{
-            // default db
-	    default_db->Init("", proxy_id, perms, perms2, status);
-	}
-	else if (itr == dbs.end())
+        if (itr == dbs.end())
         {
             DBPermObj * db = new DBPermObj();
-
             db->Init(db_name, proxy_id, perms, perms2, status);
-	    db->LoadWhitelist();
+            db->LoadWhitelist();
             dbs[key] = db;
         } else {
             //reload settings
             DBPermObj * db = itr->second;
             db->Init(db_name, proxy_id, perms, perms2, status);
             db->LoadWhitelist();
-	}
+        }
     }
+
     /* Release memory used to store results. */
-    mysql_free_result(res);
+    db_cleanup(&db);
 
-
-    /* LOAD WHITELIST for queries with empty db name */
-
-    /* read new urls from the database */
-    if( mysql_query(dbConn, q_no_db) )
-    {
-        /* Make query */
-        logevent(STORAGE,"%s\n",mysql_error(dbConn));
+    /* read default database */
+    if (!db_query(&db,q_default_db,256)) {
+        logevent(STORAGE,"DB config erorr: %s\n",db_error());
+        db_cleanup(&db);
         return false;
-    }
-
-    /* Download result from server */
-    res=mysql_store_result(dbConn);
-    if (res == NULL)
-    {
-        //logevent(STORAGE, "Records Found: 0, error:%s\n", mysql_error(dbConn));
-        return false;
-    }
+    } 
 
     /* Get a row from the results */
-    while ((row=mysql_fetch_row(res)))
+    while (db_fetch_row(&db))
     {
-        proxy_id = atoi(row[0]);
-        db_type = row[1];
+        proxy_id = db_col_int(&db,1);
+        db_name = (char *) db_col_text(&db,2);
+        perms = db_col_long_long(&db,3);
+        perms2 = db_col_long_long(&db,4);
+        status = db_col_int(&db,5);
+        // sysdbtype
+        db_type = (char *) db_col_text(&db,6);
 
-        perms = default_db->GetPerms();
-        perms2 = 0;
-        status = default_db->GetBlockStatus();
-
-        key = itoa(proxy_id);
-        key += ",";
-        key += db_type;
-        str_lowercase(key);
+        if (strcmp(db_type.c_str(), "empty_mysql") == 0)
+        {
+          db_name = "";
+        } else {
+          db_name = db_type;
+        }
+        key = db_type;
+        //str_lowercase(key);
 
         std::map<std::string, DBPermObj * >::iterator itr;
         itr = dbs.find(key);
         if (itr == dbs.end())
         {
             DBPermObj * db = new DBPermObj();
-     
-            db->Init("", proxy_id, perms, perms2, status);
+            db->Init(db_name, proxy_id, perms, perms2, status);
             db->LoadWhitelist();
             dbs[key] = db;
         } else {
             //reload settings
             DBPermObj * db = itr->second;
-            db->Init("", proxy_id, perms, perms2, status);
+            db->Init(db_name, proxy_id, perms, perms2, status);
             db->LoadWhitelist();
         }
     }
 
     /* Release memory used to store results. */
-    mysql_free_result(res);
+    db_cleanup(&db);
 
     return true;
 }

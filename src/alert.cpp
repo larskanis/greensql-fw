@@ -23,28 +23,21 @@ static std::map<std::string, unsigned int > agroupmap;
 static const char * const q_agroup = "SELECT agroupid, proxyid, db_name, pattern "
                                      "FROM alert_group";
 static unsigned int agroupmap_get( int p_id, std::string & dbn,std::string & p);
- 
+ // for code optimization.
+static const int alert_query_size = 1024*1024;
+static char alert_query[alert_query_size]; // default size - 1MB.
+
 bool logalert(int proxy_id, std::string & dbname,  std::string & dbuser,
         std::string & query, std::string & pattern, 
         std::string & reason, int risk, int block)
 {
-    GreenSQLConfig * conf = GreenSQLConfig::getInstance();
-    MYSQL * dbConn = &conf->dbConn;
 
     // when mysql_real_escape_string function escapes binary zero it is changed to
     // \x00 . As a result, original string after escaping can grow up to 4 times.
 
-    char * tmp_q = new char[query.length()*4+1];
-    mysql_real_escape_string(dbConn, tmp_q, query.c_str(), (unsigned long) query.length());
-    tmp_q[query.length()*4] = '\0';
-    
-    char * tmp_u = new char[dbuser.length()*4+1];
-    mysql_real_escape_string(dbConn, tmp_u, dbuser.c_str(), (unsigned long) dbuser.length());
-    tmp_u[dbuser.length()*4] ='\0';
-        
-    char * tmp_r = new char[reason.length()*4+1];
-    mysql_real_escape_string(dbConn, tmp_r, reason.c_str(), (unsigned long) reason.length()); 
-    tmp_r[reason.length()*4] = '\0';
+    char * tmp_q = db_escape_string(query.c_str(), (unsigned long) query.length());
+    char * tmp_r = db_escape_string(reason.c_str(), (unsigned long) reason.length()); 
+    char * tmp_u = db_escape_string(dbuser.c_str(), (unsigned long) dbuser.length()); 
 
     unsigned int agroupid = agroupmap_get(proxy_id, dbname, pattern);
     
@@ -61,15 +54,15 @@ bool logalert(int proxy_id, std::string & dbname,  std::string & dbuser,
     {
         logevent(ERR, "Failed to get group alert id\n");
         delete [] tmp_q;
-        delete [] tmp_u;
         delete [] tmp_r;
+    delete [] tmp_u;
         return false;
     }
     alert_add(agroupid, tmp_u, tmp_q, tmp_r, risk, block);
     agroup_update(agroupid);
     delete [] tmp_q;
-    delete [] tmp_u;
     delete [] tmp_r;
+    delete [] tmp_u;
     return true;    
 }
 
@@ -78,22 +71,13 @@ bool logwhitelist(int proxy_id, std::string & dbname,  std::string & dbuser,
         std::string & reason, int risk, int block)
 {
     GreenSQLConfig * conf = GreenSQLConfig::getInstance();
-    MYSQL * dbConn = &conf->dbConn;
 
     // when mysql_real_escape_string function escapes binary zero it is changed to
     // \x00 . As a result, original string after escaping can grow up to 4 times.
 
-    char * tmp_q = new char[query.length()*4+1];
-    mysql_real_escape_string(dbConn, tmp_q, query.c_str(), (unsigned long) query.length());
-    tmp_q[query.length()*4] = '\0';
-
-    char * tmp_u = new char[dbuser.length()*4+1];
-    mysql_real_escape_string(dbConn, tmp_u, dbuser.c_str(), (unsigned long) dbuser.length());
-    tmp_u[dbuser.length()*4] ='\0';
-
-    char * tmp_r = new char[reason.length()*4+1];
-    mysql_real_escape_string(dbConn, tmp_r, reason.c_str(), (unsigned long) reason.length());
-    tmp_r[reason.length()*4] = '\0';
+    char * tmp_q = db_escape_string(query.c_str(), (unsigned long) query.length());
+    char * tmp_r = db_escape_string(reason.c_str(), (unsigned long) reason.length());
+    char * tmp_u = db_escape_string(dbuser.c_str(), (unsigned long) dbuser.length());
 
     unsigned int agroupid = agroupmap_get(proxy_id, dbname, pattern);
     if (agroupid == 0)
@@ -109,15 +93,15 @@ bool logwhitelist(int proxy_id, std::string & dbname,  std::string & dbuser,
     {
         logevent(ERR, "Failed to get group alert id\n");
         delete [] tmp_q;
-        delete [] tmp_u;
         delete [] tmp_r;
+        delete [] tmp_u;
         return false;
     }
-    alert_add(agroupid, tmp_u, tmp_q, tmp_r, risk, block);
+    alert_add(agroupid,tmp_u, tmp_q, tmp_r, risk, block);
     agroup_update_status(agroupid);
     delete [] tmp_q;
-    delete [] tmp_u;
     delete [] tmp_r;
+    delete [] tmp_u;
     return true;
 }
 
@@ -128,10 +112,7 @@ bool agroupmap_init()
 
 bool agroupmap_reload()
 {
-    GreenSQLConfig * conf = GreenSQLConfig::getInstance();
-    MYSQL * dbConn = &conf->dbConn;
-    MYSQL_RES *res; /* To be used to fetch information into */
-    MYSQL_ROW row;
+    db_struct db;
     unsigned int proxy_id = 0;
     unsigned int agroupid = 0;
     std::string db_name = "";
@@ -141,28 +122,21 @@ bool agroupmap_reload()
     //std::map<std::string, unsigned int >::iterator itr;
 
     /* read all alert groups from the database */
-    if( mysql_query(dbConn, q_agroup) )
+    if( !db_query(&db,q_agroup,256) )
     {
         /* Make query */
-        logevent(STORAGE,"(%s) %s\n", q_agroup, mysql_error(dbConn));
-        return false;
-    }
-    
-    /* Download result from server */
-    res=mysql_store_result(dbConn);
-    if (res == NULL)
-    {
-        //logevent(STORAGE, "Records Found: 0, error:%s\n", mysql_error(dbConn));
+        logevent(STORAGE,"DB config erorr: %s\n",db_error());
+        db_cleanup(&db);
         return false;
     }
 
     /* Get a row from the results */
-    while ((row=mysql_fetch_row(res)))
+    while (db_fetch_row(&db))
     {
-        agroupid = atoi(row[0]);
-        proxy_id = atoi(row[1]);
-        db_name = row[2];
-        pattern = row[3];
+        agroupid = db_col_int(&db,0);
+        proxy_id = db_col_int(&db,1);
+        db_name = db_col_text(&db,2);
+        pattern = db_col_text(&db,3);
 
         key = proxy_id;
         key += ",";
@@ -176,7 +150,8 @@ bool agroupmap_reload()
     agroupmap = temp_agroupmap;
 
     /* Release memory used to store results. */
-    mysql_free_result(res);
+    db_cleanup(&db);
+
     return true;
 }
 
@@ -204,83 +179,124 @@ static unsigned int
 agroup_get(int proxy_id, std::string & dbname,std::string & pattern)
 {
 //    char q[pattern.length() + 1024];
-    char * q = new char[pattern.length() + 1024];
+    db_struct db;
+    char * q;
 
-    GreenSQLConfig * conf = GreenSQLConfig::getInstance();
-    MYSQL * dbConn = &conf->dbConn;
-    MYSQL_RES *res; /* To be used to fetch information into */
-    MYSQL_ROW row;
+    int requred_query_size = pattern.length() + dbname.length() + 1024;
+    if (requred_query_size > alert_query_size)
+    {
+        q = new char[requred_query_size];
+        if (q == NULL)
+        {
+            // no memory
+            return 0;
+        }
+    } else {
+        q = alert_query;
+    }
 
-    //first check we we have similar alert in the past
-    snprintf(q, pattern.length() + 1024, 
+    //first check if we have similar alert in the past
+    snprintf(q, requred_query_size, 
         "SELECT agroupid FROM alert_group WHERE "
         "proxyid = %d and db_name = '%s' and pattern = '%s'",
         proxy_id, dbname.c_str(), pattern.c_str());
 
     /* read new urls from the database */
-    if( mysql_query(dbConn, q) )
+    if (! db_query(&db,q,pattern.length() + 1024))
     {
-        /* Make query */
-        logevent(STORAGE,"(%s) %s\n", q, mysql_error(dbConn));
-        delete [] q;
+        if (q != alert_query)
+        {
+            // release allocated memory
+            delete [] q;
+        }
+        logevent(STORAGE,"DB config erorr: %s\n",db_error());
+        db_cleanup(&db);
         return 0;
+    } 
+    if (q != alert_query)
+    {
+        // release allocated memory
+        delete [] q;
     }
-    delete [] q;
     q = NULL;
 
-    /* Download result from server */
-    res=mysql_store_result(dbConn);
-    if (res == NULL)
+    /* Get a row from the results */
+    if (db_fetch_row(&db))
     {
-        //logevent(STORAGE, "Records Found: 0, error:%s\n", 
-        //           mysql_error(dbConn));
-        return 0;
-    }
-    //my_ulonglong mysql_num_rows(MYSQL_RES *result)
-    //logevent(STORAGE, "Records Found: %lld\n", mysql_num_rows(res) );
-    if (mysql_num_rows(res) > 0)
-    {
-        row=mysql_fetch_row(res);
-        unsigned int i = atoi(row[0]);
-    
+        unsigned int i = db_col_int(&db,0);
         /* Release memory used to store results. */
-        mysql_free_result(res);
+        db_cleanup(&db);
+
+        /* return the result */
         return i;
     }
+
     /* Release memory used to store results. */
-    mysql_free_result(res);
+    db_cleanup(&db);    
     return 0;
 }
 
 static unsigned int
 agroup_add(int proxy_id, std::string & dbname, std::string & pattern)
 {
-    //char q[pattern.length() + 1024];
-    char * q = new char [ pattern.length() + 1024 ];
     GreenSQLConfig * conf = GreenSQLConfig::getInstance();
-    MYSQL * dbConn = &conf->dbConn;
+    unsigned int agroupid;
+    char * q;
 
-    snprintf(q, pattern.length() + 1024,
-        "INSERT into alert_group "
+    int requred_query_size = pattern.length() + dbname.length() + 1024;
+
+    if (requred_query_size > alert_query_size)
+    {
+        q = new char[requred_query_size];
+        if (q == NULL)
+        {
+            // no memory
+            return 0;
+        }
+    } else {
+        q = alert_query;
+    }
+
+    if (conf->sDbType == DB_MYSQL)
+    {
+        snprintf(q, requred_query_size, "INSERT into alert_group "
                 "(proxyid, db_name, update_time, pattern) "
                 "VALUES (%d,'%s',now(),'%s')",
                 proxy_id, dbname.c_str(), pattern.c_str());
+    }
+    else if (conf->sDbType == DB_PGSQL)
+    {
+        snprintf(q, requred_query_size, "INSERT into alert_group "
+            "(proxyid, db_name, update_time, pattern) "
+            "VALUES (%d,'%s',now(),'%s')",
+            proxy_id, dbname.c_str(), pattern.c_str());
+    }
 
-    /* read new urls from the database */
-    if( mysql_query(dbConn, q) )
+    /* add new alert to the database */
+    if (! db_exec(q))
     {
-        /* Make query */
-        logevent(STORAGE,"(%s) %s\n", q, mysql_error(dbConn));
+        if (q != alert_query)
+        {
+            // release allocated memory
+            delete [] q;
+        }
+        logevent(STORAGE,"DB config erorr: %s\n",db_error());
+        return 0;
+    }
+
+    if (q != alert_query)
+    {
+        // release allocated memory
         delete [] q;
-        return 0;
     }
-    delete [] q;
     q = NULL;
-    if (!mysql_affected_rows(dbConn) )
+
+    if (db_changes() == 0)
     {
         return 0;
     }
-    unsigned int agroupid = agroup_get(proxy_id, dbname, pattern);
+
+    agroupid = agroup_get(proxy_id, dbname, pattern);
     // add new key to adgroupmap
     std::string key;
     key = proxy_id;
@@ -290,38 +306,70 @@ agroup_add(int proxy_id, std::string & dbname, std::string & pattern)
     key += pattern;
 
     agroupmap[key] = agroupid;
-
     return agroupid; 
 }
 
-static int alert_add(unsigned int agroupid, char * user,
-        char * query, char * reason, int risk, int block)
+static int alert_add(unsigned int agroupid, char * user, char * query, 
+                     char * reason, int risk, int block)
 {
-    //char q[strlen(query) + strlen(reason) + 1024];
-    char * q = new char [ strlen(query) + strlen(reason) + 1024 ];
-    GreenSQLConfig * conf = GreenSQLConfig::getInstance();
-    MYSQL * dbConn = &conf->dbConn;
+    char * q;
+    int requred_query_size = strlen(query) + strlen(reason) + 1024;
 
-    snprintf(q, strlen(query) + strlen(reason) + 1024,
+    if (requred_query_size > alert_query_size)
+    {
+        q = new char[requred_query_size];
+        if (q == NULL)
+        {
+            // no memory
+            return 0;
+        }
+    } else {
+        q = alert_query;
+    }
+
+    GreenSQLConfig * conf = GreenSQLConfig::getInstance();
+
+    if (conf->sDbType == DB_MYSQL)
+    {
+        snprintf(q, requred_query_size,
                 "INSERT into alert "
-                "(agroupid, event_time, risk, block, user, query, reason) "
-                "VALUES (%d,now(),%d,%d,'%s','%s','%s')",
+                "(agroupid, event_time, risk, block, dbuser, query, reason) "
+                "VALUES (%u,now(),%d,%d,'%s','%s','%s')",
                 agroupid, risk, block, user, query, reason);
+    }
+    else if (conf->sDbType == DB_PGSQL)
+    {
+        snprintf(q, requred_query_size,
+            "INSERT into alert "
+            "(agroupid, event_time, risk, block, dbuser, query, reason) "
+            "VALUES (%u,now(),%d,%d,'%s','%s','%s')",
+            agroupid, risk, block, user, query, reason);
+    }
 
     /* read new urls from the database */
-    if( mysql_query(dbConn, q) )
+    if ( ! db_exec(q))
     {
-        /* Make query */
-        logevent(STORAGE,"(%s) %s\n", q, mysql_error(dbConn));
+        if (q != alert_query)
+        {
+            // release allocated memory
+            delete [] q;
+        }
+        logevent(STORAGE,"DB config erorr: %s\n",db_error());
+        return 0;
+    }
+
+    if (q != alert_query)
+    {
+        // release allocated memory
         delete [] q;
-        return 0;
     }
-    delete [] q;
     q = NULL;
-    if (!mysql_affected_rows(dbConn) )
+
+    if (!db_changes())
     {
         return 0;
     }
+
     return 1; 
 }
 
@@ -330,23 +378,31 @@ agroup_update(unsigned int agroupid)
 {
     char q[1024];
     GreenSQLConfig * conf = GreenSQLConfig::getInstance();
-    MYSQL * dbConn = &conf->dbConn;
 
-    snprintf(q, sizeof(q), 
+    if (conf->sDbType == DB_MYSQL) {
+        snprintf(q, sizeof(q), 
                "UPDATE alert_group SET update_time=now() WHERE agroupid = %u",
                agroupid);
+    }
+    else if (conf->sDbType == DB_PGSQL) {
+        snprintf(q, sizeof(q), 
+            "UPDATE alert_group SET update_time=now() WHERE agroupid = %u",
+            agroupid);
+    }
 
     /* read new urls from the database */
-    if( mysql_query(dbConn, q) )
+    if ( !db_exec(q))
     {
-        /* Make query */
-        logevent(STORAGE,"(%s) %s\n", q, mysql_error(dbConn));
+        logevent(STORAGE,"DB config erorr: %s\n",db_error());
         return false;
     }
-    if (!mysql_affected_rows(dbConn) )
+
+    /* check changes */
+    if (!db_changes())
     {
         return false;
     }
+
     return true;
 }
 
@@ -356,22 +412,30 @@ agroup_update_status(unsigned int agroupid)
 {
     char q[1024];
     GreenSQLConfig * conf = GreenSQLConfig::getInstance();
-    MYSQL * dbConn = &conf->dbConn;
 
-    snprintf(q, sizeof(q),
-               "UPDATE alert_group SET update_time=now(), status=1 WHERE agroupid = %u",
-               agroupid);
+    if (conf->sDbType == DB_MYSQL) {
+        //snprintf(q_mysql+90, 20, "%u", agroupid);
+        snprintf(q, sizeof(q), "UPDATE alert_group SET update_time=now(), status=1 WHERE agroupid = %u", agroupid);
+        //q = q_mysql;
+    }
+    else if (conf->sDbType == DB_PGSQL) {
+        //snprintf(q_mysql+90, 20, "%u", agroupid);
+        snprintf(q, sizeof(q), "UPDATE alert_group SET update_time=now(), status=1 WHERE agroupid = %u", agroupid);
+        //q = q_mysql;
+    }
 
     /* read new urls from the database */
-    if( mysql_query(dbConn, q) )
+    if ( ! db_exec(q))
     {
-        /* Make query */
-        logevent(STORAGE,"(%s) %s\n", q, mysql_error(dbConn));
+        logevent(STORAGE,"DB config erorr: %s\n",db_error());
         return false;
     }
-    if (!mysql_affected_rows(dbConn) )
+
+    /* check changes */
+    if (!db_changes())
     {
         return false;
     }
+
     return true;
 }

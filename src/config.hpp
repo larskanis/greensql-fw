@@ -13,23 +13,26 @@
 #include <string>
 #ifdef WIN32
 #include <winsock2.h>
+#else
+#include <dlfcn.h>
 #endif
-#include "mysql.h"
+#include "sql_api.hpp"
 
 #ifdef WIN32
 #define snprintf _snprintf
 #endif
-
+enum DBProxyType { DBTypeMySQL, DBTypePGSQL };
+enum backend_db {DB_MYSQL = 1,DB_PGSQL};
 class GreenSQLConfig
 {
 public:
     static GreenSQLConfig * getInstance();
+    static backend_db ParseDbType(const std::string& type);
     static void free();
     bool bSupport;
     bool bRunning;
     bool load_db();
     bool close_db();
-    MYSQL dbConn;
     bool load(std::string & path);
 
     // risk engine factors
@@ -47,16 +50,19 @@ public:
 
     int log_level;
     std::string log_file;
+    backend_db sDbType;
+
 private:
-    bool parse_db_setting(std::string & key, std::string & value);
-    bool parse_re_setting(std::string & key, std::string & value);
-    bool parse_log_setting(std::string & key, std::string & value);
     std::string sDbHost;
     int iDbPort;
     std::string sDbName;
     std::string sDbUser;
     std::string sDbPass;
-        
+
+    bool parse_db_setting(std::string & key, std::string & value);
+    bool parse_re_setting(std::string & key, std::string & value);
+    bool parse_log_setting(std::string & key, std::string & value);
+
     static GreenSQLConfig * _obj;
     GreenSQLConfig();
     ~GreenSQLConfig();

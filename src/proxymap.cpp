@@ -8,16 +8,13 @@
 #include "greensql.hpp"
 #include "proxymap.hpp"
 #include "mysql/mysql_con.hpp"
+#include "pgsql/pgsql_con.hpp"
 
 #include <stdio.h>
 #include<map>
 
-static const char * const q_proxy = "SELECT proxyid, INET_NTOA(frontend_ip), "
-            "frontend_port, backend_server, "
-            "INET_NTOA(backend_ip), backend_port, dbtype "
-            "FROM proxy";
-
-
+static const char * const q_proxy = "SELECT proxyid, frontend_ip, frontend_port, backend_server, "
+            "backend_ip, backend_port, dbtype FROM proxy WHERE status != 3";
         
 static std::map<int, GreenSQL * > proxies;
 
@@ -46,6 +43,10 @@ void wrap_Server(int fd, short which, void * arg)
       {
         conn = new MySQLConnection(proxy_id);
       }
+	  else if (cls->DBType == DBTypePGSQL)
+	  {
+		  conn = new PgSQLConnection(proxy_id);
+	  }
       cls->Server_cb(fd, which, arg, conn, sfd, cfd);
     }
 }
@@ -126,12 +127,8 @@ bool proxymap_close()
 
 bool proxymap_reload()
 {
-    GreenSQLConfig * conf = GreenSQLConfig::getInstance();
-    MYSQL * dbConn = &conf->dbConn;
-    //get records from the database
-    MYSQL_RES *res; /* To be used to fetch information into */
-    MYSQL_ROW row;
-    GreenSQL * cls;
+    db_struct db;
+    GreenSQL * cls = NULL;
     bool ret;
 
     std::string backendIP;
@@ -148,39 +145,26 @@ bool proxymap_reload()
     proxyPort = 3305;
 
     /* read new urls from the database */
-    if( mysql_query(dbConn, q_proxy) )
-    {
-        /* Make query */
-        logevent(STORAGE,"%s\n",mysql_error(dbConn));
+    if (! db_query(&db,q_proxy,256)) {
+        logevent(STORAGE,"DB config erorr: %s\n",db_error());
+        db_cleanup(&db);
         return false;
-    }
-
-    /* Download result from server */
-    res=mysql_store_result(dbConn);
-    if (res == NULL)
-    {
-    logevent(STORAGE, "Records Found: 0, error:%s\n", mysql_error(dbConn));
-        return false;
-    }
-    //my_ulonglong mysql_num_rows(MYSQL_RES *result)
-    //logevent(STORAGE, "Records Found: %lld\n", mysql_num_rows(res) );
+    } 
 
     /* Get a row from the results */
-    while ((row=mysql_fetch_row(res)))
+    while (db_fetch_row(&db))
     {
-        proxy_id = atoi(row[0]);
-        
-        proxyIP = row[1];
-        proxyPort = atoi(row[2]);
-        // backendServer = row[3]
-        backendIP = row[4];
-        backendPort = atoi(row[5]);
-        dbType = row[6];
+        proxy_id = db_col_int(&db,0);
+        proxyIP = (char *) db_col_text(&db,1);
+        proxyPort = db_col_int(&db,2);
+        backendIP = (char *) db_col_text(&db,4);
+        backendPort = db_col_int(&db,5);
+        dbType = (char *) db_col_text(&db,6);
         //new object
         
         std::map<int, GreenSQL * >::iterator itr;
         itr = proxies.find(proxy_id);
-    
+
         if (itr == proxies.end())
         {
             cls = new GreenSQL();
@@ -204,9 +188,7 @@ bool proxymap_reload()
         cls = itr->second;
 
         // check if db settings has been changed
-        if (cls->sProxyIP != proxyIP ||
-            cls->iProxyPort != proxyPort ||
-            cls->sDBType != dbType)
+        if (cls->sProxyIP != proxyIP || cls->iProxyPort != proxyPort || cls->sDBType != dbType)
         {
             ret = cls->ProxyReInit(proxy_id, proxyIP, proxyPort,
                                    backendIP, backendPort, dbType);
@@ -216,6 +198,7 @@ bool proxymap_reload()
             } else {
                 proxymap_set_db_status(proxy_id, 1);
             }
+
             continue;
         } else if (cls->sBackendIP != backendIP ||
                    cls->iBackendPort != backendPort)
@@ -224,27 +207,32 @@ bool proxymap_reload()
             cls->sBackendIP = backendIP;
             cls->iBackendPort = backendPort;
         }
+    }
 
-        if (cls->ServerInitialized() == true)
-        {
-            proxymap_set_db_status(proxy_id, 1);
-        } else {
-            // we failed to open this server object,
-            // try once again
-            ret = cls->ProxyReInit(proxy_id, proxyIP, proxyPort,
+    if (cls == NULL)
+    {
+        // nothing found
+        db_cleanup(&db);
+        return false;
+    }
+    if (cls->ServerInitialized() == true)
+    {
+        proxymap_set_db_status(proxy_id, 1);
+    } else {
+        // we failed to open this server object, try once again
+        ret = cls->ProxyReInit(proxy_id, proxyIP, proxyPort,
                                backendIP, backendPort, dbType);
-            if (ret == false)
-            {
-                proxymap_set_db_status(proxy_id, 2);
-            } else {
-                proxymap_set_db_status(proxy_id, 1);
+        if (ret == false)
+        {
+            proxymap_set_db_status(proxy_id, 2);
+        } else {
+            proxymap_set_db_status(proxy_id, 1);
         }
     }
-        
-    }
+
     /* Release memory used to store results. */
-    mysql_free_result(res);
- 
+    db_cleanup(&db);  
+
     return true;
 }
 
@@ -258,20 +246,18 @@ bool proxymap_reload()
 
 bool proxymap_set_db_status(unsigned int proxy_id, int status )
 {
-    GreenSQLConfig * conf = GreenSQLConfig::getInstance();
-    MYSQL * dbConn = &conf->dbConn;
     char query[1024];
 
     snprintf(query, sizeof(query), 
             "UPDATE proxy set status=%d where proxyid=%d",
             status, proxy_id);
 
-    if( mysql_query(dbConn, query) )
-    {
-        /* Make query */
-        logevent(STORAGE,"%s\n",mysql_error(dbConn));
-        return false;
-    }
+	if ( ! db_exec(query))
+	{
+                logevent(STORAGE,"DB config erorr: %s\n",db_error());
+		/* Make query */
+		return false;
+	}
 
     return true;
 }

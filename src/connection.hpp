@@ -22,6 +22,7 @@
 #include "patterns.hpp"     // for SQLPatterns
 #include <string> // for std::string
 #include <list>
+#include "config.hpp" //for DBProxyType
 
 class Connection
 {
@@ -43,12 +44,15 @@ public:
     virtual bool blockResponse(std::string & response) = 0;
     virtual SQLPatterns * getSQLPatterns() = 0;
     int iProxyId;    // the simplest method to transfer proxy id
+	unsigned int db_user_info_id;
+	std::string db_srv_version;  /* version */
     std::string db_name;
     std::string db_new_name;
     std::string db_user;
     std::string db_type;
     std::string db_user_ip;
     DBPermObj * db;
+	DBProxyType dbType;
     std::list<Connection*>::iterator location;
     std::list<Connection*> * connections;
 private:

@@ -24,9 +24,9 @@ static unsigned int lookForChar(std::string & query, int start, char delimeter);
  * the following sequence (X=?) is changed to "X = ?"
  */
 
-bool normalizeQuery(std::string & query)
+bool normalizeQuery(DBProxyType db_type,std::string & query)
 {
-    removeQuotedText(query);
+    removeQuotedText(db_type,query);
     removeComments(query);
     removeNumbers(query);
     removeSpaces(query);
@@ -268,7 +268,7 @@ static bool removeNumbers(std::string & query)
     return true;
 }
 
-bool removeQuotedText(std::string & query)
+bool removeQuotedText(DBProxyType db_type,std::string & query)
 {
     unsigned int i;
     unsigned int j;

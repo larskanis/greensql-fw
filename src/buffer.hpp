@@ -25,6 +25,8 @@ public:
 	bool pop(std::string & res, int size);
 	//return raw data
 	const unsigned char * raw();
+	//find string in buffer
+	unsigned int FindSubString(const std::string& value,unsigned int start = 0){return (unsigned)_buff.find(value,start);}
 	int size();
 
 };

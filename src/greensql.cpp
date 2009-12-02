@@ -347,10 +347,8 @@ bool GreenSQL::ProxyInit(int proxyId, std::string & proxyIp, int proxyPort,
     } else if (strcasecmp(dbType.c_str(), "pgsql") == 0)
     {
         DBType = DBTypePGSQL;
-    } else if (strcasecmp(dbType.c_str(), "mssql") == 0)
-    {
-        DBType = DBTypeMSSQL;
-    } else
+    } 
+	else
     {
         DBType = DBTypeMySQL;
     }
