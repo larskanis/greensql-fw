@@ -1,0 +1,22 @@
+#!/bin/sh
+
+VER=1.2.0
+if [ -x /usr/bin/greensql-create-db.sh ]; then
+  echo "executing /usr/bin/greensql-create-db.sh"
+  /usr/bin/greensql-create-db.sh
+else
+  echo "couldnt find /usr/bin/greensql-create-db.sh or is not executable"
+fi
+
+CONFWEB='/usr/share/greensql-fw/config.php'
+if test -f $CONFWEB
+then
+  cp -a $CONFWEB ${CONFWEB}-old
+else
+  if [ -f /usr/share/doc/greensql-fw-$VER/config.php ]; then
+    cp "/usr/share/doc/greensql-fw-$VER/config.php" $CONFWEB
+  elif  [ -f /usr/share/doc/greensql-fw/config.php ]; then
+    cp "/usr/share/doc/greensql-fw/config.php" $CONFWEB
+  fi
+fi
+
