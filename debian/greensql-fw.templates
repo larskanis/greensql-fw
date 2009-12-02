@@ -1,74 +1,128 @@
+Template: greensql/choice
+Type: select
+Choices: both, firewall, web
+Default: both
+_Description: Installation Menu:
+ greensql supports installing both the firewalling system and the management system seperately.
+ This in order to support sites that require managing many diffrent systems from a unified management system.
+
+Template: greensql/sql_choice
+Type: select
+Choices: mysql, postgresql
+Default: mysql
+_Description: storage configuration Menu:
+ Please choose the underlying RDBMS system for configuration storage.
+
 Template: greensql/mysql_server
 Type: string
 Default: localhost
-Description: What is the name of the server used to store GreenSQL configuration db (MySQL server)?
+_Description: MySQL Server address that will store the configuration db:
+ Enter the name or IP address of the machine that will host the GreenSQL configuration.
+
+Template: greensql/mysql_port
+Type: string
+Default: 3306
+_Description: MySQL Server port that will store the configuration db:
+ Enter the port of the machine that will host the GreenSQL configuration.
+
+Template: greensql/postgres_port
+Type: string
+Default: 5432
+_Description: Postgres Server port that will store the configuration db:
+ Enter the port of the machine that will host the GreenSQL configuration.
+
+Template: greensql/postgres_server
+Type: string
+Default: localhost
+_Description: PostgreSQL Server address that will store the configuration db:
  Enter the name of the machine that will host the GreenSQL configuration.
- If the MySQL port is not 3306 (standard), then you can enter it in the form:
- host:port.
+
+Template: greensql/postgres_location
+Type: select
+Choices: local, remote
+Default: local
+_Description: Local Server or Remote Server:
+ Please choose the server location.
+ Local server will try to use the PostgreSQL user automatically.
+ Remote Server will prompt you for the credentials of the user.
+
+Template: greensql/postgres_auth
+Type: select
+Choices: ident, md5
+Default: ident
+_Description: Authentication Type
+ Please choose the client authentication type.
+ Ident will try to use the postgres user automatically.
+ MD5 will prompt you for the credentials of the postgres user.
 
 Template: greensql/database
 Type: string
 Default: greendb
-Description: What is the database name for the GreenSQL configuration?
- Enter the name for the database where GreenSQL will store configuration and logs.
+_Description: Database name for the GreenSQL configuration:
+ Enter the database name of where GreenSQL will store the configuration and data.
+ The installation process will create it for you if one doesn't exist.
 
 Template: greensql/setup
 Type: boolean
 Default: true
-Description: Would you like to set up the database and tables automatically?
- GreenSQL could initialize and upgrade your database and tables automatically.
+_Description: Would you like to set up the database and tables automatically?
+ GreenSQL can initialize and upgrade your database and tables automatically. 
  You'll need access to a MySQL root user for the script to work properly.
 
 Template: greensql/mysql_root_user
 Type: string
 Default: root
-Description: What is the username of the MySQL administrator?
+_Description: Enter the username of the MySQL administrator:
  You need to enter the username of a MySQL administrator in order to
+ create the GreenSQL configuration database.
+
+Template: greensql/postgres_root_user
+Type: string
+Default: postgres
+_Description: Enter the username of the PostgreSQL administrator:
+ You need to enter the username of a PostgreSQL administrator in order to
  create the GreenSQL configuration database.
 
 Template: greensql/mysql_root_passwd
 Type: password
-Description: Enter the MySQL administrator password
- Type "none" if there is no password for MySQL administration.
+_Description: Enter the MySQL administrator password:
+ The installation process requires the MySQL root password in order to complete setting up the GreenSQL database.
+ Type "none" if there is no password for MySQL administration. 
 
-Template: greensql/mysql_user
+Template: greensql/postgres_root_passwd
+Type: password
+_Description: Enter the PostgreSQL administrator password:
+ The installation process requires the postgres root password in order to complete setting up the GreenSQL database.
+ Type "none" if there is no password for PostgreSQL administration.
+
+Template: greensql/user
 Type: string
 Default: green
-Description: What is the GreenSQL db username?
- This is the username that GreenSQL uses to connect to the database.
+_Description: Enter the GreenSQL db username:
+ This is the username that GreenSQL will use to connect to the database.
+ The database username will be saved into the greensql.conf configuration file and may be altered at a later date.
 
-Template: greensql/mysql_passwd
-Type: password
+Template: greensql/passwd
+Type: string
 Default: pwd
-Description: What is the GreenSQL user password?
+_Description: Enter the GreenSQL user password:
  Hit "enter" for the default which is "pwd".
+ The database user's password will be saved into the greensql.conf configuration file and may be altered at a later date.
+
+Template: greensql/confirm
+Type: password
+_Description: Retype the password:
+ Confirm the password in order to continue the process.
+
+Template: greensql/mismatch
+Type: note
+_Description: Password mismatch
+ The password and its confirmation do not match.
+ Re-enter the passwords.
 
 Template: greensql/purge_db
 Type: boolean
 Default: true
-Description: Do you want to purge the database when you purge this package?
- Accept here, if you want to drop the database and the associated user when you will purge the package.
-
-Template: greensql/confirm
-Type: password
-Description: Confirm this password
- You have to confirm the password in order to continue the process.
-
-Template: greensql/mismatch
-Type: note
-Description: Password mismatch
- The password and its confirmation do not match. You will have to
- reenter the passwords.
-
-Template: greensql/no_mysql_message
-Type: note
-Description: No MySQL server found
- You entered localhost as a MySQL server and I can't find any server
- installed on localhost. Either install the "mysql-server" package or run
- dpkg-reconfigure greensql-fw in order to change the MySQL server.
-
-Template: greensql/no_mysql
-Type: boolean
-Default: false
-Description: There is no MySQL server on localhost
- No MySQL server found.
+_Description: Do you want to purge the database when you purge this package?
+ Accept here, if you want to drop the database and the associated user when you purge the package.
+ This option will remove all history of the GreenSQL database.

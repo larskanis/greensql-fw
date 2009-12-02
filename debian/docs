@@ -1,7 +1,9 @@
 compilation.txt
 install.txt
-license.txt
 readme.txt
 docs/greensql-mysql-db.txt
+docs/greensql-postgresql-db.txt
 docs/tautology.txt
 conf/greensql.conf
+conf/greensql-apache.conf
+../greensql-console/config.php

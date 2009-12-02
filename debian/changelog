@@ -1,11 +1,18 @@
+greensql-fw (1.2.0) unstable; urgency=low
+
+  * New Version Released
+
+ -- Eli Shemer <eli.shemer@greensql.com>  Dec, 01 Tue 2009 10:10:00 +0300
+
 greensql-fw (1.1.0) unstable; urgency=low
 
-  * Added support for MySQL protocol 5.0
-  * Code optimization
-  * New patterns added
-  * Memory leak fixed
+  * Added support for the MySQL v.5.0 protocol
+  * Optimized code
+  * Added new patterns
+  * Fixed memory leak when adding new elements to the whitelist
+  * Fixed Debian compilation warnings
 
- -- yuli <stremovsky@gmail.com>  Oct, 19 Mon 2009 01:10:00 +0300
+ -- Yuli Stremovsky <stremovsky@gmail.com>  Oct, 19 Mon 2009 01:10:00 +0300
 
 greensql-fw (1.0.0) unstable; urgency=low
 
@@ -14,7 +21,7 @@ greensql-fw (1.0.0) unstable; urgency=low
   * Code optimization
   * Add whitelist for database with empty dbname
 
- -- yuli <stremovsky@gmail.com>  Mar, 20 Fri 2009 01:10:00 +0300
+ -- Yuli Stremovsky <stremovsky@gmail.com>  Mar, 20 Fri 2009 01:10:00 +0300
 
 greensql-fw (0.9.6) unstable; urgency=low
 
@@ -23,7 +30,7 @@ greensql-fw (0.9.6) unstable; urgency=low
   * Fixed debian installation package
   * Fixed a bug in detection of database name
 
- -- yuli <stremovsky@gmail.com>  Nov, 25 Tue 2008 01:10:00 +0300
+ -- Yuli Stremovsky <stremovsky@gmail.com>  Nov, 25 Tue 2008 01:10:00 +0300
 
 greensql-fw (0.9.4) unstable; urgency=low
 
@@ -31,14 +38,14 @@ greensql-fw (0.9.4) unstable; urgency=low
   * Fixed numerous risk calculation bugs.
   * Fixed bug in detection of sensitive tables.
 
- -- yuli <stremovsky@gmail.com>  Oct, 09 Thu 2008 01:10:00 +0300
+ -- Yuli Stremovsky <stremovsky@gmail.com>  Oct, 09 Thu 2008 01:10:00 +0300
 
 greensql-fw (0.9.2) unstable; urgency=low
 
   * Code optimization.
   * Fixed numerous risk calculation bugs.
 
- -- yuli <stremovsky@gmail.com>  Sep, 12 Fri 2008 01:10:00 +0300
+ -- Yuli Stremovsky <stremovsky@gmail.com>  Sep, 12 Fri 2008 01:10:00 +0300
 
 greensql-fw (0.9.0) unstable; urgency=low
 
@@ -47,7 +54,7 @@ greensql-fw (0.9.0) unstable; urgency=low
   * Fixed numerous risk calculation bugs.
   * Code redesign.
 
- -- yuli <stremovsky@gmail.com>  Sep, 4 Thu 2008 01:10:00 +0300
+ -- Yuli Stremovsky <stremovsky@gmail.com>  Sep, 4 Thu 2008 01:10:00 +0300
 
 greensql-fw (0.8.4) unstable; urgency=low
 
@@ -55,7 +62,7 @@ greensql-fw (0.8.4) unstable; urgency=low
   * Fixed a bug in handling SQL comment.
   * Added new mysql patterns.
 
- -- yuli <stremovsky@gmail.com>  May, 31 Sat 2008 01:10:00 +0300
+ -- Yuli Stremovsky <stremovsky@gmail.com>  May, 31 Sat 2008 01:10:00 +0300
 
 greensql-fw (0.8.3) unstable; urgency=low
 
@@ -64,28 +71,28 @@ greensql-fw (0.8.3) unstable; urgency=low
   * Added new mysql patterns.
   * Number of fixes of the debian package.
 
- -- yuli <stremovsky@gmail.com>  May, 16 Fri 2008 14:40:00 +0300
+ -- Yuli Stremovsky <stremovsky@gmail.com>  May, 16 Fri 2008 14:40:00 +0300
 
 greensql-fw (0.8.2) unstable; urgency=low
 
   * Fixed a bug with reloading log file.
   * Fixed a bug with handling c++ like comments.
 
- -- yuli <stremovsky@gmail.com>  March, 11 Tue 2008 06:48:38 +0300
+ -- Yuli Stremovsky <stremovsky@gmail.com>  March, 11 Tue 2008 06:48:38 +0300
 
 greensql-fw (0.8.1) unstable; urgency=low
 
   * Risk Engine was rewritten
   * Debian support improved
 
- -- yuli <stremovsky@gmail.com>  Feb, 13 Wed 2008 06:48:38 +0300
+ -- Yuli Stremovsky <stremovsky@gmail.com>  Feb, 13 Wed 2008 06:48:38 +0300
 
 greensql-fw (0.6.8) unstable; urgency=low
 
   * Fixed potentially exploitable buffer overun bug.
   * Fixed detection of the OR and UNION SQL tokens.
 
- -- yuli <stremovsky@gmail.com>  Oct, 7 Sun 2007 06:48:38 +0300
+ -- Yuli Stremovsky <stremovsky@gmail.com>  Oct, 7 Sun 2007 06:48:38 +0300
 
 greensql-fw (0.6.7) unstable; urgency=low
 
@@ -93,23 +100,23 @@ greensql-fw (0.6.7) unstable; urgency=low
   * Fixed Debian compilation errors.
   * Added calculation of the new risk factor - UNION sql statement.
 
- -- yuli <stremovsky@gmail.com>  Sun, 30 Sep 2007 19:16:38 +0300
+ -- Yuli Stremovsky <stremovsky@gmail.com>  Sun, 30 Sep 2007 19:16:38 +0300
 
 greensql-fw (0.6.6) unstable; urgency=low
 
   * Fixed number of tiny bugs found while performing clean installation.
 
- -- yuli <stremovsky@gmail.com>  Tue, 21 Aug 2007 19:16:38 +0300
+ -- Yuli Stremovsky <stremovsky@gmail.com>  Tue, 21 Aug 2007 19:16:38 +0300
 
 greensql-fw (0.6.5) unstable; urgency=low
 
   * Fixed memory allocation bug
   * Fixed bug with handling long SQL responses.
 
- -- yuli <stremovsky@gmail.com>  Tue, 21 Aug 2007 19:16:38 +0300
+ -- Yuli Stremovsky <stremovsky@gmail.com>  Tue, 21 Aug 2007 19:16:38 +0300
 
 greensql-fw (0.6.4) unstable; urgency=low
 
   * Initial Release.
 
- -- yuli <stremovsky@gmail.com>  Tue, 21 Aug 2007 19:16:38 +0300
+ -- Yuli Stremovsky <stremovsky@gmail.com>  Tue, 21 Aug 2007 19:16:38 +0300

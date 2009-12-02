@@ -1,4 +1,6 @@
 usr/bin
 usr/sbin
+usr/lib
+usr/share/greensql-fw
 etc/greensql
-var/log
+var/log/

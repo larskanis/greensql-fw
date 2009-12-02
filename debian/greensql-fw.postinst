@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh 
 
 set -e
 
@@ -8,8 +8,18 @@ test -e /usr/share/debconf/confmodule && {
   db_version 2.0
 }
 
+# default value
+CONFWEB='/usr/share/greensql-fw/config.php'
+
+PSQL=`which psql`
+if [ -z $PSQL ]; then
+  PSQL=`find /opt/PostgreSQL/*/bin -name psql | grep psql -m 1`
+fi
+
 # Read the settings supplied by debconf.
 get_config() {
+  #echo "getconfig"
+
   CONF='/etc/greensql/greensql.conf'
 
   # * The port information could be encoded in the host configuration setting,
@@ -17,49 +27,110 @@ get_config() {
   # * localhost => socket, 127.0.0.1 => TCP/IP
   #   This is the default MySQL behaviour, but many people aren't used
   #   to it. So this has to be documented somewhere.
-  db_get greensql/mysql_server
-  MYSQL_HOST="$RET"
-  #if [ "$RET" = Cancel ]; then
-  #  exit
-  #fi
+  db_get greensql/choice
 
-  db_get greensql/setup
-  if [ "x$RET" = "xtrue" ]; then SETUP=1; else SETUP=0; fi
-  if [ $SETUP -ne 0 ]
-  then
-    db_get greensql/mysql_root_user
-    MYSQL_ROOT_USER="$RET"
-    db_get greensql/mysql_root_passwd
-    MYSQL_ROOT_PASSWD="$RET"
+  CHOICE=$RET
+
+  if [ "$CHOICE" = "web" ]; then
+        if [ -f /usr/sbin/greensql-fw ]; then
+          rm /usr/sbin/greensql-fw
+        fi
+ 
+        if [ -f /usr/sbin/greensql-create-db ]; then
+  	  rm /usr/sbin/greensql-create-db
+        fi
+
+        if [ -f /usr/bin/greensql-create-db.sh ]; then
+	  rm /usr/bin/greensql-create-db.sh    
+        fi 
+
+        if [ -f /etc/greensql/mysql.conf ]; then
+          rm /etc/greensql/mysql.conf
+        fi
+
+        if [ -f /var/log/greensql.log ]; then
+          rm /var/log/greensql.log
+        fi
   fi
 
+  if [ "$CHOICE" = "firewall" ]; then
+        if [ -d /usr/share/greensql-fw ]; then
+          rm -rf /usr/share/greensql-fw
+        fi
+
+	if [ -f /etc/greensql/greensql-apache.conf ]; then
+	  rm /etc/greensql/greensql-apache.conf
+	fi
+  fi
+
+  db_get greensql/sql_choice
+  SQL="$RET"
+  echo "Configuring $SQL database"
+  echo ""
+
+  db_get greensql/setup
+  if [ "$RET" = "true" ]; then SETUP=1; else SETUP=0; fi
+
+  ## mysql and remote postgres get root credentials and hostname
+  if [ "$SQL" = "mysql" ]; then
+    db_get greensql/mysql_server
+    MYSQL_HOST="$RET"
+    db_get greensql/mysql_port
+    MYSQL_PORT="$RET"
+
+    if [ $SETUP -ne 0 ]
+    then
+      db_get greensql/mysql_root_user
+      MYSQL_ROOT_USER="$RET"
+      db_get greensql/mysql_root_passwd
+      MYSQL_ROOT_PASSWD="$RET"
+    fi
+  elif [ "$SQL" = "postgresql" ]; then
+    db_get greensql/postgres_location
+    POSTGRES_LOCATION="$RET"
+
+    if [ "$POSTGRES_LOCATION" = "remote" ]; then
+      POSTGRES_AUTH="md5"
+    elif [ "$POSTGRES_LOCATION" = "local" ]; then
+      db_get greensql/postgres_auth
+      POSTGRES_AUTH="$RET"
+    fi
+
+    if [ $SETUP -ne 0 ]; then
+      if [ "$POSTGRES_LOCATION" = "remote" ]; then
+        db_get greensql/postgres_server
+        POSTGRES_HOST="$RET"
+
+        db_get greensql/postgres_port
+        POSTGRES_PORT="$RET"
+      fi
+
+      if [ "$POSTGRES_AUTH" = "md5" ]; then
+        db_get greensql/postgres_root_user
+        POSTGRES_ROOT_USER="$RET"
+
+        db_get greensql/postgres_root_passwd
+        POSTGRES_ROOT_PASSWD="$RET"
+      fi
+    fi
+  fi
+
+  ## new database, user to create for any case
   db_get greensql/database
   DATABASE="$RET"
-  db_get greensql/mysql_user
-  MYSQL_USER="$RET"
-  db_get greensql/mysql_passwd
-  MYSQL_PASSWD="$RET"
+  db_get greensql/user
+  USER="$RET"
+  db_get greensql/passwd
+  PASSWD="$RET"
 
   db_stop
 
-  # Create a custom temporary MySQL configuration file for the root user.
-  if [ $SETUP -ne 0 ]
-  then
+  # Create a custom temporary configuration file for the root user.
+  # especially done for login purpsoes through a script
+  if [ $SETUP -ne 0 ] && [ "$SQL" = "mysql" ]; then
     MY_CNF=`mktemp /tmp/greensql.my-cnf.XXXXXXXXXX`
     chmod 0600 $MY_CNF
 
-    # Split MYSQL_HOST for the host:port pair, give an empty string for the
-    # port if it isn't specified, save it into MYSQL_PORT otherwise.
-    mysql_h="`echo $MYSQL_HOST|cut -d: -f1`"
-    mysql_p="`echo $MYSQL_HOST|cut -d: -f2`"
-    if [ "$mysql_h" != "$mysql_p" -a "x$mysql_p" != "x" ]; then
-      MYSQL_HOSTNAME="$mysql_h"
-      MYSQL_PORT="$mysql_p"
-    else
-      MYSQL_HOSTNAME="$MYSQL_HOST"
-      MYSQL_PORT=""
-    fi
-    
     echo "[client]
           host=${MYSQL_HOST}
           port=${MYSQL_PORT}
@@ -68,67 +139,214 @@ get_config() {
       echo "password=${MYSQL_ROOT_PASSWD}" >> $MY_CNF
     fi
     MRO="--defaults-file=$MY_CNF"
-    MUO="-u ${MYSQL_USER} -p${MYSQL_PASSWD} -h ${MYSQL_HOST} "
+    MUO="-u ${USER} -p${PASSWD} -h ${MYSQL_HOST} "
+  elif [ $SETUP -ne 0 ] && [ "$SQL" = "postgresql" ]
+  then
+    MY_PGPASS=~/.pgpass
+
+    if [ -f $MY_PGPASS ]; then
+      mv $MY_PGPASS ~/.pgpass-temp
+    fi
+
+    touch $MY_PGPASS
+    chmod 0600 $MY_PGPASS
+
+    if [ "$POSTGRES_LOCATION" = "local" ]; then
+      ## administrator rules already working on localhost automatically due to ident
+      if [ "$POSTGRES_AUTH" = "md5" ]; then
+        echo "localhost:*:postgres:$POSTGRES_ROOT_USER:$POSTGRES_ROOT_PASSWD" >> $MY_PGPASS
+        echo "localhost:*:$DATABASE:$POSTGRES_ROOT_USER:$POSTGRES_ROOT_PASSWD" >> $MY_PGPASS
+        echo "127.0.0.1:*:postgres:$POSTGRES_ROOT_USER:$POSTGRES_ROOT_PASSWD" >> $MY_PGPASS
+        echo "127.0.0.1:*:$DATABASE:$POSTGRES_ROOT_USER:$POSTGRES_ROOT_PASSWD" >> $MY_PGPASS
+      fi
+
+      ## new user rule - md5 anyway since it's not a system user
+      echo "localhost:*:$DATABASE:$USER:$PASSWD" >> $MY_PGPASS
+      echo "127.0.0.1:*:$DATABASE:$USER:$PASSWD" >> $MY_PGPASS
+    elif [ "$POSTGRES_LOCATION" = "remote" ]; then
+      ## administrator rules
+      echo "$POSTGRES_HOST:$POSTGRES_PORT:postgres:$POSTGRES_ROOT_USER:$POSTGRES_ROOT_PASSWD" >> $MY_PGPASS
+      echo "$POSTGRES_HOST:$POSTGRES_PORT:$DATABASE:$POSTGRES_ROOT_USER:$POSTGRES_ROOT_PASSWD" >> $MY_PGPASS
+      ## user rule
+      echo "$POSTGRES_HOST:$POSTGRES_PORT:$DATABASE:$USER:$PASSWD" >> $MY_PGPASS
+    fi
   fi
 }
 
 cleanup() {
   #echo "cleanup"
+
   if [ -n $MY_CNF ]; then rm -rf $MY_CNF; fi
+
+  if [ -f ~/.pgpass-temp ]; then
+    mv ~/.pgpass-temp ~/.pgpass
+  fi
 }
 
 create_db() {
+  #echo "createdb"
+  echo " "
+  echo "Database type: $SQL"
+  DBSETUP="0"
+
   # If we aren't responsible for the proper setup, just ignore this part.
-  if [ $SETUP -ne 0 ]
-  then
+  if [ $SETUP -ne 0 ] && [ "$SQL" = "mysql" ]; then
     DBSETUP="0"
     if mysql $MRO -BNe 'show databases' | grep -q -E "^$DATABASE\$"; then
-      echo "Database already exists, doing nothing."
+      echo "Dropping database..."
+      if ! mysqladmin $MRO -f drop $DATABASE; then
+        echo "failed to drop database $DATABASE"
+      fi
+    fi
+
+    echo "Creating database $DATABASE..."
+    if ! mysqladmin $MRO -f create $DATABASE; then
+      echo "failed to create database $DATABASE"
     else
       DBSETUP="1"
-      echo "Creating database..."
-      mysqladmin $MRO -f create $DATABASE > /dev/null
     fi
     
-    echo "Adding user..."
+    echo "Setting User $USER privileges..."
 
-    if [ "$MYSQL_HOSTNAME" = "localhost" -o "$MYSQL_HOSTNAME" = "127.0.0.1" ]
+    if [ "$MYSQL_HOST" = "localhost" -o "$MYSQL_HOST" = "127.0.0.1" ]
     then
-      mysql $MRO $DATABASE -f -e \
-        "GRANT ALL ON $DATABASE.* TO '${MYSQL_USER}'@'localhost'
-         IDENTIFIED BY '${MYSQL_PASSWD}'" > /dev/null
+      if ! mysql $MRO $DATABASE -f -e "GRANT ALL ON $DATABASE.* TO '${USER}'@'localhost' IDENTIFIED BY '${PASSWD}'"; then
+        echo "failed to grant permissions"
+      fi
     else
-      mysql $MRO $DATABASE -f -e "GRANT ALL ON $DATABASE.* TO ${MYSQL_USER}@'%' IDENTIFIED BY '${MYSQL_PASSWD}'" > /dev/null
+      if ! mysql $MRO $DATABASE -f -e "GRANT ALL ON $DATABASE.* TO ${USER}@'%' IDENTIFIED BY '${PASSWD}'"; then
+        echo "failed to grant permissions"
+      fi
     fi
 
-    mysql $MRO $DATABASE -f -e "flush privileges" > /dev/null
+    if ! mysql $MRO $DATABASE -f -e "flush privileges"; then
+      echo "failed to flush privileges"
+    fi
+  elif [ $SETUP -ne 0 ] && [ "$SQL" = "postgresql" ]; then
+    DBSETUP="0"
+    if [ "$POSTGRES_LOCATION" = "local" ]; then
+      if [ "$POSTGRES_AUTH" = "ident" ]; then
+        if su - postgres -c "$PSQL -c \"select * from pg_database where datname='$DATABASE';\" | grep -q \"$DATABASE\""; then
+          echo "Dropping database $DATABASE..."
+          if ! su - postgres -c "$PSQL -c \"DROP DATABASE $DATABASE\""; then
+            echo "failed to drop database $DATABASE"
+          fi
+        fi
 
+        if su - postgres -c "$PSQL -c \"select * from pg_roles where rolname='$USER';\" | grep -q \"$USER\""; then
+          echo "dropping user $USER"
+          if ! su - postgres -c "$PSQL -c \"DROP USER $USER\""; then
+            echo "failed to drop user $USER"
+          fi
+        fi
+
+        echo "Adding User $USER"
+        if ! su - postgres -c "$PSQL -c \"CREATE USER $USER WITH PASSWORD '$PASSWD';\""; then
+          echo "failed to create user $USER"
+        fi
+
+        DBSETUP="0"
+
+        echo "Creating database $DATABASE..."
+        if ! su - postgres -c "$PSQL -c \"CREATE DATABASE $DATABASE OWNER $USER\""; then
+          echo "failed to create database $DATABASE"
+        else
+          DBSETUP="1"
+        fi
+      elif [ "$POSTGRES_AUTH" = "md5" ]; then
+        if $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "select * from pg_database where datname='$DATABASE';" | grep -q "$DATABASE"; then
+          if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "DROP DATABASE $DATABASE"; then
+            echo "failed to drop database $DATABASE"
+          fi
+        fi
+
+        if $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "select * from pg_roles where rolname='$USER';" | grep -q "$USER"; then
+          echo "dropping user $USER"
+          if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "DROP USER $USER;"; then
+            echo "failed to drop user $USER"
+          fi
+        fi
+
+        echo "Adding User $USER"
+        if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "CREATE USER $USER WITH PASSWORD '$PASSWD';"; then
+          echo "failed to add user $USER"
+        fi 
+
+        DBSETUP="0"
+
+        echo "Adding database $DATABASE..."
+        if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "CREATE DATABASE $DATABASE OWNER $USER"; then
+          echo "failed to add database $DATABASE"
+        else
+          DBSETUP="1"
+        fi
+      fi
+    elif [ "$POSTGRES_LOCATION" = "remote" ]; then
+      ## both local and remote md5
+      if $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "select * from pg_database where datname='$DATABASE';" | grep -q "$DATABASE"; then
+        echo "dropping database $DATABASE..."
+        if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "DROP DATABASE $DATABASE"; then
+          echo "failed to drop database $DATABASE"
+        fi
+      fi
+
+      if $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "select * from pg_roles where rolname='$USER';" | grep -q "$USER"; then
+        echo "Dropping user $USER"
+        if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "DROP USER $USER;"; then
+          echo "failed to drop user $USER"
+        fi
+      fi
+
+      echo "Adding User $USER"
+      if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "CREATE USER $USER WITH PASSWORD '$PASSWD';"; then
+        echo "failed to add user $USER"
+      fi
+
+      DBSETUP="0"
+
+      echo "Adding database $DATABASE..."
+      if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "CREATE DATABASE $DATABASE OWNER $USER"; then
+        echo "failed to create database $DATABASE"
+      else
+        DBSETUP="1"
+      fi
+    fi
   fi
 }
 
 create_tbls() {
+  #echo "createtbls"
   # If we shouldn't create & upgrade the tables, we'll ignore this.
-  if [ $SETUP -ne 0 ]
-  then
-    # Execute the create SQL code only if the database was newly created.
-    if [ $DBSETUP -ne 0 ]
-    then
-      echo "Creating tables..."
-      /bin/cat /usr/share/doc/greensql-fw/greensql-mysql-db.txt | \
-        mysql $MUO -f $DATABASE > /dev/null
+  # Execute the create SQL code only if the database was newly created.
+
+  if [ $DBSETUP -ne 0 ] && [ "$SQL" = "mysql" ]; then
+    echo "Creating tables..."
+    cat /usr/share/doc/greensql-fw/greensql-mysql-db.txt |  mysql $MUO -f $DATABASE > /dev/null 2>&1
+  elif [ $DBSETUP -ne 0 ] && [ "$SQL" = "postgresql" ]; then
+    echo "Creating tables..."
+    if [ "$POSTGRES_LOCATION" = "local" ]; then
+      ## client tries to utilise 127.0.0.1 md5 in pg_hba.conf 
+      $PSQL -h 127.0.0.1 -f /usr/share/doc/greensql-fw/greensql-postgresql-db.txt $DATABASE $USER > /dev/null 2>&1
+    elif [ "$POSTGRES_LOCATION" = "remote" ]; then
+      $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT -f /usr/share/doc/greensql-fw/greensql-postgresql-db.txt $DATABASE $USER > /dev/null 2>&1
     fi
-    
   fi
 }
 
-setup_mysql() {
-  create_db
-  create_tbls
+setup_sql() {
+  #echo "setup_sql"
+
+  if [ $SETUP -ne 0 ]; then
+    create_db
+    create_tbls
+  fi
 }
 
 # This function dumps an actual version of the configuration into the file
 # specified in $CONF. 
 create_cfgfile() {
+  #echo "create_cfgfile"
+
   if test -f $CONF
   then
     cp -a $CONF ${CONF}.dpkg-old
@@ -142,28 +360,137 @@ end_cfg=`perl -p0777 -e 's/^.*\[database\][^\[]*\[/\[/s' $CONF`
   echo "## AUTOMATICALLY GENERATED BY DEBCONF. DO NOT MODIFY DATABASE
 ## SECTION (db*)... PLEASE RUN 'dpkg-reconfigure greensql-fw' INSTEAD.
 ##
-$start_cfg
 
-[database]
-dbhost=$MYSQL_HOST
-dbname=$DATABASE
-dbuser=$MYSQL_USER
-dbpass=$MYSQL_PASSWD" > $CONF
+[database]" > $CONF
 
+if [ "$SQL" = "postgresql" ]; then
+  if [ -z $POSTGRES_HOST ]; then 
+    POSTGRES_HOST="127.0.0.1"
+  fi
+
+  echo "dbhost=$POSTGRES_HOST" >> $CONF
+elif [ "$SQL" = "mysql" ]; then
+  if [ -z $MYSQL_HOST ]; then 
+    MYSQL_HOST="127.0.0.1" 
+  fi
+  echo "dbhost=$MYSQL_HOST" >> $CONF
+fi
+
+if [ $SQL = "mysql" ]; then
+  DBTYPE=mysql
+elif [ $SQL = "postgresql" ]; then
+  DBTYPE=pgsql
+else
+  DBTYPE=mysql
+fi
+
+echo "dbname=$DATABASE
+dbuser=$USER
+dbpass=$PASSWD
+dbtype=$DBTYPE" >> $CONF
+
+if [ "$SQL" = "postgresql" ] && [ "$POSTGRES_LOCATION" = "remote" ]; then
+  if [ "$POSTGRES_PORT" != "" ] && [ "$POSTGRES_PORT" != "5432" ]; then
+    echo "dbport=${POSTGRES_PORT}" >> $CONF
+  else
+    echo "# dbport=5432" >> $CONF
+  fi
+elif [ "$SQL" = "mysql" ]; then
   if [ "$MYSQL_PORT" != "" ] && [ "$MYSQL_PORT" != "3306" ]; then
     echo "dbport=${MYSQL_PORT}" >> $CONF
   else
     echo "# dbport=3306" >> $CONF
   fi
+fi
 
 echo "
 $end_cfg" >> $CONF
-  echo "${CONF} created/modified. See greensql.conf(5) for details."
+  echo "${CONF} created according to dpkg information. See greensql.conf(5) for details."
   echo "A backup of the old config file is at ${CONF}.dpkg-old. "
-  echo "Values were preserved, except for database settings."
+  echo "Values were preserved, and database settings reexamined."
+}
+
+create_webfile() {
+  #echo "createwebfile"
+
+  if ! test -f $CONF
+  then
+    cp /usr/share/doc/greensql-fw/config.php $CONFWEB
+  fi
+
+  echo "<?php
+
+# Uncomment the following line to switch to demo version
+#\$demo_version = 1;
+
+# greensql version
+\$version = \"0.6.2\";" > $CONFWEB
+
+if [ "$SQL" = "mysql" ]; then
+  echo "" >> $CONFWEB
+  echo "# Database Type" >> $CONFWEB
+  echo "\$db_type = \"mysql\";" >> $CONFWEB
+
+  echo "" >> $CONFWEB
+  echo "# Database IP address" >> $CONFWEB
+  echo "\$db_host = \"$MYSQL_HOST\";" >> $CONFWEB
+
+  echo "" >> $CONFWEB
+  echo "# Database Port Value." >> $CONFWEB
+  if [ "$MYSQL_PORT" != "" ] && [ "$MYSQL_PORT" != "3306" ]; then
+    echo "\$dbport=${MYSQL_PORT}" >> $CONFWEB
+  else
+    echo "# \$dbport=3306" >> $CONFWEB
+  fi
+elif [ "$SQL" = "postgresql" ]; then
+  echo "" >> $CONFWEB
+  echo "# Database Type" >> $CONFWEB
+  echo "\$db_type = \"pgsql\";" >> $CONFWEB
+
+  echo "" >> $CONFWEB
+  echo "# Database IP address" >> $CONFWEB
+  echo "\$db_host = \"$POSTGRES_HOST\";" >> $CONFWEB
+
+  echo "" >> $CONFWEB
+  echo "# Database Port Value." >> $CONFWEB
+  if [ "$POSTGRES_PORT" != "" ] && [ "$POSTGRES_PORT" != "5432" ]; then
+    echo "\$dbport=${POSTGRES_PORT}" >> $CONFWEB
+  else
+    echo "# \$dbport=5432" >> $CONFWEB
+  fi
+fi
+
+echo "
+# MySQL database name used to store greensql confiuration and alerts
+\$db_name = \"$DATABASE\";
+
+# MySQL database user and password
+\$db_user = \"$USER\";
+\$db_pass = \"$PASSWD\";
+
+# If you run greensql-fw service on the same computer you can specify
+# location of it's log file. It will be visible as part of the console.
+\$log_file = \"/var/log/greensql.log\";
+
+# Number of lines to show when viewing log file.
+\$num_log_lines = 200;
+
+# Number of lines to show when displaying a table.
+\$limit_per_page = 10;
+
+# Generated web pages cache
+\$cache_dir = \"templates_c\";
+
+# Smarty directory location (optional)
+\$smarty_dir = '/usr/share/php/smarty';
+
+?>" >> $CONFWEB
+
 }
 
 create_user() {
+  #echo "createuser"
+
   groupadd -f greensql
   if ! /usr/bin/id greensql > /dev/null 2>&1 ; then
     useradd -g greensql -s /dev/null greensql
@@ -171,7 +498,13 @@ create_user() {
 }
 
 change_perms() {
-  chown greensql:greensql /var/log/greensql.log
+  #echo "changeperms"
+
+  if [ "$CHOICE" = "both" ] || [ "$CHOICE" = "firewall" ] 
+  then
+    chown greensql:greensql /var/log/greensql.log
+  fi
+
   #chmod 0600 /var/log/greensql.log
   chown greensql:greensql -R /etc/greensql
   chmod 0600 $CONF
@@ -182,8 +515,10 @@ case "$1" in
     create_user
     get_config
     create_cfgfile
-    setup_mysql
+    create_webfile
+    setup_sql
     change_perms
+    ldconfig > /dev/null 2>&1
   ;;
   upgrade|abort-upgrade|abort-remove|abort-deconfigure)
   ;;

@@ -7,6 +7,11 @@ test -e /usr/share/debconf/confmodule && {
 	db_version 2.0
 }
 
+PSQL=`which psql`
+if [ -z $PSQL ]; then
+  PSQL=`find /opt/PostgreSQL/*/bin -name psql | grep psql -m 1`
+fi
+
 # This function is currently duplication and thus a violation of the DRY
 # principle -- please do not change it, change postinst and copy it from there.
 get_config() {
@@ -17,45 +22,91 @@ get_config() {
   # * localhost => socket, 127.0.0.1 => TCP/IP
   #   This is the default MySQL behaviour, but many people aren't used
   #   to it. So this has to be documented somewhere.
-  db_get greensql/mysql_server
-  MYSQL_HOST="$RET"
+  db_get greensql/sql_choice
+  SQL="$RET"
 
   db_get greensql/setup
   if [ "x$RET" = "xtrue" ]; then SETUP=1; else SETUP=0; fi
-  if [ $SETUP -ne 0 ]
+
+  db_get greensql/database
+  DATABASE="$RET"
+
+  if [ $SETUP -ne 0 ] && [ $SQL = "mysql" ]
   then
+    db_get greensql/mysql_server
+    MYSQL_HOST="$RET"
+    db_get greensql/mysql_port
+    MYSQL_PORT="$RET"
     db_get greensql/mysql_root_user
     MYSQL_ROOT_USER="$RET"
     db_get greensql/mysql_root_passwd
     MYSQL_ROOT_PASSWD="$RET"
+  elif [ $SETUP -ne 0 ] && [ $SQL = "postgresql" ]
+  then
+    db_get greensql/postgres_location
+    POSTGRES_LOCATION="$RET"
+
+    db_get greensql/postgres_auth
+    POSTGRES_AUTH="$RET"
+
+    if [ $POSTGRES_LOCATION = "local" ] && [ $POSTGRES_AUTH = "md5" ]
+    then
+      db_get greensql/postgres_root_user
+      POSTGRES_ROOT_USER="$RET"
+      db_get greensql/postgres_root_passwd
+      POSTGRES_ROOT_PASSWD="$RET"
+
+      ## only needed for remote connections since it only removes the database and user
+      MY_PGPASS=~/.pgpass
+
+      if [ -f $MY_PGPASS ]; then
+        mv $MY_PGPASS ~/.pgpass-temp
+      fi
+
+      touch $MY_PGPASS
+      chmod 0600 $MY_PGPASS
+
+      ## administrator rules
+      echo "localhost:*:postgres:$POSTGRES_ROOT_USER:$POSTGRES_ROOT_PASSWD" >> $MY_PGPASS
+      echo "localhost:*:$DATABASE:$POSTGRES_ROOT_USER:$POSTGRES_ROOT_PASSWD" >> $MY_PGPASS
+      echo "127.0.0.1:*:postgres:$POSTGRES_ROOT_USER:$POSTGRES_ROOT_PASSWD" >> $MY_PGPASS
+      echo "127.0.0.1:*:$DATABASE:$POSTGRES_ROOT_USER:$POSTGRES_ROOT_PASSWD" >> $MY_PGPASS
+    elif [ $POSTGRES_LOCATION = "remote" ]; then
+      db_get greensql/postgres_server
+      POSTGRES_HOST="$RET"
+      db_get greensql/postgres_port
+      POSTGRES_PORT="$RET"
+      db_get greensql/postgres_root_user
+      POSTGRES_ROOT_USER="$RET"
+      db_get greensql/postgres_root_passwd
+      POSTGRES_ROOT_PASSWD="$RET"
+
+      ## only needed for remote connections since it only removes the database and user
+      MY_PGPASS=~/.pgpass
+
+      if [ -f $MY_PGPASS ]; then
+        mv $MY_PGPASS ~/.pgpass-temp
+      fi
+
+      touch $MY_PGPASS
+      chmod 0600 $MY_PGPASS
+
+      ## administrator rules
+      echo "$POSTGRES_HOST:$POSTGRES_PORT:postgres:$POSTGRES_ROOT_USER:$POSTGRES_ROOT_PASSWD" >> $MY_PGPASS
+      echo "$POSTGRES_HOST:$POSTGRES_PORT:$DATABASE:$POSTGRES_ROOT_USER:$POSTGRES_ROOT_PASSWD" >> $MY_PGPASS
+    fi
   fi
 
-  db_get greensql/database
-  DATABASE="$RET"
-  db_get greensql/mysql_user
-  MYSQL_USER="$RET"
-  db_get greensql/mysql_passwd
-  MYSQL_PASSWD="$RET"
-  #echo "db-stop"
-  #db_stop
+  db_get greensql/user
+  USER="$RET"
+  db_get greensql/passwd
+  PASSWD="$RET"
 
   # Create a custom temporary MySQL configuration file for the root user.
-  if [ $SETUP -ne 0 ]
+  if [ $SETUP -ne 0 ] && [ $SQL = "mysql" ]
   then
     MY_CNF=`mktemp /tmp/greensql.my-cnf.XXXXXXXXXX`
     chmod 0600 $MY_CNF
-
-    # Split MYSQL_HOST for the host:port pair, give an empty string for the
-    # port if it isn't specified, save it into MYSQL_PORT otherwise.
-    mysql_h="`echo $MYSQL_HOST|cut -d: -f1`"
-    mysql_p="`echo $MYSQL_HOST|cut -d: -f2`"
-    if [ "$mysql_h" != "$mysql_p" -a "x$mysql_p" != "x" ]; then
-      MYSQL_HOSTNAME="$mysql_h"
-      MYSQL_PORT="$mysql_p"
-    else
-      MYSQL_HOSTNAME="$MYSQL_HOST"
-      MYSQL_PORT=""
-    fi
 
     echo "[client]
           host=${MYSQL_HOST}
@@ -66,33 +117,116 @@ get_config() {
     fi
     
     MRO="--defaults-file=$MY_CNF"
-    MUO="${MRO} -u${MYSQL_USER} -p${MYSQL_PASSWD}"
+    MUO="${MRO} -u${USER} -p${PASSWD}"
   fi
 }
 
 cleanup() {
   #echo "clean $MY_CNF"
   if [ -n $MY_CNF ]; then rm -rf $MY_CNF; fi
+
+  if [ -f ~/.pgpass-temp ]; then
+    mv ~/.pgpass-temp ~/.pgpass
+  fi
+}
+
+drop_db()
+{
+  if [ "$SQL" = "mysql" ] && [ $SETUP -ne 0 ]; then
+    drop_mysql
+  elif [ "$SQL" = "postgresql" ] && [ $SETUP -ne 0 ]; then
+    drop_pgsql
+  fi
 }
 
 drop_mysql() {
-  echo "Removing $MYSQL_USER user"
-  mysql $MRO -f $DATABASE -e \
-    "REVOKE ALL ON $DATABASE.* FROM $MYSQL_USER" \
-    > /dev/null 2>&1 || true
-  mysql $MRO -f $DATABASE -e \
-    "REVOKE ALL ON $DATABASE.* FROM '$MYSQL_USER'@'localhost'" \
-    > /dev/null 2>&1 || true
-  mysql $MRO -f mysql -e \
-    "DELETE FROM user WHERE User='$MYSQL_USER'" \
-    > /dev/null 2>&1 || true
+  echo "Removing $USER user"
+  if [ "$MYSQL_HOST" = "localhost" -o "$MYSQL_HOST" = "127.0.0.1" ]
+  then
+    if ! mysql $MRO -f $DATABASE -e "REVOKE ALL ON $DATABASE.* FROM '$USER'@'localhost'"; then
+      echo "failed to revoke privilege"
+    fi
+  else
+    if ! mysql $MRO -f $DATABASE -e "REVOKE ALL ON $DATABASE.* FROM $USER"; then
+      echo "failed to revoke privilege"
+    fi
+  fi
+
+  echo "dropping user $USER"
+  if ! mysql $MRO -f mysql -e "DELETE FROM user WHERE User='$USER'"; then
+    echo "failed to delete user $USER"
+  fi
+
   echo "Removing $DATABASE db"
-  mysqladmin $MRO -f drop $DATABASE > /dev/null 2>&1 || true
+  if ! mysqladmin $MRO -f drop $DATABASE; then
+    echo "failed to remove database $DATABASE"
+  fi
+}
+
+drop_pgsql() {
+    if [ "$POSTGRES_LOCATION" = "local" ]; then
+      if [ "$POSTGRES_AUTH" = "ident" ]; then
+        if su - postgres -c "$PSQL -c \"select * from pg_database where datname='$DATABASE';\" | grep -q \"$DATABASE\""; then
+          if ! su - postgres -c "$PSQL -c \"DROP DATABASE $DATABASE;\""; then
+            echo "failed to drop database $DATABASE"
+          fi
+        else
+          echo "database $DATABASE doesnt exist... skipping"
+        fi
+
+        if su - postgres -c "$PSQL -c  \"select * from pg_roles where rolname='$USER';\" | grep -q \"$USER\""; then
+          echo "dropping user $USER"
+          if ! su - postgres -c "$PSQL -c \"DROP ROLE $USER;\""; then
+            echo "failed to drop role $USER"
+          fi
+        else
+          echo "user $USER doesnt exist... skipping"
+        fi
+      elif [ "$POSTGRES_AUTH" = "md5" ]
+      then
+        if $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "select * from pg_database where datname='$DATABASE';" | grep -q "$DATABASE"; then
+          echo "dropping database $DATABASE"
+          if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "DROP DATABASE $DATABASE;"; then
+            echo "failed to drop database $DATABASE"
+          fi
+        else
+          echo "database $DATABASE doesnt exist... skipping"
+        fi
+
+        if $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c  "select * from pg_roles where rolname='$USER';" | grep -q "$USER"; then
+          echo "dropping user $USER"
+          if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "DROP ROLE $USER;"; then
+            echo "failed to drop role $USER"
+          fi
+        else
+          echo "user $USER doesnt exist... not skipping"
+        fi
+      fi
+    elif [ "$POSTGRES_LOCATION" = "remote" ]
+    then
+      if $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "select * from pg_database where datname='$DATABASE';" | grep -q "$DATABASE"; then
+        echo "dropping database $DATABASE"
+        if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "DROP DATABASE $DATABASE;"; then
+          echo "failed to drop database $DATABASE"
+        fi
+      else
+        echo "database $DATABASE doesnt exist... skipping"
+      fi
+
+      if $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "select * from pg_roles where rolname='$USER';" | grep -q "$USER"; then
+        echo "dropping user $USER"
+        if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "DROP ROLE $USER;"; then
+          echo "failed to drop role $USER"
+        fi
+      else
+        echo "user $USER doesnt exist... not skipping"
+      fi
+    fi
 }
 
 drop_user() {
-  userdel -r greensql > /dev/null 2>&1 || true
-  groupdel greensql > /dev/null 2>&1 || true
+    userdel -r greensql > /dev/null 2>&1 || true
+    groupdel greensql > /dev/null 2>&1 || true
 }
 
 drop_config() {
@@ -101,39 +235,43 @@ drop_config() {
   if [ -n $CONF ]; then rm -rf $CONF; fi
 }
 
+drop_console() {
+  echo "Removing Web Console"
+
+  ## these files are created on the fly so must be maunally removed
+  if [ -d "/usr/share/greensql-fw/templates_c" ]; then
+    rm -rf /usr/share/greensql-fw/templates_c
+  fi
+}
+
 case "$1" in
   purge)
     get_config
     if [ $SETUP -ne 0 ]
     then
-      #echo "purge ?"
-#      db_purge
       db_input critical greensql/purge_db || true
       if db_go
       then
         db_get greensql/purge_db || true
-        if [ "x$RET" = "xtrue" ]; then drop_mysql; fi
+        if [ "x$RET" = "xtrue" ]; then 
+          drop_db;
+        fi
       fi
     fi
-    #echo "db_purge"
-    db_purge
-    #echo "db_stop"
-    db_stop
-    #echo "drop conf"
+    
     drop_config
-    #echo "drop user"
     drop_user
-    #echo "cleanup"
+    drop_console
     cleanup
   ;;
-
   remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+    ldconfig > /dev/null 2>&1
   ;;
-
   *)
     echo "postrm called with unknown argument '$1'" >&2
   ;;
 esac
+
 #echo end
 exit
 #DEBHELPER#

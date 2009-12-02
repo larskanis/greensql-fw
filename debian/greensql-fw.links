@@ -1,0 +1,3 @@
+usr/sbin/greensql-create-db usr/bin/greensql-create-db.sh
+usr/lib/libgsql-mysql.so.1 usr/lib/libgsql-mysql.so
+usr/lib/libgsql-pgsql.so.1 usr/lib/libgsql-pgsql.so

@@ -1,0 +1,277 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: greensql-fw@packages.debian.org\n"
+"POT-Creation-Date: 2009-12-02 04:19-0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: select
+#. Description
+#: ../greensql-fw.templates:1001
+msgid "Installation Menu:"
+msgstr ""
+
+#. Type: select
+#. Description
+#: ../greensql-fw.templates:1001
+msgid ""
+"greensql supports installing both the firewalling system and the management "
+"system seperately. This in order to support sites that require managing many "
+"diffrent systems from a unified management system."
+msgstr ""
+
+#. Type: select
+#. Description
+#: ../greensql-fw.templates:2001
+msgid "storage configuration Menu:"
+msgstr ""
+
+#. Type: select
+#. Description
+#: ../greensql-fw.templates:2001
+msgid "Please choose the underlying RDBMS system for configuration storage."
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../greensql-fw.templates:3001
+msgid "MySQL Server address that will store the configuration db:"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../greensql-fw.templates:3001
+msgid ""
+"Enter the name or IP address of the machine that will host the GreenSQL "
+"configuration."
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../greensql-fw.templates:4001
+msgid "MySQL Server port that will store the configuration db:"
+msgstr ""
+
+#. Type: string
+#. Description
+#. Type: string
+#. Description
+#: ../greensql-fw.templates:4001 ../greensql-fw.templates:5001
+msgid ""
+"Enter the port of the machine that will host the GreenSQL configuration."
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../greensql-fw.templates:5001
+msgid "Postgres Server port that will store the configuration db:"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../greensql-fw.templates:6001
+msgid "PostgreSQL Server address that will store the configuration db:"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../greensql-fw.templates:6001
+msgid ""
+"Enter the name of the machine that will host the GreenSQL configuration."
+msgstr ""
+
+#. Type: select
+#. Description
+#: ../greensql-fw.templates:7001
+msgid "Local Server or Remote Server:"
+msgstr ""
+
+#. Type: select
+#. Description
+#: ../greensql-fw.templates:7001
+msgid ""
+"Please choose the server location. Local server will try to use the "
+"PostgreSQL user automatically. Remote Server will prompt you for the "
+"credentials of the user."
+msgstr ""
+
+#. Type: select
+#. Description
+#: ../greensql-fw.templates:8001
+msgid "Authentication Type"
+msgstr ""
+
+#. Type: select
+#. Description
+#: ../greensql-fw.templates:8001
+msgid ""
+"Please choose the client authentication type. Ident will try to use the "
+"postgres user automatically. MD5 will prompt you for the credentials of the "
+"postgres user."
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../greensql-fw.templates:9001
+msgid "Database name for the GreenSQL configuration:"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../greensql-fw.templates:9001
+msgid ""
+"Enter the database name of where GreenSQL will store the configuration and "
+"data. The installation process will create it for you if one doesn't exist."
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../greensql-fw.templates:10001
+msgid "Would you like to set up the database and tables automatically?"
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../greensql-fw.templates:10001
+msgid ""
+"GreenSQL can initialize and upgrade your database and tables automatically.  "
+"You'll need access to a MySQL root user for the script to work properly."
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../greensql-fw.templates:11001
+msgid "Enter the username of the MySQL administrator:"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../greensql-fw.templates:11001
+msgid ""
+"You need to enter the username of a MySQL administrator in order to create "
+"the GreenSQL configuration database."
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../greensql-fw.templates:12001
+msgid "Enter the username of the PostgreSQL administrator:"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../greensql-fw.templates:12001
+msgid ""
+"You need to enter the username of a PostgreSQL administrator in order to "
+"create the GreenSQL configuration database."
+msgstr ""
+
+#. Type: password
+#. Description
+#: ../greensql-fw.templates:13001
+msgid "Enter the MySQL administrator password:"
+msgstr ""
+
+#. Type: password
+#. Description
+#: ../greensql-fw.templates:13001
+msgid ""
+"The installation process requires the MySQL root password in order to "
+"complete setting up the GreenSQL database. Type \"none\" if there is no "
+"password for MySQL administration."
+msgstr ""
+
+#. Type: password
+#. Description
+#: ../greensql-fw.templates:14001
+msgid "Enter the PostgreSQL administrator password:"
+msgstr ""
+
+#. Type: password
+#. Description
+#: ../greensql-fw.templates:14001
+msgid ""
+"The installation process requires the postgres root password in order to "
+"complete setting up the GreenSQL database. Type \"none\" if there is no "
+"password for PostgreSQL administration."
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../greensql-fw.templates:15001
+msgid "Enter the GreenSQL db username:"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../greensql-fw.templates:15001
+msgid ""
+"This is the username that GreenSQL will use to connect to the database. The "
+"database username will be saved into the greensql.conf configuration file "
+"and may be altered at a later date."
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../greensql-fw.templates:16001
+msgid "Enter the GreenSQL user password:"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../greensql-fw.templates:16001
+msgid ""
+"Hit \"enter\" for the default which is \"pwd\". The database user's password "
+"will be saved into the greensql.conf configuration file and may be altered "
+"at a later date."
+msgstr ""
+
+#. Type: password
+#. Description
+#: ../greensql-fw.templates:17001
+msgid "Retype the password:"
+msgstr ""
+
+#. Type: password
+#. Description
+#: ../greensql-fw.templates:17001
+msgid "Confirm the password in order to continue the process."
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../greensql-fw.templates:18001
+msgid "Password mismatch"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../greensql-fw.templates:18001
+msgid "The password and its confirmation do not match. Re-enter the passwords."
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../greensql-fw.templates:19001
+msgid "Do you want to purge the database when you purge this package?"
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../greensql-fw.templates:19001
+msgid ""
+"Accept here, if you want to drop the database and the associated user when "
+"you purge the package. This option will remove all history of the GreenSQL "
+"database."
+msgstr ""
