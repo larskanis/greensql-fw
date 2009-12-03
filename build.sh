@@ -72,13 +72,19 @@ build_rpm()
   fi
 
   GREEN_VER=`grep Version rpm/greensql-fw.spec | sed -e "s/^[a-zA-Z]*:\s*//"`
-  cp -R ../greensql-console .
+  if [ -d "../greensql-console" ] && [ ! -d "greensql-console" ]; then
+    cp -R ../greensql-console .
+  fi
+
+  if [ ! -d "../greensql-fw-$GREEN_VER" ]; then
+    mkdir ../greensql-fw-$GREEN_VER
+  fi
+
   cp -r ./ ../greensql-fw-$GREEN_VER
-  rm -rf greensql-console
+
   cd ..
   rm -rf greensql-fw-$GREEN_VER.tar.gz 
   tar -czf greensql-fw-$GREEN_VER.tar.gz greensql-fw-$GREEN_VER/
-  rm -rf greensql-fw-$GREEN_VER 
   rpmbuild -ta greensql-fw-$GREEN_VER.tar.gz
   echo ""
   #echo "Look for packages in the following directory /usr/src/packages"
