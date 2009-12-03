@@ -1,6 +1,6 @@
 #!/bin/sh 
 
-set -e
+set -e 
 
 # Source debconf library.
 test -e /usr/share/debconf/confmodule && {
@@ -11,9 +11,9 @@ test -e /usr/share/debconf/confmodule && {
 # default value
 CONFWEB='/usr/share/greensql-fw/config.php'
 
-PSQL=`which psql`
+PSQL=`which psql` || true
 if [ -z $PSQL ]; then
-  PSQL=`find /opt/PostgreSQL/*/bin -name psql | grep psql -m 1`
+  PSQL=`find "/opt/PostgreSQL/*/bin -name psql | grep psql -m 1" > /dev/null 2>&1` || true
 fi
 
 # Read the settings supplied by debconf.
@@ -27,7 +27,7 @@ get_config() {
   # * localhost => socket, 127.0.0.1 => TCP/IP
   #   This is the default MySQL behaviour, but many people aren't used
   #   to it. So this has to be documented somewhere.
-  db_get greensql/choice
+  db_get greensql/choice || true
 
   CHOICE=$RET
 
@@ -63,64 +63,64 @@ get_config() {
 	fi
   fi
 
-  db_get greensql/sql_choice
+  db_get greensql/sql_choice || true
   SQL="$RET"
   echo "Configuring $SQL database"
   echo ""
 
-  db_get greensql/setup
+  db_get greensql/setup || true
   if [ "$RET" = "true" ]; then SETUP=1; else SETUP=0; fi
 
   ## mysql and remote postgres get root credentials and hostname
   if [ "$SQL" = "mysql" ]; then
-    db_get greensql/mysql_server
+    db_get greensql/mysql_server || true
     MYSQL_HOST="$RET"
-    db_get greensql/mysql_port
+    db_get greensql/mysql_port || true
     MYSQL_PORT="$RET"
 
     if [ $SETUP -ne 0 ]
     then
-      db_get greensql/mysql_root_user
+      db_get greensql/mysql_root_user || true
       MYSQL_ROOT_USER="$RET"
-      db_get greensql/mysql_root_passwd
+      db_get greensql/mysql_root_passwd || true
       MYSQL_ROOT_PASSWD="$RET"
     fi
   elif [ "$SQL" = "postgresql" ]; then
-    db_get greensql/postgres_location
+    db_get greensql/postgres_location || true
     POSTGRES_LOCATION="$RET"
 
     if [ "$POSTGRES_LOCATION" = "remote" ]; then
       POSTGRES_AUTH="md5"
     elif [ "$POSTGRES_LOCATION" = "local" ]; then
-      db_get greensql/postgres_auth
+      db_get greensql/postgres_auth || true
       POSTGRES_AUTH="$RET"
     fi
 
     if [ $SETUP -ne 0 ]; then
       if [ "$POSTGRES_LOCATION" = "remote" ]; then
-        db_get greensql/postgres_server
+        db_get greensql/postgres_server || true
         POSTGRES_HOST="$RET"
 
-        db_get greensql/postgres_port
+        db_get greensql/postgres_port || true
         POSTGRES_PORT="$RET"
       fi
 
       if [ "$POSTGRES_AUTH" = "md5" ]; then
-        db_get greensql/postgres_root_user
+        db_get greensql/postgres_root_user || true
         POSTGRES_ROOT_USER="$RET"
 
-        db_get greensql/postgres_root_passwd
+        db_get greensql/postgres_root_passwd || true
         POSTGRES_ROOT_PASSWD="$RET"
       fi
     fi
   fi
 
   ## new database, user to create for any case
-  db_get greensql/database
+  db_get greensql/database || true
   DATABASE="$RET"
-  db_get greensql/user
+  db_get greensql/user || true
   USER="$RET"
-  db_get greensql/passwd
+  db_get greensql/passwd || true
   PASSWD="$RET"
 
   db_stop
