@@ -28,7 +28,7 @@ msgstr ""
 msgid ""
 "greensql supports installing both the firewalling system and the management "
 "system seperately. This in order to support sites that require managing many "
-"diffrent systems from a unified management system."
+"different systems from a unified management system."
 msgstr ""
 
 #. Type: select

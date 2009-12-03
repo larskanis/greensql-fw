@@ -4,7 +4,7 @@ Choices: both, firewall, web
 Default: both
 _Description: Installation Menu:
  greensql supports installing both the firewalling system and the management system seperately.
- This in order to support sites that require managing many diffrent systems from a unified management system.
+ This in order to support sites that require managing many different systems from a unified management system.
 
 Template: greensql/sql_choice
 Type: select
