@@ -6,4 +6,4 @@ docs/greensql-postgresql-db.txt
 docs/tautology.txt
 conf/greensql.conf
 conf/greensql-apache.conf
-../greensql-console/config.php
+greensql-console/config.php
