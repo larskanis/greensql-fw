@@ -20,10 +20,29 @@ if [ -z $PSQL ]; then
   PSQL=`find /opt/PostgreSQL/*/bin -name psql | grep psql -m 1`
 fi
 
+MYSQL=`which mysql`
+MYSQLADMIN=`which mysqladmin`
+
+echo " "
+
+if [ ! -z $MYSQL ]; then
+  echo "mysql binary file located: $MYSQL"
+fi
+
+if [ ! -z $MYSQLADMIN ]; then
+  echo "mysqladmin binary file located: $MYSQLADMIN"
+fi
+
+if [ ! -z $PSQL ]; then
+  echo "postgresql binary file located: $PSQL"
+fi
+
 if [ -d /usr/share/doc/greensql-fw-$VER/ ]; then
   DOCDIR="/usr/share/doc/greensql-fw-$VER"
 elif [ -d /usr/share/doc/greensql-fw/ ]; then
   DOCDIR="/usr/share/doc/greensql-fw"
+elif [ -d /usr/share/doc/packages/greensql-fw/ ]; then
+  DOCDIR="/usr/share/doc/packages/greensql-fw/"
 else
   echo "No Doc Dir Found."
   echo "Probably greensql-fw is not installed"
@@ -76,6 +95,7 @@ fi
 
 main_fn()
 {
+  echo " "
   echo -n "Database type (mysql or pgsql) [$SQL]: "
   read cont
   if [ "$cont" != "" ]; then
@@ -83,8 +103,10 @@ main_fn()
   fi
 
   if [ "$SQL" = "mysql" ]; then
+    mysql_binaries
     mysql_config
   elif [ "$SQL" = "pgsql" ]; then
+    pgsql_binaries
     pgsql_config
   else
     echo "no valid database type was chosen"
@@ -92,6 +114,78 @@ main_fn()
   fi
 }
 
+## check if mysql binaries are present were found
+mysql_binaries()
+{
+  while [ "$MYSQL" = "" ]; do
+    echo -n "Path to MySQL binary file: "
+    read cont
+    if [ -f "$cont" ]; then
+      if [ -x "$cont" ]; then
+        if file $cont | grep ELF >> /dev/null 2>&1; then
+          MYSQL=$cont
+        else
+          echo "File is not a binary: $cont"
+        fi
+      else
+        echo "File is not executable: $cont"
+      fi
+    else
+      if [ -d "$cont" ]; then
+        echo "$cont is a directory"
+      else
+        echo "File not found: $cont"
+      fi
+    fi
+  done
+
+  while [ "$MYSQLADMIN" = "" ]; do
+    echo -n "Path to MySQL Administration binary file: "
+    read cont
+    if [ -f "$cont" ]; then
+      if [ -x "$cont" ]; then
+        if file $cont | grep ELF >> /dev/null 2>&1; then
+          MYSQLADMIN=$cont
+        else
+          echo "File is not a binary: $cont"
+        fi
+      else
+        echo "File is not executable: $cont"
+      fi
+    else
+      if [ -d "$cont" ]; then
+        echo "$cont is a directory"
+      else
+        echo "File not found: $cont"
+      fi
+    fi
+  done
+}
+
+pgsql_binaries()
+{
+  while [ "$PSQL" = "" ]; do 
+    echo -n "Path to PgSQL binary file: "
+    read cont
+    if [ -f "$cont" ]; then
+      if [ -x "$cont" ]; then
+        if file $cont | grep ELF >> /dev/null 2>&1; then
+          PSQL=$cont
+        else
+          echo "File is not a binary: $cont"
+        fi
+      else
+        echo "File is not executable: $cont"
+      fi
+    else
+      if [ -d "$cont" ]; then
+        echo "$cont is a directory"
+      else
+        echo "File not found: $cont"
+      fi
+    fi
+  done
+}
 
 ## mysql configuration function 
 mysql_config()
@@ -401,7 +495,7 @@ create_mysql_db()
   SKIP_DB=0
   EXISTS_DB=0
 
-  if mysql $MRO -BNe 'show databases' | grep -q "$GREENSQL_DB_NAME"; then
+  if $MYSQL $MRO -BNe 'show databases' | grep -q "$GREENSQL_DB_NAME"; then
     EXISTS_DB=1
     echo " "
     echo "database $GREENSQL_DB_NAME already exists."
@@ -418,13 +512,13 @@ create_mysql_db()
   if [ "$SKIP_DB" = "0" ]; then
     if [ "$EXISTS_DB" = "1" ]; then
       echo "dropping MySQL database $GREENSQL_DB_NAME..."
-      if ! mysqladmin $MRO -f drop $GREENSQL_DB_NAME; then
+      if ! $MYSQLADMIN $MRO -f drop $GREENSQL_DB_NAME; then
         echo "failed to drop database $GREENSQL_DB_NAME"
       fi
     fi
 
     echo "Creating MySQL database..."
-    if ! mysqladmin $MRO -f create $GREENSQL_DB_NAME; then
+    if ! $MYSQLADMIN $MRO -f create $GREENSQL_DB_NAME; then
       echo "failed to create database $GREENSQL_DB_NAME"
     fi
 
@@ -436,7 +530,7 @@ create_mysql_db()
 create_tables_mysql()
 {
   echo "Creating MySQL tables..."
-  cat $DOCDIR/greensql-mysql-db.txt |  mysql $MRO -f $GREENSQL_DB_NAME > /dev/null 2>&1
+  cat $DOCDIR/greensql-mysql-db.txt |  $MYSQL $MRO -f $GREENSQL_DB_NAME > /dev/null 2>&1
 }
 
 create_tables_pgsql()
@@ -476,11 +570,11 @@ create_user_mysql()
   echo "Adding MySQL user $GREENSQL_DB_USER..."
   if [ "$MYSQL_HOST" = "localhost" -o "$MYSQL_HOST" = "127.0.0.1" ]
   then
-    if ! mysql $MRO $GREENSQL_DB_NAME -f -e "GRANT ALL ON $GREENSQL_DB_NAME.* TO '$GREENSQL_DB_USER'@'localhost' IDENTIFIED BY '${GREENSQL_DB_PWD}'"; then
+    if ! $MYSQL $MRO $GREENSQL_DB_NAME -f -e "GRANT ALL ON $GREENSQL_DB_NAME.* TO '$GREENSQL_DB_USER'@'localhost' IDENTIFIED BY '${GREENSQL_DB_PWD}'"; then
       echo "failed to create user $GREENSQL_DB_USER"
     fi
   else
-   if ! mysql $MRO $GREENSQL_DB_NAME -f -e "GRANT ALL ON $GREENSQL_DB_NAME.* TO '$GREENSQL_DB_USER'@'%' IDENTIFIED BY '${GREENSQL_DB_PWD}'"; then
+   if ! $MYSQL $MRO $GREENSQL_DB_NAME -f -e "GRANT ALL ON $GREENSQL_DB_NAME.* TO '$GREENSQL_DB_USER'@'%' IDENTIFIED BY '${GREENSQL_DB_PWD}'"; then
       echo "failed to create user $GREENSQL_DB_USER"
    fi
   fi
