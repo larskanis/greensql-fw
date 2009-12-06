@@ -1,7 +1,7 @@
 CXXFLAGS:=-g -Wall -I/usr/local/include/
 MYSQL_INC:=-I/usr/include/mysql/ -I/usr/local/include/mysql/
 MYSQL_LIBS:=-L/usr/lib64/mysql -L/usr/local/lib/mysql -L/usr/lib/mysql -lmysqlclient
-PGSQL_INC:=-I/usr/include/postgresql
+PGSQL_INC:=-I/usr/include/postgresql -I/usr/include/pgsql/
 PGSQL_LIBS:=-lpq
 
 api:
