@@ -34,6 +34,7 @@ endif
 
 	mkdir -p ${DESTDIR}/etc/greensql/
 	cp scripts/greensql-create-db.sh ${DESTDIR}/usr/sbin/greensql-create-db
+	ln -sf /usr/bin/greensql-create-db ${DESTDIR}/usr/bin/greensql-create-db.sh
 	cp conf/greensql.conf ${DESTDIR}/etc/greensql/greensql.conf
 	cp conf/mysql.conf ${DESTDIR}/etc/greensql/mysql.conf
 	cp conf/pgsql.conf ${DESTDIR}/etc/greensql/pgsql.conf
