@@ -141,7 +141,7 @@ binary-arch: build install
 	dh_installdeb
 
 ## automatically calculates the dependencies libraries and passes it as a parameter to the "control" file in debian/
-	dh_shlibdeps
+	dh_shlibdeps --exclude=.so
 
 ## installs the control file into the debian/package/DEBIAN dir
 	dh_gencontrol
