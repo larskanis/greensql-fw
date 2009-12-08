@@ -8,9 +8,15 @@ Group: Applications/Databases
 URL: http://www.greensql.net/
 Source: http://easynews.dl.sourceforge.net/sourceforge/greensql/%{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-buildroot
-BuildRequires: mysql-devel, postgresql-devel, pcre-devel, flex, bison, gcc-c++
+BuildRequires: postgresql-devel, pcre-devel, flex, bison, gcc-c++
 %if "%{_vendor}" == "redhat"
 BuildRequires: libevent-devel
+%endif
+
+%if "%{_vendor}" == "suse"
+BuildRequires: libmysqlclient-devel
+%else
+BuildRequires: mysql-devel
 %endif
 
 %if "%{_vendor}" == "MandrakeSoft" || "%{_vendor}" == "Mandrakesoft" || "%{_vendor}" == "Mandriva"  || "%{_vendor}" == "mandriva"
@@ -45,7 +51,13 @@ mkdir -p $RPM_BUILD_ROOT/etc/greensql
 mkdir -p $RPM_BUILD_ROOT/etc/logrotate.d
 mkdir -p $RPM_BUILD_ROOT/usr/sbin
 mkdir -p $RPM_BUILD_ROOT/usr/bin
-mkdir -p $RPM_BUILD_ROOT/usr/lib
+
+%ifarch i686 || x86_64
+  mkdir -p $RPM_BUILD_ROOT/usr/lib64
+%else
+  mkdir -p $RPM_BUILD_ROOT/usr/lib
+%endif
+
 mkdir -p $RPM_BUILD_ROOT/usr/share/greensql-fw
 
 install -s -m 0755 greensql-fw $RPM_BUILD_ROOT/usr/sbin/greensql-fw
@@ -56,8 +68,14 @@ install -m 0644 conf/pgsql.conf $RPM_BUILD_ROOT/etc/greensql/pgsql.conf
 install -m 0644 conf/greensql-apache.conf $RPM_BUILD_ROOT/etc/greensql/greensql-apache.conf
 install -m 0644 scripts/greensql.rotate $RPM_BUILD_ROOT/etc/logrotate.d/greensql
 install -m 0755 rpm/greensql-config $RPM_BUILD_ROOT/usr/sbin/
-install -m 0644 src/lib/libgsql-mysql.so.1 $RPM_BUILD_ROOT/usr/lib/libgsql-mysql.so.1
-install -m 0644 src/lib/libgsql-pgsql.so.1 $RPM_BUILD_ROOT/usr/lib/libgsql-pgsql.so.1
+
+%ifarch i686 || x86_64
+  install -m 0644 src/lib/libgsql-mysql.so.1 $RPM_BUILD_ROOT/usr/lib64/libgsql-mysql.so.1
+  install -m 0644 src/lib/libgsql-pgsql.so.1 $RPM_BUILD_ROOT/usr/lib64/libgsql-pgsql.so.1
+%else
+  install -m 0644 src/lib/libgsql-mysql.so.1 $RPM_BUILD_ROOT/usr/lib/libgsql-mysql.so.1
+  install -m 0644 src/lib/libgsql-pgsql.so.1 $RPM_BUILD_ROOT/usr/lib/libgsql-pgsql.so.1
+%endif
 
 cp -R greensql-console/* $RPM_BUILD_ROOT/usr/share/greensql-fw/
 chmod 755 $RPM_BUILD_ROOT/usr/share/greensql-fw/
@@ -88,8 +106,14 @@ install -m 0755 rpm/greensql-fw.suse.init $RPM_BUILD_ROOT/etc/init.d/greensql-fw
 /usr/sbin/greensql-create-db
 /usr/share/greensql-fw*
 /usr/sbin/greensql-config
-/usr/lib/libgsql-mysql.so.1
-/usr/lib/libgsql-pgsql.so.1
+
+%ifarch i686 || x86_64
+  /usr/lib64/libgsql-mysql.so.1
+  /usr/lib64/libgsql-pgsql.so.1
+%else
+  /usr/lib/libgsql-mysql.so.1
+  /usr/lib/libgsql-pgsql.so.1
+%endif
 
 %if "%{_vendor}" == "redhat"
 /etc/rc.d/init.d/greensql-fw
@@ -97,14 +121,25 @@ install -m 0755 rpm/greensql-fw.suse.init $RPM_BUILD_ROOT/etc/init.d/greensql-fw
 
 /etc/init.d/greensql-fw
 
+%dir /etc/greensql/
+
 %post
 echo ""
 echo "run /usr/sbin/greensql-config for setting up configuration"
 echo ""
 
-ln -s /usr/sbin/greensql-create-db /usr/bin/greensql-create-db.sh
-ln -s /usr/lib/libgsql-mysql.so.1 /usr/lib/libgsql-mysql.so
-ln -s /usr/lib/libgsql-pgsql.so.1 /usr/lib/libgsql-pgsql.so
+ln -s /usr/sbin/greensql-create-db /usr/bin/greensql-create-db.sh > /dev/null 2>&1 || true
+
+%ifarch i686 || x86_64
+  ln -s /usr/lib64/libgsql-mysql.so.1 /usr/lib64/libgsql-mysql.so
+  ln -s /usr/lib64/libgsql-pgsql.so.1 /usr/lib64/libgsql-pgsql.so
+
+  ln -s /usr/lib64/libgsql-mysql.so.1 /usr/lib/libgsql-mysql.so
+  ln -s /usr/lib64/libgsql-pgsql.so.1 /usr/lib/libgsql-pgsql.so
+%else
+  ln -s /usr/lib/libgsql-mysql.so.1 /usr/lib/libgsql-mysql.so
+  ln -s /usr/lib/libgsql-pgsql.so.1 /usr/lib/libgsql-pgsql.so
+%endif
 
 /sbin/chkconfig --add greensql-fw  > /dev/null 2>&1 || true
 /sbin/chkconfig greensql-fw on || true
@@ -114,8 +149,8 @@ if ! /usr/bin/id greensql > /dev/null 2>&1 ; then
     useradd -g greensql -s /dev/null greensql > /dev/null 2>&1 || true
 fi
 touch /var/log/greensql.log || true
-chown greensql:greensql /var/log/greensql.log || true
-chown greensql:greensql -R /etc/greensql || true
+chown greensql:greensql /var/log/greensql.log  > /dev/null 2>&1 || true
+chown greensql:greensql -R /etc/greensql  > /dev/null 2>&1 || true
 #echo
 #echo "Now, you need to create database used to store GreenSQL configuration.
 
@@ -123,8 +158,20 @@ ldconfig
 %preun
 /sbin/chkconfig --del greensql-fw  > /dev/null 2>&1 || true
 rm -rf /usr/bin/greensql-create-db.sh
-rm -rf /usr/lib/libgsql-mysql.so
-rm -rf /usr/lib/libgsql-pgsql.so
+
+%ifarch i686 || x86_64
+  rm -rf /usr/lib64/libgsql-mysql.so
+  rm -rf /usr/lib64/libgsql-pgsql.so
+  rm -rf /usr/lib64/libgsql-mysql.so.1
+  rm -rf /usr/lib64/libgsql-pgsql.so.1
+  rm -rf /usr/lib/libgsql-mysql.so
+  rm -rf /usr/lib/libgsql-pgsql.so
+%else
+  rm -rf /usr/lib/libgsql-mysql.so
+  rm -rf /usr/lib/libgsql-pgsql.so
+  rm -rf /usr/lib/libgsql-mysql.so.1
+  rm -rf /usr/lib/libgsql-pgsql.so.1
+%endif
 
 %postun
 chmod 0600 /var/log/greensql.log > /dev/null 2>&1
