@@ -38,6 +38,11 @@ sudo apt-get install libpcre3
 sudo apt-get install libpcre3-dev
 sudo apt-get install libpq-dev
 
+For OpenSuse you need to run the following commands that will install missing packages:
+yast -i flex bison gcc gcc-c++ make
+yast -i postgresql-devel libmysqlclient-devel
+yast -i pcre-devel libevent-devel
+
 If you use default installation of FreeBSD you will need to install the following packages:
 
 pkg_add -r bison
