@@ -16,7 +16,7 @@ MY_CNF=""
 MRO=""
 
 PSQL=`which psql`
-if [ -z $PSQL ]; then
+if [ -z $PSQL ] && [ -d "/opt/PostgreSQL/" ]; then
   PSQL=`find /opt/PostgreSQL/*/bin -name psql | grep psql -m 1`
 fi
 
