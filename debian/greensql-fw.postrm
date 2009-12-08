@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/sh
 
 set -e
 
@@ -7,10 +7,32 @@ test -e /usr/share/debconf/confmodule && {
 	db_version 2.0
 }
 
-PSQL=`which psql` || true
-if [ -z $PSQL ]; then
-  PSQL=`find "/opt/PostgreSQL/*/bin -name psql | grep psql -m 1" > /dev/null 2>&1` || true
-fi
+binaries()
+{
+  PSQL=`which psql` || true
+  if [ -z $PSQL ] && [ -d /opt/PostgreSQL/ ]; then
+    PSQL=`find /opt/PostgreSQL/*/bin -name psql | grep psql -m 1` || true
+  fi
+
+  MYSQL=`which mysql` || true
+  MYSQLADMIN=`which mysqladmin` || true
+
+  echo " "
+ 
+  if [ ! -z $MYSQL ]; then
+    echo "mysql binary file located: $MYSQL"
+  fi
+
+  if [ ! -z $MYSQLADMIN ]; then
+    echo "mysqladmin binary file located: $MYSQLADMIN"
+  fi
+
+  if [ ! -z $PSQL ]; then
+    echo "postgresql binary file located: $PSQL"
+  fi
+  
+  echo " "
+}
 
 # This function is currently duplication and thus a violation of the DRY
 # principle -- please do not change it, change postinst and copy it from there.
@@ -140,30 +162,39 @@ drop_db()
 }
 
 drop_mysql() {
-  echo "Removing $USER user"
-  if [ "$MYSQL_HOST" = "localhost" -o "$MYSQL_HOST" = "127.0.0.1" ]
-  then
-    if ! mysql $MRO -f $DATABASE -e "REVOKE ALL ON $DATABASE.* FROM '$USER'@'localhost'"; then
-      echo "failed to revoke privilege"
+  if [ ! -z "$MYSQL" ] && [ ! -z "$MYSQLADMIN" ]; then
+    echo "Removing $USER user"
+    if [ "$MYSQL_HOST" = "localhost" -o "$MYSQL_HOST" = "127.0.0.1" ]
+    then
+      if ! $MYSQL $MRO -f $DATABASE -e "REVOKE ALL ON $DATABASE.* FROM '$USER'@'localhost'"; then
+        echo "failed to revoke privilege"
+      fi
+    else
+      if ! $MYSQL $MRO -f $DATABASE -e "REVOKE ALL ON $DATABASE.* FROM $USER"; then
+        echo "failed to revoke privilege"
+      fi
+    fi
+
+    echo "dropping user $USER"
+    if ! $MYSQL $MRO -f mysql -e "DELETE FROM user WHERE User='$USER'"; then
+      echo "failed to delete user $USER"
+    fi
+
+    echo "Removing $DATABASE db"
+    if ! $MYSQLADMIN $MRO -f drop $DATABASE; then
+      echo "failed to remove database $DATABASE"
     fi
   else
-    if ! mysql $MRO -f $DATABASE -e "REVOKE ALL ON $DATABASE.* FROM $USER"; then
-      echo "failed to revoke privilege"
+    if [ -z "$MYSQL" ]; then
+      echo "No mysql binary found. skipping database and user removal..."
+    elif [ -z "$MYSQLADMIN" ]; then
+      echo "No mysqladmin binary found. skipping database and user removal..."
     fi
-  fi
-
-  echo "dropping user $USER"
-  if ! mysql $MRO -f mysql -e "DELETE FROM user WHERE User='$USER'"; then
-    echo "failed to delete user $USER"
-  fi
-
-  echo "Removing $DATABASE db"
-  if ! mysqladmin $MRO -f drop $DATABASE; then
-    echo "failed to remove database $DATABASE"
   fi
 }
 
 drop_pgsql() {
+  if [ ! -z "$PSQL" ]; then
     if [ "$POSTGRES_LOCATION" = "local" ]; then
       if [ "$POSTGRES_AUTH" = "ident" ]; then
         if su - postgres -c "$PSQL -c \"select * from pg_database where datname='$DATABASE';\" | grep -q \"$DATABASE\""; then
@@ -222,6 +253,9 @@ drop_pgsql() {
         echo "user $USER doesnt exist... not skipping"
       fi
     fi
+  else
+    echo "No psql binary found. Skipping database and user removal..."
+  fi
 }
 
 drop_user() {
@@ -246,6 +280,7 @@ drop_console() {
 
 case "$1" in
   purge)
+    binaries
     get_config
     if [ $SETUP -ne 0 ]
     then

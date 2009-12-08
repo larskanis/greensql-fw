@@ -11,10 +11,31 @@ test -e /usr/share/debconf/confmodule && {
 # default value
 CONFWEB='/usr/share/greensql-fw/config.php'
 
-PSQL=`which psql` || true
-if [ -z $PSQL ]; then
-  PSQL=`find "/opt/PostgreSQL/*/bin -name psql | grep psql -m 1" > /dev/null 2>&1` || true
-fi
+binaries()
+{
+  PSQL=`which psql` || true
+  if [ -z $PSQL ] && [ -d /opt/PostgreSQL/ ]; then
+    PSQL=`find /opt/PostgreSQL/*/bin -name psql | grep psql -m 1` || true
+  fi
+
+  MYSQL=`which mysql` || true
+  MYSQLADMIN=`which mysqladmin` || true
+  echo " "
+
+  if [ ! -z $MYSQL ]; then
+    echo "mysql binary file located: $MYSQL"
+  fi
+
+  if [ ! -z $MYSQLADMIN ]; then
+    echo "mysqladmin binary file located: $MYSQLADMIN"
+  fi
+
+  if [ ! -z $PSQL ]; then
+    echo "postgresql binary file located: $PSQL"
+  fi
+
+  echo " "
+}
 
 # Read the settings supplied by debconf.
 get_config() {
@@ -37,11 +58,11 @@ get_config() {
         fi
  
         if [ -f /usr/sbin/greensql-create-db ]; then
-  	  rm /usr/sbin/greensql-create-db
+  	      rm /usr/sbin/greensql-create-db
         fi
 
         if [ -f /usr/bin/greensql-create-db.sh ]; then
-	  rm /usr/bin/greensql-create-db.sh    
+          rm /usr/bin/greensql-create-db.sh    
         fi 
 
         if [ -f /etc/greensql/mysql.conf ]; then
@@ -192,124 +213,136 @@ create_db() {
   # If we aren't responsible for the proper setup, just ignore this part.
   if [ $SETUP -ne 0 ] && [ "$SQL" = "mysql" ]; then
     DBSETUP="0"
-    if mysql $MRO -BNe 'show databases' | grep -q -E "^$DATABASE\$"; then
-      echo "Dropping database..."
-      if ! mysqladmin $MRO -f drop $DATABASE; then
-        echo "failed to drop database $DATABASE"
-      fi
-    fi
-
-    echo "Creating database $DATABASE..."
-    if ! mysqladmin $MRO -f create $DATABASE; then
-      echo "failed to create database $DATABASE"
-    else
-      DBSETUP="1"
-    fi
-    
-    echo "Setting User $USER privileges..."
-
-    if [ "$MYSQL_HOST" = "localhost" -o "$MYSQL_HOST" = "127.0.0.1" ]
-    then
-      if ! mysql $MRO $DATABASE -f -e "GRANT ALL ON $DATABASE.* TO '${USER}'@'localhost' IDENTIFIED BY '${PASSWD}'"; then
-        echo "failed to grant permissions"
-      fi
-    else
-      if ! mysql $MRO $DATABASE -f -e "GRANT ALL ON $DATABASE.* TO ${USER}@'%' IDENTIFIED BY '${PASSWD}'"; then
-        echo "failed to grant permissions"
-      fi
-    fi
-
-    if ! mysql $MRO $DATABASE -f -e "flush privileges"; then
-      echo "failed to flush privileges"
-    fi
-  elif [ $SETUP -ne 0 ] && [ "$SQL" = "postgresql" ]; then
-    DBSETUP="0"
-    if [ "$POSTGRES_LOCATION" = "local" ]; then
-      if [ "$POSTGRES_AUTH" = "ident" ]; then
-        if su - postgres -c "$PSQL -c \"select * from pg_database where datname='$DATABASE';\" | grep -q \"$DATABASE\""; then
-          echo "Dropping database $DATABASE..."
-          if ! su - postgres -c "$PSQL -c \"DROP DATABASE $DATABASE\""; then
-            echo "failed to drop database $DATABASE"
-          fi
-        fi
-
-        if su - postgres -c "$PSQL -c \"select * from pg_roles where rolname='$USER';\" | grep -q \"$USER\""; then
-          echo "dropping user $USER"
-          if ! su - postgres -c "$PSQL -c \"DROP USER $USER\""; then
-            echo "failed to drop user $USER"
-          fi
-        fi
-
-        echo "Adding User $USER"
-        if ! su - postgres -c "$PSQL -c \"CREATE USER $USER WITH PASSWORD '$PASSWD';\""; then
-          echo "failed to create user $USER"
-        fi
-
-        DBSETUP="0"
-
-        echo "Creating database $DATABASE..."
-        if ! su - postgres -c "$PSQL -c \"CREATE DATABASE $DATABASE OWNER $USER\""; then
-          echo "failed to create database $DATABASE"
-        else
-          DBSETUP="1"
-        fi
-      elif [ "$POSTGRES_AUTH" = "md5" ]; then
-        if $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "select * from pg_database where datname='$DATABASE';" | grep -q "$DATABASE"; then
-          if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "DROP DATABASE $DATABASE"; then
-            echo "failed to drop database $DATABASE"
-          fi
-        fi
-
-        if $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "select * from pg_roles where rolname='$USER';" | grep -q "$USER"; then
-          echo "dropping user $USER"
-          if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "DROP USER $USER;"; then
-            echo "failed to drop user $USER"
-          fi
-        fi
-
-        echo "Adding User $USER"
-        if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "CREATE USER $USER WITH PASSWORD '$PASSWD';"; then
-          echo "failed to add user $USER"
-        fi 
-
-        DBSETUP="0"
-
-        echo "Adding database $DATABASE..."
-        if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "CREATE DATABASE $DATABASE OWNER $USER"; then
-          echo "failed to add database $DATABASE"
-        else
-          DBSETUP="1"
-        fi
-      fi
-    elif [ "$POSTGRES_LOCATION" = "remote" ]; then
-      ## both local and remote md5
-      if $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "select * from pg_database where datname='$DATABASE';" | grep -q "$DATABASE"; then
-        echo "dropping database $DATABASE..."
-        if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "DROP DATABASE $DATABASE"; then
+    if [ ! -z "$MYSQL" ] && [ ! -z "$MYSQLADMIN" ]; then
+      if $MYSQL $MRO -BNe 'show databases' | grep -q -E "^$DATABASE\$"; then
+        echo "Dropping database..."
+        if ! $MYSQLADMIN $MRO -f drop $DATABASE; then
           echo "failed to drop database $DATABASE"
         fi
       fi
 
-      if $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "select * from pg_roles where rolname='$USER';" | grep -q "$USER"; then
-        echo "Dropping user $USER"
-        if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "DROP USER $USER;"; then
-          echo "failed to drop user $USER"
-        fi
-      fi
-
-      echo "Adding User $USER"
-      if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "CREATE USER $USER WITH PASSWORD '$PASSWD';"; then
-        echo "failed to add user $USER"
-      fi
-
-      DBSETUP="0"
-
-      echo "Adding database $DATABASE..."
-      if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "CREATE DATABASE $DATABASE OWNER $USER"; then
-        echo "failed to create database $DATABASE"
+      echo "Creating database $DATABASE..."
+      if ! $MYSQLADMIN $MRO -f create $DATABASE; then
+      echo "failed to create database $DATABASE"
       else
         DBSETUP="1"
       fi
+    
+      echo "Setting User $USER privileges..."
+
+      if [ "$MYSQL_HOST" = "localhost" -o "$MYSQL_HOST" = "127.0.0.1" ]
+      then
+        if ! $MYSQL $MRO $DATABASE -f -e "GRANT ALL ON $DATABASE.* TO '${USER}'@'localhost' IDENTIFIED BY '${PASSWD}'"; then
+          echo "failed to grant permissions"
+        fi
+      else
+        if ! $MYSQL $MRO $DATABASE -f -e "GRANT ALL ON $DATABASE.* TO ${USER}@'%' IDENTIFIED BY '${PASSWD}'"; then
+          echo "failed to grant permissions"
+        fi
+      fi
+
+      if ! $MYSQL $MRO $DATABASE -f -e "flush privileges"; then
+        echo "failed to flush privileges"
+      fi
+    else
+      if [ -z "$MYSQL" ]; then
+        echo "No mysql binary found. skipping database and user creation..."
+      elif [ -z "$MYSQLADMIN" ]; then
+        echo "No mysqladmin binary found. skipping database and user creation..."
+      fi
+    fi
+  elif [ $SETUP -ne 0 ] && [ "$SQL" = "postgresql" ]; then
+    DBSETUP="0"
+    if [ ! -z "$PSQL" ]; then
+      if [ "$POSTGRES_LOCATION" = "local" ]; then
+        if [ "$POSTGRES_AUTH" = "ident" ]; then
+          if su - postgres -c "$PSQL -c \"select * from pg_database where datname='$DATABASE';\" | grep -q \"$DATABASE\""; then
+            echo "Dropping database $DATABASE..."
+            if ! su - postgres -c "$PSQL -c \"DROP DATABASE $DATABASE\""; then
+              echo "failed to drop database $DATABASE"
+            fi
+          fi
+
+          if su - postgres -c "$PSQL -c \"select * from pg_roles where rolname='$USER';\" | grep -q \"$USER\""; then
+            echo "dropping user $USER"
+            if ! su - postgres -c "$PSQL -c \"DROP USER $USER\""; then
+              echo "failed to drop user $USER"
+            fi
+          fi
+
+          echo "Adding User $USER"
+          if ! su - postgres -c "$PSQL -c \"CREATE USER $USER WITH PASSWORD '$PASSWD';\""; then
+            echo "failed to create user $USER"
+          fi
+
+          DBSETUP="0"
+
+          echo "Creating database $DATABASE..."
+          if ! su - postgres -c "$PSQL -c \"CREATE DATABASE $DATABASE OWNER $USER\""; then
+            echo "failed to create database $DATABASE"
+          else
+            DBSETUP="1"
+          fi
+        elif [ "$POSTGRES_AUTH" = "md5" ]; then
+          if $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "select * from pg_database where datname='$DATABASE';" | grep -q "$DATABASE"; then
+            if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "DROP DATABASE $DATABASE"; then
+              echo "failed to drop database $DATABASE"
+            fi
+          fi
+
+          if $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "select * from pg_roles where rolname='$USER';" | grep -q "$USER"; then
+            echo "dropping user $USER"
+            if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "DROP USER $USER;"; then
+              echo "failed to drop user $USER"
+            fi
+          fi
+
+          echo "Adding User $USER"
+          if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "CREATE USER $USER WITH PASSWORD '$PASSWD';"; then
+            echo "failed to add user $USER"
+          fi 
+
+          DBSETUP="0" 
+
+          echo "Adding database $DATABASE..."
+          if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "CREATE DATABASE $DATABASE OWNER $USER"; then
+            echo "failed to add database $DATABASE"
+          else
+            DBSETUP="1"
+          fi
+        fi
+      elif [ "$POSTGRES_LOCATION" = "remote" ]; then
+        ## both local and remote md5
+        if $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "select * from pg_database where datname='$DATABASE';" | grep -q "$DATABASE"; then
+          echo "dropping database $DATABASE..."
+          if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "DROP DATABASE $DATABASE"; then
+            echo "failed to drop database $DATABASE"
+          fi
+        fi
+
+        if $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "select * from pg_roles where rolname='$USER';" | grep -q "$USER"; then
+          echo "Dropping user $USER"
+          if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "DROP USER $USER;"; then
+            echo "failed to drop user $USER"
+          fi
+        fi
+
+        echo "Adding User $USER"
+        if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "CREATE USER $USER WITH PASSWORD '$PASSWD';"; then
+          echo "failed to add user $USER"
+        fi
+
+        DBSETUP="0" 
+
+        echo "Adding database $DATABASE..."
+        if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "CREATE DATABASE $DATABASE OWNER $USER"; then
+          echo "failed to create database $DATABASE"
+        else
+          DBSETUP="1"
+        fi
+      fi
+    else
+      echo "No psql binary found. skipping database and user creation..."
     fi
   fi
 }
@@ -320,15 +353,23 @@ create_tbls() {
   # Execute the create SQL code only if the database was newly created.
 
   if [ $DBSETUP -ne 0 ] && [ "$SQL" = "mysql" ]; then
-    echo "Creating tables..."
-    cat /usr/share/doc/greensql-fw/greensql-mysql-db.txt |  mysql $MUO -f $DATABASE > /dev/null 2>&1
-  elif [ $DBSETUP -ne 0 ] && [ "$SQL" = "postgresql" ]; then
-    echo "Creating tables..."
-    if [ "$POSTGRES_LOCATION" = "local" ]; then
-      ## client tries to utilise 127.0.0.1 md5 in pg_hba.conf 
-      $PSQL -h 127.0.0.1 -f /usr/share/doc/greensql-fw/greensql-postgresql-db.txt $DATABASE $USER > /dev/null 2>&1
-    elif [ "$POSTGRES_LOCATION" = "remote" ]; then
-      $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT -f /usr/share/doc/greensql-fw/greensql-postgresql-db.txt $DATABASE $USER > /dev/null 2>&1
+    if [ ! -z "$MYSQL" ]; then
+      echo "Creating tables..."
+      cat /usr/share/doc/greensql-fw/greensql-mysql-db.txt |  $MYSQL $MUO -f $DATABASE > /dev/null 2>&1
+    else
+      echo "No mysql binary found. skipping tables creation..."
+    fi
+  elif [ $DBSETUP -ne 0 ] && [ "$SQL" = "postgresql" ] && [ ! -z $PSQL ]; then
+    if [ ! -z "$PSQL" ]; then
+      echo "Creating tables..."
+      if [ "$POSTGRES_LOCATION" = "local" ]; then
+        ## client tries to utilise 127.0.0.1 md5 in pg_hba.conf 
+        $PSQL -h 127.0.0.1 -f /usr/share/doc/greensql-fw/greensql-postgresql-db.txt $DATABASE $USER > /dev/null 2>&1
+      elif [ "$POSTGRES_LOCATION" = "remote" ]; then
+        $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT -f /usr/share/doc/greensql-fw/greensql-postgresql-db.txt $DATABASE $USER > /dev/null 2>&1
+      fi
+    else
+      echo "No psql binary found. skipping tables creation..."
     fi
   fi
 }
@@ -512,6 +553,7 @@ change_perms() {
 
 case "$1" in
   configure)
+    binaries
     create_user
     get_config
     create_cfgfile
