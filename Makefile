@@ -1,5 +1,6 @@
 MAINTAINER=stremovsky@gmail.com
 CPP=g++
+LBITS := $(shell getconf LONG_BIT)
 
 greensql-fw: 
 	rm -rf greensql-fw src/greensql-fw 
@@ -16,12 +17,26 @@ clean:
 install:
 	if ! test -d "greensql-console"; then if test -d "../greensql-console"; then cp -R ../greensql-console/ .; fi; fi
 	cp greensql-fw ${DESTDIR}/usr/sbin/greensql-fw
+
+ifeq ($(LBITS),64)
+	cp src/lib/libgsql-mysql.so.1 ${DESTDIR}/usr/lib64/libgsql-mysql.so.1
+	cp src/lib/libgsql-pgsql.so.1 ${DESTDIR}/usr/lib64/libgsql-pgsql.so.1
+	ln -sf /usr/lib64/libgsql-mysql.so.1 ${DESTDIR}/usr/lib64/libgsql-mysql.so
+	ln -sf /usr/lib64/libgsql-pgsql.so.1 ${DESTDIR}/usr/lib64/libgsql-pgsql.so
+	ln -sf /usr/lib64/libgsql-mysql.so.1 ${DESTDIR}/usr/lib/libgsql-mysql.so
+	ln -sf /usr/lib64/libgsql-pgsql.so.1 ${DESTDIR}/usr/lib/libgsql-pgsql.so
+else
 	cp src/lib/libgsql-mysql.so.1  ${DESTDIR}/usr/lib/libgsql-mysql.so.1
 	cp src/lib/libgsql-pgsql.so.1 ${DESTDIR}/usr/lib/libgsql-pgsql.so.1
+	ln -sf /usr/lib/libgsql-mysql.so.1 ${DESTDIR}/usr/lib/libgsql-mysql.so
+	ln -sf /usr/lib/libgsql-pgsql.so.1 ${DESTDIR}/usr/lib/libgsql-pgsql.so
+endif
+
+	mkdir -p ${DESTDIR}/etc/greensql/
 	cp scripts/greensql-create-db.sh ${DESTDIR}/usr/sbin/greensql-create-db
-	cp conf/greensql.conf ${DESTDIR}/etc/greensql/
-	cp conf/mysql.conf ${DESTDIR}/etc/greensql/
-	cp conf/pgsql.conf ${DESTDIR}/etc/greensql/
+	cp conf/greensql.conf ${DESTDIR}/etc/greensql/greensql.conf
+	cp conf/mysql.conf ${DESTDIR}/etc/greensql/mysql.conf
+	cp conf/pgsql.conf ${DESTDIR}/etc/greensql/pgsql.conf
 	touch ${DESTDIR}/var/log/greensql.log
 
 install-web:
