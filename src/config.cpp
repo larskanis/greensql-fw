@@ -17,30 +17,30 @@ GreenSQLConfig* GreenSQLConfig::_obj = NULL;
 
 GreenSQLConfig::GreenSQLConfig()
 {
-	init();
+    init();
 }
 
 GreenSQLConfig::~GreenSQLConfig()
 {
-	logevent(DEBUG, "config destructor\n");
+    logevent(DEBUG, "config destructor\n");
 }
 
 GreenSQLConfig* GreenSQLConfig::getInstance()
 {
-	if (_obj == NULL)
-	{
-		_obj = new GreenSQLConfig();
-		//_obj.load();
-	}
-	return _obj;
+    if (_obj == NULL)
+    {
+        _obj = new GreenSQLConfig();
+        //_obj.load();
+    }
+    return _obj;
 }
 void GreenSQLConfig::free()
 {
     if (_obj != NULL)
     {
-	    _obj->close_db();
-	    delete _obj;
-	    _obj = NULL;
+        _obj->close_db();
+        delete _obj;
+        _obj = NULL;
     }
 }
 
@@ -122,30 +122,29 @@ bool GreenSQLConfig::load(std::string & path)
                 return false;
             }
             section = line.substr(1, end_section-1);
-	    str_lowercase(section);
+            str_lowercase(section);
             continue;
         }
 
         // format:
-	// key=value
+        // key=value
         if (ParseConfLine(line, key, value) == false)
-	{
-            logevent(CRIT, "Failed to parse following configuration line: %s.\n",
-			    line.c_str());
-	    return false;
-	}
-	str_lowercase(key);
+        {
+            logevent(CRIT, "Failed to parse following configuration line: %s.\n", line.c_str());
+            return false;
+        }
+        str_lowercase(key);
+		
         if (section == "database")
         {
             parse_db_setting(key, value);
         } else if (section == "risk engine")
-	{
+        {
             parse_re_setting(key, value);
-	} else if (section == "logging")
-	{
-	    parse_log_setting(key, value);
-	}
-	
+        } else if (section == "logging")
+        {
+            parse_log_setting(key, value);
+        }
     }
     return true;
 }
@@ -237,7 +236,7 @@ bool GreenSQLConfig::parse_log_setting(std::string & key, std::string & value)
     {
         log_file = value;
     }
-    return true;	
+    return true;    
 }
 
 bool GreenSQLConfig::load_db()
