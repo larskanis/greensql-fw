@@ -121,7 +121,7 @@ install -m 0755 rpm/greensql-fw.suse.init $RPM_BUILD_ROOT/etc/init.d/greensql-fw
 
 /etc/init.d/greensql-fw
 
-%dir /etc/greensql/
+%dir %attr(0700, root, root) /etc/greensql/
 
 %post
 echo ""
@@ -131,14 +131,14 @@ echo ""
 ln -s /usr/sbin/greensql-create-db /usr/bin/greensql-create-db.sh > /dev/null 2>&1 || true
 
 %ifarch i686 || x86_64
-  ln -s /usr/lib64/libgsql-mysql.so.1 /usr/lib64/libgsql-mysql.so
-  ln -s /usr/lib64/libgsql-pgsql.so.1 /usr/lib64/libgsql-pgsql.so
+  ln -s /usr/lib64/libgsql-mysql.so.1 /usr/lib64/libgsql-mysql.so > /dev/null 2>&1 || true
+  ln -s /usr/lib64/libgsql-pgsql.so.1 /usr/lib64/libgsql-pgsql.so > /dev/null 2>&1 || true
 
-  ln -s /usr/lib64/libgsql-mysql.so.1 /usr/lib/libgsql-mysql.so
-  ln -s /usr/lib64/libgsql-pgsql.so.1 /usr/lib/libgsql-pgsql.so
+  ln -s /usr/lib64/libgsql-mysql.so.1 /usr/lib/libgsql-mysql.so > /dev/null 2>&1 || true
+  ln -s /usr/lib64/libgsql-pgsql.so.1 /usr/lib/libgsql-pgsql.so > /dev/null 2>&1 || true
 %else
-  ln -s /usr/lib/libgsql-mysql.so.1 /usr/lib/libgsql-mysql.so
-  ln -s /usr/lib/libgsql-pgsql.so.1 /usr/lib/libgsql-pgsql.so
+  ln -s /usr/lib/libgsql-mysql.so.1 /usr/lib/libgsql-mysql.so > /dev/null 2>&1 || true
+  ln -s /usr/lib/libgsql-pgsql.so.1 /usr/lib/libgsql-pgsql.so > /dev/null 2>&1 || true
 %endif
 
 /sbin/chkconfig --add greensql-fw  > /dev/null 2>&1 || true
@@ -162,25 +162,21 @@ rm -rf /usr/bin/greensql-create-db.sh
 %ifarch i686 || x86_64
   rm -rf /usr/lib64/libgsql-mysql.so
   rm -rf /usr/lib64/libgsql-pgsql.so
-  rm -rf /usr/lib64/libgsql-mysql.so.1
-  rm -rf /usr/lib64/libgsql-pgsql.so.1
   rm -rf /usr/lib/libgsql-mysql.so
   rm -rf /usr/lib/libgsql-pgsql.so
 %else
   rm -rf /usr/lib/libgsql-mysql.so
   rm -rf /usr/lib/libgsql-pgsql.so
-  rm -rf /usr/lib/libgsql-mysql.so.1
-  rm -rf /usr/lib/libgsql-pgsql.so.1
 %endif
 
 %postun
-chmod 0600 /var/log/greensql.log > /dev/null 2>&1
-chown root:root /var/log/greensql.log > /dev/null 2>&1
-chmod 0700 /etc/greensql > /dev/null 2>&1
-chown root:root /etc/greensql > /dev/null 2>&1
-/usr/sbin/userdel -f greensql > /dev/null 2>&1
-/usr/sbin/groupdel greensql > /dev/null 2>&1
-ldconfig
+chmod 0600 /var/log/greensql.log > /dev/null 2>&1 || true
+chown root:root /var/log/greensql.log > /dev/null 2>&1 || true
+chmod 0700 /etc/greensql > /dev/null 2>&1 || true
+chown root:root /etc/greensql > /dev/null 2>&1 || true
+/usr/sbin/userdel -f greensql > /dev/null 2>&1 || true
+/usr/sbin/groupdel greensql > /dev/null 2>&1 || true
+ldconfig || true
 true
 
 %changelog
