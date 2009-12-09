@@ -163,10 +163,10 @@ get_config() {
     MUO="-u ${USER} -p${PASSWD} -h ${MYSQL_HOST} "
   elif [ $SETUP -ne 0 ] && [ "$SQL" = "postgresql" ]
   then
-    MY_PGPASS=~/.pgpass
+    MY_PGPASS=/root/.pgpass
 
     if [ -f $MY_PGPASS ]; then
-      mv $MY_PGPASS ~/.pgpass-temp
+      mv $MY_PGPASS /root/.pgpass-temp
     fi
 
     touch $MY_PGPASS
@@ -199,8 +199,8 @@ cleanup() {
 
   if [ -n $MY_CNF ]; then rm -rf $MY_CNF; fi
 
-  if [ -f ~/.pgpass-temp ]; then
-    mv ~/.pgpass-temp ~/.pgpass
+  if [ -f /root/.pgpass-temp ]; then
+    mv /root/.pgpass-temp /root/.pgpass
   fi
 }
 
@@ -218,12 +218,14 @@ create_db() {
         echo "Dropping database..."
         if ! $MYSQLADMIN $MRO -f drop $DATABASE; then
           echo "failed to drop database $DATABASE"
+	  exit 0
         fi
       fi
 
       echo "Creating database $DATABASE..."
       if ! $MYSQLADMIN $MRO -f create $DATABASE; then
-      echo "failed to create database $DATABASE"
+        echo "failed to create database $DATABASE"
+        exit 0
       else
         DBSETUP="1"
       fi
@@ -234,15 +236,18 @@ create_db() {
       then
         if ! $MYSQL $MRO $DATABASE -f -e "GRANT ALL ON $DATABASE.* TO '${USER}'@'localhost' IDENTIFIED BY '${PASSWD}'"; then
           echo "failed to grant permissions"
+          exit 0
         fi
       else
         if ! $MYSQL $MRO $DATABASE -f -e "GRANT ALL ON $DATABASE.* TO ${USER}@'%' IDENTIFIED BY '${PASSWD}'"; then
           echo "failed to grant permissions"
+          exit 0
         fi
       fi
 
       if ! $MYSQL $MRO $DATABASE -f -e "flush privileges"; then
         echo "failed to flush privileges"
+        exit 0
       fi
     else
       if [ -z "$MYSQL" ]; then
@@ -260,6 +265,7 @@ create_db() {
             echo "Dropping database $DATABASE..."
             if ! su - postgres -c "$PSQL -c \"DROP DATABASE $DATABASE\""; then
               echo "failed to drop database $DATABASE"
+              exit 0
             fi
           fi
 
@@ -267,12 +273,14 @@ create_db() {
             echo "dropping user $USER"
             if ! su - postgres -c "$PSQL -c \"DROP USER $USER\""; then
               echo "failed to drop user $USER"
+              exit 0
             fi
           fi
 
           echo "Adding User $USER"
           if ! su - postgres -c "$PSQL -c \"CREATE USER $USER WITH PASSWORD '$PASSWD';\""; then
             echo "failed to create user $USER"
+            exit 0
           fi
 
           DBSETUP="0"
@@ -280,6 +288,7 @@ create_db() {
           echo "Creating database $DATABASE..."
           if ! su - postgres -c "$PSQL -c \"CREATE DATABASE $DATABASE OWNER $USER\""; then
             echo "failed to create database $DATABASE"
+            exit 0
           else
             DBSETUP="1"
           fi
@@ -287,6 +296,7 @@ create_db() {
           if $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "select * from pg_database where datname='$DATABASE';" | grep -q "$DATABASE"; then
             if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "DROP DATABASE $DATABASE"; then
               echo "failed to drop database $DATABASE"
+              exit 0
             fi
           fi
 
@@ -294,12 +304,14 @@ create_db() {
             echo "dropping user $USER"
             if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "DROP USER $USER;"; then
               echo "failed to drop user $USER"
+              exit 0
             fi
           fi
 
           echo "Adding User $USER"
           if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "CREATE USER $USER WITH PASSWORD '$PASSWD';"; then
             echo "failed to add user $USER"
+            exit 0
           fi 
 
           DBSETUP="0" 
@@ -307,6 +319,7 @@ create_db() {
           echo "Adding database $DATABASE..."
           if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "CREATE DATABASE $DATABASE OWNER $USER"; then
             echo "failed to add database $DATABASE"
+            exit 0
           else
             DBSETUP="1"
           fi
@@ -317,6 +330,7 @@ create_db() {
           echo "dropping database $DATABASE..."
           if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "DROP DATABASE $DATABASE"; then
             echo "failed to drop database $DATABASE"
+            exit 0
           fi
         fi
 
@@ -324,12 +338,14 @@ create_db() {
           echo "Dropping user $USER"
           if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "DROP USER $USER;"; then
             echo "failed to drop user $USER"
+            exit 0
           fi
         fi
 
         echo "Adding User $USER"
         if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "CREATE USER $USER WITH PASSWORD '$PASSWD';"; then
           echo "failed to add user $USER"
+          exit 0
         fi
 
         DBSETUP="0" 
@@ -337,6 +353,7 @@ create_db() {
         echo "Adding database $DATABASE..."
         if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "CREATE DATABASE $DATABASE OWNER $USER"; then
           echo "failed to create database $DATABASE"
+          exit 0
         else
           DBSETUP="1"
         fi
@@ -558,9 +575,9 @@ case "$1" in
     get_config
     create_cfgfile
     create_webfile
-    setup_sql
     change_perms
     ldconfig > /dev/null 2>&1
+    setup_sql
   ;;
   upgrade|abort-upgrade|abort-remove|abort-deconfigure)
   ;;
