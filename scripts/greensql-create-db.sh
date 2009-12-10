@@ -15,6 +15,9 @@ CONFWEB="/usr/share/greensql-fw/config.php"
 MY_CNF=""
 MRO=""
 
+ZCAT=`which zcat 2>/dev/null` || true
+GUNZIP=`which gunzip 2>/dev/null` || true
+
 PSQL=`which psql`
 if [ -z $PSQL ] && [ -d "/opt/PostgreSQL/" ]; then
   PSQL=`find /opt/PostgreSQL/*/bin -name psql | grep psql -m 1`
@@ -546,17 +549,50 @@ create_mysql_db()
 create_tables_mysql()
 {
   echo "Creating MySQL tables..."
-  cat $DOCDIR/greensql-mysql-db.txt |  $MYSQL $MRO -f $GREENSQL_DB_NAME > /dev/null 2>&1
+
+  MYSQL_SCRIPT="$DOCDIR/greensql-mysql-db.txt"
+
+  if [ -f "${MYSQL_SCRIPT}.gz" ]; then
+    if [ -f "${MYSQL_SCRIPT}" ]; then rm -rf ${MYSQL_SCRIPT}; fi
+
+    if [ ! -z $GUNZIP ]; then
+      $GUNZIP "${MYSQL_SCRIPT}.gz" > /dev/null 2>&1
+    elif [ ! -z $ZCAT ]; then
+      $ZCAT "${MYSQL_SCRIPT}.gz" > "${MYSQL_SCRIPT}"
+    else
+      echo "no gunzip or zcat installed."
+      echo "Aborting..."
+      exit 0
+    fi
+  fi
+
+  cat $MYSQL_SCRIPT |  $MYSQL $MRO -f $GREENSQL_DB_NAME > /dev/null 2>&1
 }
 
 create_tables_pgsql()
 {
   echo "Creating PgSQL tables..."
 
+  PGSQL_SCRIPT="$DOCDIR/greensql-postgresql-db.txt"
+
+  if [ -f "${PGSQL_SCRIPT}.gz" ]; then
+    if [ -f "${PGSQL_SCRIPT}" ]; then rm -rf ${PGSQL_SCRIPT}; fi
+
+    if [ ! -z $GUNZIP ]; then
+      $GUNZIP "${PGSQL_SCRIPT}.gz" > /dev/null 2>&1
+    elif [ ! -z $ZCAT ]; then
+      $ZCAT "${PGSQL_SCRIPT}.gz" > "${PGSQL_SCRIPT}"
+    else
+      echo "no gunzip or zcat installed."
+      echo "Aborting..."
+      exit 0
+    fi
+  fi
+
   if [ "$POSTGRES_LOCATION" = "local" ]; then
-    $PSQL -h 127.0.0.1 -f $DOCDIR/greensql-postgresql-db.txt $GREENSQL_DB_NAME $GREENSQL_DB_USER > /dev/null 2>&1
+    $PSQL -h 127.0.0.1 -f $PGSQL_SCRIPT $GREENSQL_DB_NAME $GREENSQL_DB_USER > /dev/null 2>&1
   elif [ "$POSTGRES_LOCATION" = "remote" ]; then
-    $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT -f $DOCDIR/greensql-postgresql-db.txt $GREENSQL_DB_NAME $GREENSQL_DB_USER > /dev/null 2>&1
+    $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT -f $PGSQL_SCRIPT $GREENSQL_DB_NAME $GREENSQL_DB_USER > /dev/null 2>&1
   fi
 }  
 

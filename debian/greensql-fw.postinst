@@ -13,6 +13,9 @@ CONFWEB='/usr/share/greensql-fw/config.php'
 
 binaries()
 {
+  ZCAT=`which zcat 2>/dev/null` || true
+  GUNZIP=`which gunzip 2>/dev/null` || true
+
   PSQL=`which psql` || true
   if [ -z $PSQL ] && [ -d /opt/PostgreSQL/ ]; then
     PSQL=`find /opt/PostgreSQL/*/bin -name psql | grep psql -m 1` || true
@@ -20,6 +23,7 @@ binaries()
 
   MYSQL=`which mysql` || true
   MYSQLADMIN=`which mysqladmin` || true
+
   echo " "
 
   if [ ! -z $MYSQL ]; then
@@ -35,6 +39,7 @@ binaries()
   fi
 
   echo " "
+
 }
 
 # Read the settings supplied by debconf.
@@ -371,19 +376,51 @@ create_tbls() {
 
   if [ $DBSETUP -ne 0 ] && [ "$SQL" = "mysql" ]; then
     if [ ! -z "$MYSQL" ]; then
+      MYSQL_SCRIPT="/usr/share/doc/greensql-fw/greensql-mysql-db.txt"
       echo "Creating tables..."
-      cat /usr/share/doc/greensql-fw/greensql-mysql-db.txt |  $MYSQL $MUO -f $DATABASE > /dev/null 2>&1
+
+      if [ -f "${MYSQL_SCRIPT}.gz" ]; then
+        if [ -f "${MYSQL_SCRIPT}" ]; then rm -rf ${MYSQL_SCRIPT}; fi
+
+        if [ ! -z $GUNZIP ]; then
+          $GUNZIP "${MYSQL_SCRIPT}.gz" > /dev/null 2>&1
+        elif [ ! -z $ZCAT ]; then
+          $ZCAT "${MYSQL_SCRIPT}.gz" > "${MYSQL_SCRIPT}"
+        else
+          echo "no gunzip or zcat installed."
+          echo "Aborting..."
+          exit 0
+        fi
+      fi
+
+      cat $MYSQL_SCRIPT |  $MYSQL $MUO -f $DATABASE > /dev/null 2>&1
     else
       echo "No mysql binary found. skipping tables creation..."
     fi
   elif [ $DBSETUP -ne 0 ] && [ "$SQL" = "postgresql" ] && [ ! -z $PSQL ]; then
     if [ ! -z "$PSQL" ]; then
+      PGSQL_SCRIPT="/usr/share/doc/greensql-fw/greensql-postgresql-db.txt"
       echo "Creating tables..."
+
+      if [ -f "${PGSQL_SCRIPT}.gz" ]; then
+        if [ -f "${PGSQL_SCRIPT}" ]; then rm -rf ${PGSQL_SCRIPT}; fi
+
+        if [ ! -z $GUNZIP ]; then
+          $GUNZIP "${PGSQL_SCRIPT}.gz" > /dev/null 2>&1
+        elif [ ! -z $ZCAT ]; then
+          $ZCAT "${PGSQL_SCRIPT}.gz" > "${PGSQL_SCRIPT}"
+        else
+          echo "no gunzip or zcat installed."
+          echo "Aborting..."
+          exit 0
+        fi
+      fi
+
       if [ "$POSTGRES_LOCATION" = "local" ]; then
         ## client tries to utilise 127.0.0.1 md5 in pg_hba.conf 
-        $PSQL -h 127.0.0.1 -f /usr/share/doc/greensql-fw/greensql-postgresql-db.txt $DATABASE $USER > /dev/null 2>&1
+        $PSQL -h 127.0.0.1 -f $PGSQL_SCRIPT $DATABASE $USER > /dev/null 2>&1
       elif [ "$POSTGRES_LOCATION" = "remote" ]; then
-        $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT -f /usr/share/doc/greensql-fw/greensql-postgresql-db.txt $DATABASE $USER > /dev/null 2>&1
+        $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT -f $PGSQL_SCRIPT $DATABASE $USER > /dev/null 2>&1
       fi
     else
       echo "No psql binary found. skipping tables creation..."
