@@ -5,7 +5,7 @@
 # License: GPL v2 (http://www.gnu.org/licenses/gpl.html)
 #
 
-VER=1.2.0
+VER=1.2.1
 SQL="mysql"
 GREENSQL_DB_USER="green"
 GREENSQL_DB_PWD="pwd"
@@ -79,7 +79,7 @@ if [ ! -z "$data_dir" ]; then
   if [ ! -f $hba_file ]; then
     echo "file doesnt exist: $hba_file"
   elif [ ! -r $hba_file ]; then
-    echo "failed to read file: $hba_file"
+    echo "Failed to read file: $hba_file"
   fi
 
   rule=`grep -E "^\W*local\W*all\W*all\W*ident" $hba_file` || true
@@ -402,7 +402,9 @@ create_pgsql_db()
       if [ "$SKIP_DB" = "0" ]; then
         if [ "$EXISTS_DB" = "1" ]; then
           if ! su - postgres -c "$PSQL -c \"DROP DATABASE $GREENSQL_DB_NAME\""; then
-            echo "failed to drop database $GREENSQL_DB_NAME"
+            echo "Failed to drop database $GREENSQL_DB_NAME"
+            echo "Aborting.."
+            exit 0
           fi
         fi
 
@@ -411,7 +413,9 @@ create_pgsql_db()
 
         echo "Adding database $GREENSQL_DB_NAME..."
         if ! su - postgres -c "$PSQL -c \"CREATE DATABASE $GREENSQL_DB_NAME OWNER $GREENSQL_DB_USER\""; then
-          echo "failed to create database $GREENSQL_DB_NAME"
+          echo "Failed to create database $GREENSQL_DB_NAME"
+          echo "Aborting.."
+          exit 0
         else 
           create_tables_pgsql
         fi
@@ -436,7 +440,9 @@ create_pgsql_db()
         if [ "$EXISTS_DB" = "1" ]; then
           echo "Dropping database $GREENSQL_DB_NAME..."
           if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ADMIN_USER -c "DROP DATABASE $GREENSQL_DB_NAME"; then
-            echo "failed to drop database $GREENSQL_DB_NAME"
+            echo "Failed to drop database $GREENSQL_DB_NAME"
+            echo "Aborting.."
+            exit 0
           fi
         fi
 
@@ -445,7 +451,9 @@ create_pgsql_db()
 
         echo "Adding database $GREENSQL_DB_NAME..."
         if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ADMIN_USER -c "CREATE DATABASE $GREENSQL_DB_NAME OWNER $GREENSQL_DB_USER"; then
-          echo "failed to create database $GREENSQL_DB_NAME"
+          echo "Failed to create database $GREENSQL_DB_NAME"
+          echo "Aborting.."
+          exit 0
         else
           create_tables_pgsql
         fi
@@ -473,7 +481,9 @@ create_pgsql_db()
       if [ "$EXISTS_DB" = "1" ]; then
         echo "Dropping database $GREENSQL_DB_NAME..."
         if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ADMIN_USER postgres -c "CREATE DATABASE $GREENSQL_DB_NAME OWNER $GREENSQL_DB_USER"; then
-          echo "failed to drop database $GREENSQL_DB_NAME"
+          echo "Failed to drop database $GREENSQL_DB_NAME"
+          echo "Aborting.."
+          exit 0
         fi
       fi
 
@@ -482,7 +492,9 @@ create_pgsql_db()
 
       echo "Adding database $GREENSQL_DB_NAME..."
       if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ADMIN_USER postgres -c "CREATE DATABASE $GREENSQL_DB_NAME OWNER $GREENSQL_DB_USER"; then
-        echo "failed to create database $GREENSQL_DB_NAME"
+        echo "Failed to create database $GREENSQL_DB_NAME"
+        echo "Aborting.."
+        exit 0
       else
         create_tables_pgsql
       fi
@@ -513,13 +525,17 @@ create_mysql_db()
     if [ "$EXISTS_DB" = "1" ]; then
       echo "dropping MySQL database $GREENSQL_DB_NAME..."
       if ! $MYSQLADMIN $MRO -f drop $GREENSQL_DB_NAME; then
-        echo "failed to drop database $GREENSQL_DB_NAME"
+        echo "Failed to drop database $GREENSQL_DB_NAME"
+        echo "Aborting.."
+        exit 0
       fi
     fi
 
     echo "Creating MySQL database..."
     if ! $MYSQLADMIN $MRO -f create $GREENSQL_DB_NAME; then
-      echo "failed to create database $GREENSQL_DB_NAME"
+      echo "Failed to create database $GREENSQL_DB_NAME"
+      echo "Aborting.."
+      exit 0
     fi
 
     create_user_mysql
@@ -571,11 +587,15 @@ create_user_mysql()
   if [ "$MYSQL_HOST" = "localhost" -o "$MYSQL_HOST" = "127.0.0.1" ]
   then
     if ! $MYSQL $MRO $GREENSQL_DB_NAME -f -e "GRANT ALL ON $GREENSQL_DB_NAME.* TO '$GREENSQL_DB_USER'@'localhost' IDENTIFIED BY '${GREENSQL_DB_PWD}'"; then
-      echo "failed to create user $GREENSQL_DB_USER"
+      echo "Failed to create user $GREENSQL_DB_USER"
+      echo "Aborting.."
+      exit 0
     fi
   else
    if ! $MYSQL $MRO $GREENSQL_DB_NAME -f -e "GRANT ALL ON $GREENSQL_DB_NAME.* TO '$GREENSQL_DB_USER'@'%' IDENTIFIED BY '${GREENSQL_DB_PWD}'"; then
-      echo "failed to create user $GREENSQL_DB_USER"
+      echo "Failed to create user $GREENSQL_DB_USER"
+      echo "Aborting.."
+      exit 0
    fi
   fi
 }
@@ -605,13 +625,17 @@ create_user_pgsql()
         if [ "$EXISTS_USER" = "1" ]; then
           echo "Dropping User $GREENSQL_DB_USER"
           if ! su - postgres -c "$PSQL -c \"DROP USER $GREENSQL_DB_USER\""; then
-            echo "failed to drop user $GREENSQL_DB_USER"
+            echo "Failed to drop user $GREENSQL_DB_USER"
+            echo "Aborting.."
+            exit 0
           fi
         fi
 
         echo "Adding User $GREENSQL_DB_USER"
         if ! su - postgres -c "$PSQL -c \"CREATE USER $GREENSQL_DB_USER WITH PASSWORD '$GREENSQL_DB_PWD';\""; then
-          echo "failed to create user $GREENSQL_DB_USER"
+          echo "Failed to create user $GREENSQL_DB_USER"
+          echo "Aborting.."
+          exit 0
         fi
       fi
     elif [ "$POSTGRES_AUTH" = "md5" ]; then
@@ -633,13 +657,17 @@ create_user_pgsql()
         if [ "$EXISTS_USER" = "1" ]; then
           echo "Dropping User $GREENSQL_DB_USER" 
           if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ADMIN_USER -c "DROP USER $GREENSQL_DB_USER;"; then
-            echo "failed to drop user $GREENSQL_DB_USER"
+            echo "Failed to drop user $GREENSQL_DB_USER"
+            echo "Aborting.."
+            exit 0
           fi
         fi
 
         echo "Adding User $GREENSQL_DB_USER"
         if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ADMIN_USER -c "CREATE USER $GREENSQL_DB_USER WITH PASSWORD '$GREENSQL_DB_PWD';"; then
-          echo "failed to create user $GREENSQL_DB_USER"
+          echo "Failed to create user $GREENSQL_DB_USER"
+          echo "Aborting.."
+          exit 0
         fi
       fi
     fi
@@ -662,12 +690,16 @@ create_user_pgsql()
       if [ "$EXISTS_USER" = "1" ]; then
         echo "Dropping User $GREENSQL_DB_USER"
         if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ADMIN_USER postgres -c "DROP USER $GREENSQL_DB_USER;"; then
-          echo "failed to drop user $GREENSQL_DB_USER"
+          echo "Failed to drop user $GREENSQL_DB_USER"
+          echo "Aborting.."
+          exit 0
         fi
 
         echo "Adding User $GREENSQL_DB_USER"
         if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ADMIN_USER postgres -c "CREATE USER $GREENSQL_DB_USER WITH PASSWORD '$GREENSQL_DB_PWD';"; then
-          echo "failed to create user $GREENSQL_DB_USER"
+          echo "Failed to create user $GREENSQL_DB_USER"
+          echo "Aborting.."
+          exit 0
         fi
       fi
     fi
