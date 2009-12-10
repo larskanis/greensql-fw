@@ -1,3 +1,9 @@
+greensql-fw (1.2.1) unstable; urgency=low
+
+  * Bug Fixes
+
+ -- Eli Shemer <eli.shemer@greensql.com>  Dec, 10 Tue 2009 10:10:00 +0300
+
 greensql-fw (1.2.0) unstable; urgency=low
 
   * New Version Released
