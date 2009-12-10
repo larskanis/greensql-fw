@@ -98,7 +98,8 @@ risk                smallint unsigned NOT NULL default '0',
 block               smallint unsigned NOT NULL default '0',
 dbuser              varchar(50) NULL default '',
 query               text NOT NULL,
-reason              text NOT NULL
+reason              text NOT NULL,
+INDEX (agroupid)
 ) DEFAULT CHARSET=utf8;
 
 drop table if exists alert_group;

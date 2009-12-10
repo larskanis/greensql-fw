@@ -77,6 +77,8 @@ query               text NOT NULL,
 reason              text NOT NULL
 );
 
+CREATE INDEX alert_agroupid_idx on alert(agroupid);
+
 drop table if exists alert_group;
 CREATE table alert_group
 (
