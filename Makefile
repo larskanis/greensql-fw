@@ -42,5 +42,6 @@ endif
 
 install-web:
 	cp conf/greensql-apache.conf ${DESTDIR}/etc/greensql/
+	mkdir -p ${DESTDIR}/usr/share/greensql-fw/
 	if test -d "../greensql-console"; then cp -R ../greensql-console/* ${DESTDIR}/usr/share/greensql-fw/; fi 
 	if test -d "greensql-console"; then cp -R greensql-console/* ${DESTDIR}/usr/share/greensql-fw/; fi
