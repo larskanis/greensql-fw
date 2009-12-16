@@ -196,7 +196,7 @@ mysql_config()
   MYSQL_HOST="127.0.0.1"
   MYSQL_PORT="3306"
   MYSQL_ADMIN_USER="root"
-  MYSQL_ADMIN_PWD="pwd"
+  MYSQL_ADMIN_PWD=""
 
   echo -n "MySQL server address [$MYSQL_HOST]: "
   read cont
@@ -360,7 +360,7 @@ create_mysql_config()
         host=${MYSQL_HOST}
         port=${MYSQL_PORT}
         user=${MYSQL_ADMIN_USER}" > $MY_CNF
-  if [ "${MYSQL_ADMIN_PWD}" != "none" ]; then
+  if [ "${MYSQL_ADMIN_PWD}" != "" ]; then
     echo "password=${MYSQL_ADMIN_PWD}" >> $MY_CNF
   fi
   MRO="--defaults-file=$MY_CNF"
