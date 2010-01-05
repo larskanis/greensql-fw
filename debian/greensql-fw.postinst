@@ -53,41 +53,6 @@ get_config() {
   # * localhost => socket, 127.0.0.1 => TCP/IP
   #   This is the default MySQL behaviour, but many people aren't used
   #   to it. So this has to be documented somewhere.
-  db_get greensql/choice || true
-
-  CHOICE=$RET
-
-  if [ "$CHOICE" = "web" ]; then
-        if [ -f /usr/sbin/greensql-fw ]; then
-          rm /usr/sbin/greensql-fw
-        fi
- 
-        if [ -f /usr/sbin/greensql-create-db ]; then
-  	      rm /usr/sbin/greensql-create-db
-        fi
-
-        if [ -f /usr/bin/greensql-create-db.sh ]; then
-          rm /usr/bin/greensql-create-db.sh    
-        fi 
-
-        if [ -f /etc/greensql/mysql.conf ]; then
-          rm /etc/greensql/mysql.conf
-        fi
-
-        if [ -f /var/log/greensql.log ]; then
-          rm /var/log/greensql.log
-        fi
-  fi
-
-  if [ "$CHOICE" = "firewall" ]; then
-        if [ -d /usr/share/greensql-fw ]; then
-          rm -rf /usr/share/greensql-fw
-        fi
-
-	if [ -f /etc/greensql/greensql-apache.conf ]; then
-	  rm /etc/greensql/greensql-apache.conf
-	fi
-  fi
 
   db_get greensql/sql_choice || true
   SQL="$RET"
@@ -207,6 +172,7 @@ cleanup() {
   if [ -f /root/.pgpass-temp ]; then
     mv /root/.pgpass-temp /root/.pgpass
   fi
+
 }
 
 create_db() {
@@ -222,14 +188,18 @@ create_db() {
       if $MYSQL $MRO -BNe 'show databases' | grep -q -E "^$DATABASE\$"; then
         echo "Dropping database..."
         if ! $MYSQLADMIN $MRO -f drop $DATABASE; then
-          echo "failed to drop database $DATABASE"
+          echo "Failed to drop database $DATABASE"
+          echo " "
+	  echo "run dpkg-reconfigure greensql-fw to change the settings"
 	  exit 0
         fi
       fi
 
       echo "Creating database $DATABASE..."
       if ! $MYSQLADMIN $MRO -f create $DATABASE; then
-        echo "failed to create database $DATABASE"
+        echo "Failed to create database $DATABASE"
+        echo " "
+        echo "run dpkg-reconfigure greensql-fw to change the settings"
         exit 0
       else
         DBSETUP="1"
@@ -240,18 +210,24 @@ create_db() {
       if [ "$MYSQL_HOST" = "localhost" -o "$MYSQL_HOST" = "127.0.0.1" ]
       then
         if ! $MYSQL $MRO $DATABASE -f -e "GRANT ALL ON $DATABASE.* TO '${USER}'@'localhost' IDENTIFIED BY '${PASSWD}'"; then
-          echo "failed to grant permissions"
+          echo "Failed to grant permissions"
+          echo " "
+          echo "run dpkg-reconfigure greensql-fw to change the settings"
           exit 0
         fi
       else
         if ! $MYSQL $MRO $DATABASE -f -e "GRANT ALL ON $DATABASE.* TO ${USER}@'%' IDENTIFIED BY '${PASSWD}'"; then
-          echo "failed to grant permissions"
+          echo "Failed to grant permissions"
+          echo " "
+          echo "run dpkg-reconfigure greensql-fw to change the settings"
           exit 0
         fi
       fi
 
       if ! $MYSQL $MRO $DATABASE -f -e "flush privileges"; then
-        echo "failed to flush privileges"
+        echo "Failed to flush privileges"
+        echo " "
+        echo "run dpkg-reconfigure greensql-fw to change the settings"
         exit 0
       fi
     else
@@ -269,7 +245,9 @@ create_db() {
           if su - postgres -c "$PSQL -c \"select * from pg_database where datname='$DATABASE';\" | grep -q \"$DATABASE\""; then
             echo "Dropping database $DATABASE..."
             if ! su - postgres -c "$PSQL -c \"DROP DATABASE $DATABASE\""; then
-              echo "failed to drop database $DATABASE"
+              echo "Failed to drop database $DATABASE"
+              echo " "
+              echo "run dpkg-reconfigure greensql-fw to change the settings"
               exit 0
             fi
           fi
@@ -277,14 +255,18 @@ create_db() {
           if su - postgres -c "$PSQL -c \"select * from pg_roles where rolname='$USER';\" | grep -q \"$USER\""; then
             echo "dropping user $USER"
             if ! su - postgres -c "$PSQL -c \"DROP USER $USER\""; then
-              echo "failed to drop user $USER"
+              echo "Failed to drop user $USER"
+              echo " "
+              echo "run dpkg-reconfigure greensql-fw to change the settings"
               exit 0
             fi
           fi
 
           echo "Adding User $USER"
           if ! su - postgres -c "$PSQL -c \"CREATE USER $USER WITH PASSWORD '$PASSWD';\""; then
-            echo "failed to create user $USER"
+            echo "Failed to create user $USER"
+            echo " "
+            echo "run dpkg-reconfigure greensql-fw to change the settings"
             exit 0
           fi
 
@@ -292,7 +274,9 @@ create_db() {
 
           echo "Creating database $DATABASE..."
           if ! su - postgres -c "$PSQL -c \"CREATE DATABASE $DATABASE OWNER $USER\""; then
-            echo "failed to create database $DATABASE"
+            echo "Failed to create database $DATABASE"
+            echo " "
+            echo "run dpkg-reconfigure greensql-fw to change the settings"
             exit 0
           else
             DBSETUP="1"
@@ -300,7 +284,9 @@ create_db() {
         elif [ "$POSTGRES_AUTH" = "md5" ]; then
           if $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "select * from pg_database where datname='$DATABASE';" | grep -q "$DATABASE"; then
             if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "DROP DATABASE $DATABASE"; then
-              echo "failed to drop database $DATABASE"
+              echo "Failed to drop database $DATABASE"
+              echo " "
+              echo "run dpkg-reconfigure greensql-fw to change the settings"
               exit 0
             fi
           fi
@@ -308,14 +294,18 @@ create_db() {
           if $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "select * from pg_roles where rolname='$USER';" | grep -q "$USER"; then
             echo "dropping user $USER"
             if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "DROP USER $USER;"; then
-              echo "failed to drop user $USER"
+              echo "Failed to drop user $USER"
+              echo " "
+              echo "run dpkg-reconfigure greensql-fw to change the settings"
               exit 0
             fi
           fi
 
           echo "Adding User $USER"
           if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "CREATE USER $USER WITH PASSWORD '$PASSWD';"; then
-            echo "failed to add user $USER"
+            echo "Failed to add user $USER"
+            echo " "
+            echo "run dpkg-reconfigure greensql-fw to change the settings"
             exit 0
           fi 
 
@@ -323,7 +313,9 @@ create_db() {
 
           echo "Adding database $DATABASE..."
           if ! $PSQL -h 127.0.0.1 postgres $POSTGRES_ROOT_USER -c "CREATE DATABASE $DATABASE OWNER $USER"; then
-            echo "failed to add database $DATABASE"
+            echo "Failed to add database $DATABASE"
+            echo " "
+            echo "run dpkg-reconfigure greensql-fw to change the settings"
             exit 0
           else
             DBSETUP="1"
@@ -334,7 +326,9 @@ create_db() {
         if $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "select * from pg_database where datname='$DATABASE';" | grep -q "$DATABASE"; then
           echo "dropping database $DATABASE..."
           if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "DROP DATABASE $DATABASE"; then
-            echo "failed to drop database $DATABASE"
+            echo "Failed to drop database $DATABASE"
+            echo " "
+            echo "run dpkg-reconfigure greensql-fw to change the settings"
             exit 0
           fi
         fi
@@ -342,14 +336,18 @@ create_db() {
         if $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "select * from pg_roles where rolname='$USER';" | grep -q "$USER"; then
           echo "Dropping user $USER"
           if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "DROP USER $USER;"; then
-            echo "failed to drop user $USER"
+            echo "Failed to drop user $USER"
+            echo " "
+            echo "run dpkg-reconfigure greensql-fw to change the settings"
             exit 0
           fi
         fi
 
         echo "Adding User $USER"
         if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "CREATE USER $USER WITH PASSWORD '$PASSWD';"; then
-          echo "failed to add user $USER"
+          echo "Failed to add user $USER"
+          echo " "
+          echo "run dpkg-reconfigure greensql-fw to change the settings"
           exit 0
         fi
 
@@ -357,7 +355,9 @@ create_db() {
 
         echo "Adding database $DATABASE..."
         if ! $PSQL -h $POSTGRES_HOST -p $POSTGRES_PORT $POSTGRES_ROOT_USER postgres -c "CREATE DATABASE $DATABASE OWNER $USER"; then
-          echo "failed to create database $DATABASE"
+          echo "Failed to create database $DATABASE"
+          echo " "
+          echo "run dpkg-reconfigure greensql-fw to change the settings"
           exit 0
         else
           DBSETUP="1"
@@ -595,12 +595,7 @@ create_user() {
 change_perms() {
   #echo "changeperms"
 
-  if [ "$CHOICE" = "both" ] || [ "$CHOICE" = "firewall" ] 
-  then
-    chown greensql:greensql /var/log/greensql.log
-  fi
-
-  #chmod 0600 /var/log/greensql.log
+  chown greensql:greensql /var/log/greensql.log
   chown greensql:greensql -R /etc/greensql
   chmod 0600 $CONF
 }
@@ -608,13 +603,16 @@ change_perms() {
 case "$1" in
   configure)
     binaries
-    create_user
     get_config
+
+    create_user
     create_cfgfile
-    create_webfile
     change_perms
+    create_webfile
+
     ldconfig > /dev/null 2>&1
     setup_sql
+    cleanup
   ;;
   upgrade|abort-upgrade|abort-remove|abort-deconfigure)
   ;;
@@ -623,8 +621,7 @@ case "$1" in
   ;;
 esac
 
-cleanup
-
 #DEBHELPER#
 
 # vim:set et ts=2:
+
