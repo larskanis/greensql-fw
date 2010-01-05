@@ -55,7 +55,8 @@ public:
     bool ProxyReInit(int proxyId, std::string & proxyIp, 
 		    int proxyPort, std::string & bIp, int bPort,
 		    std::string & dbType);
-    bool ServerInitialized();	
+    bool ServerInitialized();
+    bool HasActiveConnections();
     bool PrepareNewConn(int, int &, int &);
     virtual void Server_cb(int fd, short which, void * arg, 
     		Connection *, int, int);
@@ -67,7 +68,7 @@ public:
     //void ProxyValidateServerResponse(Connection*);
     
     void Close();
-
+    void CloseServer();
     std::list<Connection*> v_conn;
     struct event serverEvent;
 

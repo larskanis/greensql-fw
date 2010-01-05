@@ -46,8 +46,8 @@ public:
                  drop_perm(false),
                  alter_perm(false),
                  info_perm(false),
-		 block_q_perm(false),
-		 bruteforce_perm(false),
+                 block_q_perm(false),
+                 bruteforce_perm(false),
                  block_status(RISK_BLOCK),
                  db_name("default"),
                  proxy_id(0)
@@ -56,7 +56,7 @@ public:
     ~DBPermObj();
 
     void Init(std::string name, unsigned int id, long long perms,
-		    long long perms2, unsigned int status);
+            long long perms2, unsigned int status);
     
     bool LoadWhitelist();
     int CheckWhitelist(std::string & q);
@@ -68,27 +68,27 @@ public:
     }
     bool CanDrop()
     {
-	    return drop_perm;
+        return drop_perm;
     }
     bool CanAlter()
     {
-	    return alter_perm;
+        return alter_perm;
     }
     bool CanGetInfo()
     {
-	    return info_perm;
+        return info_perm;
     }
     bool CanBlockQueries()
     {
-	    return block_q_perm;
+        return block_q_perm;
     }
     DBBlockStatus GetBlockStatus()
     {
-	    return block_status;
+        return block_status;
     }
     long long GetPerms()
     {
-            return perms;
+        return perms;
     }
 private: 
     long long perms;

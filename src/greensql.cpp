@@ -376,13 +376,19 @@ bool GreenSQL::ProxyReInit(int proxyId, std::string & proxyIp, int proxyPort,
     return ProxyInit(proxyId, proxyIp, proxyPort, backendIp, backendPort, dbType);
 }
 
-// this function return true is server socket is established
+// this function returns true is server socket is established
 bool GreenSQL::ServerInitialized()
 {
     if (serverEvent.ev_fd != 0 && serverEvent.ev_fd != -1 && 
         serverEvent.ev_flags & EVLIST_INIT)
         return true;
     return false;
+}
+
+// this function returns true of we have open active connections
+bool GreenSQL::HasActiveConnections()
+{
+    return (v_conn.size() > 0) ? true : false;
 }
 
 void Proxy_cb(int fd, short which, void * arg)
@@ -635,14 +641,19 @@ void GreenSQL::Close()
     }
     v_conn.clear();
 
+    CloseServer();
+    //logevent(NET_DEBUG, "Closing proxy object\n");
+}
+
+void GreenSQL::CloseServer()
+{
     if (ServerInitialized())
     {
         socket_close(serverEvent.ev_fd);
         event_del(&serverEvent);
         serverEvent.ev_fd = 0;
     }
-
-    //logevent(NET_DEBUG, "Closing proxy object\n");
+    return;
 }
 
 void CloseConnection(Connection * conn)
