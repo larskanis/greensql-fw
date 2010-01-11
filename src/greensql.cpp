@@ -189,7 +189,7 @@ int GreenSQL::socket_accept(int serverfd)
     if ((sfd = (int)accept(serverfd, &addr, &addrlen)) == -1) {
     #ifdef WIN32
         int err = WSAGetLastError();
-        if (err == WSAEINTR ||err == WSAEWOULDBLOCK|| err == WSAEINPROGRESS ) {
+        if (err == WSAEINTR || err == WSAEWOULDBLOCK || err == WSAEINPROGRESS ) {
             return sfd;
         } else if (err == WSAEMFILE) {
             logevent(NET_DEBUG, "[%d] Failed to accept client socket, too many open sockets\n", serverfd);
@@ -247,7 +247,7 @@ bool socket_read(int fd, char * data, int & size)
 #ifdef WIN32
         int err = WSAGetLastError();
         logevent(NET_DEBUG, "[%d] Socket read error %d\n", fd, err);
-        if (err == WSAEINTR ||err == WSAEWOULDBLOCK|| err == WSAEINPROGRESS ) {
+        if (err == WSAEINTR || err == WSAEWOULDBLOCK || err == WSAEINPROGRESS ) {
             return true;
         }
 #else
@@ -275,7 +275,7 @@ bool socket_write(int fd, const char* data, int & size)
 #ifdef WIN32
         int err = WSAGetLastError();
         logevent(NET_DEBUG, "[%d] Socket write error %d\n", fd, err);
-        if (err == WSAEINTR ||err == WSAEWOULDBLOCK|| err == WSAEINPROGRESS ) {
+        if (err == WSAEINTR || err == WSAEWOULDBLOCK || err == WSAEINPROGRESS ) {
             size = 0;
             return true;
         }
@@ -376,7 +376,7 @@ bool GreenSQL::ProxyReInit(int proxyId, std::string & proxyIp, int proxyPort,
     return ProxyInit(proxyId, proxyIp, proxyPort, backendIp, backendPort, dbType);
 }
 
-// this function returns true is server socket is established
+// this function returns true if server socket is established
 bool GreenSQL::ServerInitialized()
 {
     if (serverEvent.ev_fd != 0 && serverEvent.ev_fd != -1 && 
@@ -453,7 +453,7 @@ bool Proxy_write_cb(int fd, Connection * conn)
 
     if (socket_write(fd, (const char * )data, len) == true)
     {
-        logevent(NET_DEBUG, "Send data to client\n");
+        logevent(NET_DEBUG, "Send data to client, size: %d\n",len);
         conn->response_out.chop_back(len);
     } else {
         logevent(NET_DEBUG, "[%d] Failed to send, closing socket\n", fd);

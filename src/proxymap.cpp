@@ -33,6 +33,7 @@ void wrap_Server(int fd, short which, void * arg)
  
     if(cls == NULL)
         return;
+
     if (conf->bRunning == false)
     {
         cls->Close();
@@ -63,13 +64,13 @@ void wrap_Proxy(int fd, short which, void * arg)
 
     if (conf->bRunning == false)
     {
-      GreenSQL * cls = proxies[proxy_id];
-      if (cls)
-        cls->Close();
+        GreenSQL * cls = proxies[proxy_id];
+        if (cls)
+            cls->Close();
     }
     else
     {
-      Proxy_cb(fd, which, arg);
+        Proxy_cb(fd, which, arg);
     }
 
 }
@@ -86,19 +87,17 @@ void wrap_Backend(int fd, short which, void * arg)
 
     if (conf->bRunning == false)
     {
-      GreenSQL * cls = proxies[proxy_id];
-      if (cls)
-      {
-        cls->Close();
-      }
+        GreenSQL * cls = proxies[proxy_id];
+        if (cls)
+        {
+            cls->Close();
+        }
     }
     else
     {
-      Backend_cb(fd, which, arg);
+        Backend_cb(fd, which, arg);
     }
-
 }
-
 
 bool proxymap_init()
 {
@@ -122,6 +121,7 @@ bool proxymap_close()
         delete cls;
         proxies.erase(iter);
     }
+
     return true;
 }
 
@@ -147,7 +147,7 @@ bool proxymap_reload()
     proxyIP = "127.0.0.1";
     proxyPort = 3305;
 
-    /* read new urls from the database */
+    /* initalize new or alter existing connections */
     if (! db_query(&db,q_proxy,256)) {
         logevent(STORAGE,"DB config erorr: %s\n",db_error());
         db_cleanup(&db);
@@ -169,10 +169,10 @@ bool proxymap_reload()
 
         if (itr == proxies.end())
         {
+            /** proxy doesnt exist in memory so create a new one **/
             cls = new GreenSQL();
 
-            bool ret = cls->ProxyInit(proxy_id, proxyIP, proxyPort, 
-                backendIP, backendPort, dbType);
+            bool ret = cls->ProxyInit(proxy_id, proxyIP, proxyPort, backendIP, backendPort, dbType);
             if (ret == false)
             {
                 // failed to init proxy
@@ -184,34 +184,36 @@ bool proxymap_reload()
                 proxies[proxy_id] = cls;
                 new_proxies[proxy_id] = cls;
             }
-            continue; 
+            continue;
         }
 
         // found proxy object
         cls = itr->second;
         new_proxies[proxy_id] = cls;
 
-        // check if db settings has been changed
+        // check whether the proxy details were altered
         if (cls->sProxyIP != proxyIP || cls->iProxyPort != proxyPort || cls->sDBType != dbType)
         {
-            ret = cls->ProxyReInit(proxy_id, proxyIP, proxyPort,
-                                   backendIP, backendPort, dbType);
+            ret = cls->ProxyReInit(proxy_id, proxyIP, proxyPort, backendIP, backendPort, dbType);
             if (ret == false)
             {
                 proxymap_set_db_status(proxy_id, 2);
             } else {
                 proxymap_set_db_status(proxy_id, 1);
             }
-
             continue;
+			
         } else if (cls->sBackendIP != backendIP ||
                    cls->iBackendPort != backendPort)
         {
-            // may be backend ip has been changed
+            /**
+              check maybe only the proxy backend details were altered
+              in that case only updating the data in memory is required for when someone tries to connect
+            **/
             cls->sBackendIP = backendIP;
             cls->iBackendPort = backendPort;
         }
-    }
+    } /** EOF while **/
 
     if (cls == NULL)
     {
@@ -219,6 +221,7 @@ bool proxymap_reload()
         db_cleanup(&db);
         return false;
     }
+
     if (cls->ServerInitialized() == true)
     {
         proxymap_set_db_status(proxy_id, 1);
@@ -238,31 +241,33 @@ bool proxymap_reload()
     db_cleanup(&db);  
 
     /* go over a list of proxies and check if it was deleted from db */
-    if (new_proxies.size() != proxies.size())
+    if (new_proxies.size() == proxies.size())
+        return true;
+
+	/* new_proxies.size() != proxies.size() */
+
+    logevent(DEBUG, "We have deleted proxies\n");
+    for (itr = proxies.begin(); itr != proxies.end() && new_proxies.size() != proxies.size(); itr++)
     {
-        logevent(DEBUG, "We have deleted proxies\n");
-        for (itr = proxies.begin(); itr != proxies.end() && new_proxies.size() != proxies.size(); itr++)
+        if (new_proxies[itr->first] == NULL)
         {
-          if (new_proxies[itr->first] == NULL)
-          {
-              // found proxy object to delete
-              cls = itr->second;
-              if (cls->HasActiveConnections() == true)
-              {
-                  // close server listener socker only
-                  logevent(DEBUG, "Closing proxy socket\n");
-                  cls->CloseServer();
-              } else {
-                  //  completly close this object
-                  logevent(DEBUG, "Removing proxy object\n");
-                  cls->Close();
-                  delete cls;
-                  proxies.erase(itr);
-              }
-          }
+            // found proxy object to delete
+            cls = itr->second;
+            if (cls->HasActiveConnections() == true)
+            {
+                // close server listener socker only
+                logevent(DEBUG, "Closing proxy socket\n");
+                cls->CloseServer();
+            } else {
+                //  completly close this object
+                logevent(DEBUG, "Removing proxy object\n");
+                cls->Close();
+                delete cls;
+                proxies.erase(itr);
+            }
         }
     }
-    
+
     return true;
 }
 
@@ -271,7 +276,8 @@ bool proxymap_reload()
  *  0 - reload
  *  1 - good
  *  2 - failed to load
- *
+ *  3 - disabled
+ *  4 - during proxymap_reload
  */
 
 bool proxymap_set_db_status(unsigned int proxy_id, int status )
