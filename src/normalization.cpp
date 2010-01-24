@@ -14,7 +14,9 @@ static bool removeHashComment(std::string & query);
 static bool removeDashComment(std::string & query);
 static bool removeCppComment(std::string & query);
 static unsigned int lookForChar(std::string & query, int start, char delimeter);
-
+//SQL spaces: ' ',\t,\n,\v,\f\r
+//MySQL has additional space 0xA0
+#define sql_space(a)	(a == 0x20 || a == 0xA0 || (a > 0x08 && a < 0x0E))
 /*
  * The following function is used to perform the following changes:
  * quoted text is changed to '?'
@@ -55,12 +57,9 @@ bool removeSpaces(std::string & query)
 
     for (i = 0; i < query.size(); i++)
     {
-        if (query[i] == '\r' || query[i] == '\n' || 
-            query[i] == '\t' || query[i] == ' ')
+        if (sql_space(query[i]))
         {
-            for (j=i+1; j < query.size() &&
-                 (query[j] == '\r' || query[j] == '\n' ||
-                 query[j] == '\t' || query[j] == ' '); j++)
+            for (j=i+1; j < query.size() && sql_space(query[j]); j++)
             {
                     ;
             }
@@ -71,6 +70,7 @@ bool removeSpaces(std::string & query)
             }
         }
     }
+    // remove space before the following chars: ',' and ')'
     for (i = 0; i <= query.size() -1; i++)
     {
         if (query[i] == ' ' &&
@@ -212,7 +212,7 @@ static bool removeNumbers(std::string & query)
     for (i = 1; i < query.size(); i++)
     {
         if ((query[i-1] == ',' || query[i-1] == '!' ||
-             query[i-1] == '(' || query[i-1] == ' ' ||
+             query[i-1] == '(' || sql_space(query[i-1]) ||
              query[i-1] == '+' || query[i-1] == '-' ||
              query[i-1] == '*' || query[i-1] == '/' ||
              query[i-1] == '=' || query[i-1] == '~' ||
@@ -330,7 +330,7 @@ static bool fixNegativeNumbers(std::string & query)
         }
         if ( next > query.size()-3)
             return true;
-        if ( query[next+1] == '-' && query[next+2] == ' ' && 
+        if ( query[next+1] == '-' && sql_space(query[next+2]) && 
             query[next+3] == '?')
         {
             if (last_token == "select " || last_token == "where " ||
