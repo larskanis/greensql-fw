@@ -1,3 +1,9 @@
+greensql-fw (1.2.2) unstable; urgency=low
+
+  * Bug Fixes
+
+ -- Yuli Stremovsky <stremovsky@gmail.com> Jan, 25 Mon 2010 10:10:00 +0300
+
 greensql-fw (1.2.1) unstable; urgency=low
 
   * Bug Fixes
