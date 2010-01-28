@@ -14,10 +14,6 @@
 
 #include <string.h>
 
-#ifdef WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#else
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <fcntl.h>
@@ -25,7 +21,6 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <errno.h>
-#endif
 
 static const int min_buf_size = 10240;
 
@@ -221,7 +216,7 @@ int GreenSQL::socket_accept(int serverfd)
     int flags;
     if ((flags = fcntl(sfd, F_GETFL, 0)) < 0 ||
          fcntl(sfd, F_SETFL, flags | O_NONBLOCK) < 0) {
-        logevent(NET_DEBUG, "[%d] Failed to swith socket to non-blocking mode\n", sfd); 
+        logevent(NET_DEBUG, "[%d] Failed to swith socket to non-blocking mode\n", sfd);
         socket_close(sfd);
         return -1;
     }
@@ -417,7 +412,7 @@ void Proxy_cb(int fd, short which, void * arg)
         CloseConnection(conn);
         return;
     }
-    
+    logevent(NET_DEBUG, "[%d] proxy socket read %d bytes\n", fd,len);
     if ( len > 0 )
     {
         data[len] = '\0';
@@ -431,20 +426,24 @@ void Proxy_cb(int fd, short which, void * arg)
         }
     }
 }
-
+void clear_init_event(Connection * conn, int fd, short flags, pt2Func func, void * params,bool proxy)
+{
+    struct event *connection = proxy? &conn->proxy_event : &conn->backend_event;
+    event_del( connection);
+    event_set( connection, fd, flags,
+        func, (void *)conn);
+    event_add( connection, 0);
+}
 bool Proxy_write_cb(int fd, Connection * conn)
 {
     int len = conn->response_out.size();
-
+    logevent(NET_DEBUG, "[%d] proxy socket write %d bytes\n", fd,len);
     if (len == 0)
     {
         if (conn->proxy_event.ev_flags & EV_WRITE)
         {
             //we can clear the WRITE event flag
-            event_del( &conn->proxy_event);
-            event_set( &conn->proxy_event, fd, EV_READ | EV_PERSIST,
-                       wrap_Proxy, (void *)conn);
-            event_add( &conn->proxy_event, 0);
+            clear_init_event(conn,fd,EV_READ | EV_PERSIST,wrap_Proxy,(void *)conn);
         }
         return true;
     }
@@ -465,18 +464,12 @@ bool Proxy_write_cb(int fd, Connection * conn)
         conn->proxy_event.ev_flags & EV_WRITE)
     {
         //we can clear the WRITE event flag
-        event_del( &conn->proxy_event);
-        event_set( &conn->proxy_event, fd, EV_READ | EV_PERSIST, 
-                   wrap_Proxy, (void *)conn);
-        event_add( &conn->proxy_event, 0);
+        clear_init_event(conn,fd,EV_READ|EV_PERSIST,wrap_Proxy,(void *)conn);
     } else if (conn->response_out.size() > 0 &&
         !(conn->proxy_event.ev_flags & EV_WRITE))
     {
         // we need to enable WRITE event flag
-        event_del( &conn->proxy_event);
-        event_set( &conn->proxy_event, fd, EV_READ | EV_WRITE | EV_PERSIST,
-                   wrap_Proxy, (void *)conn);
-        event_add( &conn->proxy_event, 0);
+        clear_init_event(conn,fd,EV_READ|EV_WRITE|EV_PERSIST,wrap_Proxy,(void *)conn);
     }
     return true;
 }
@@ -567,18 +560,12 @@ bool Backend_write_cb(int fd, Connection * conn)
     //we are real server client.
     int len = conn->request_out.size();
 
-    if (len == 0)
-    {
-        if (conn->backend_event.ev_flags & EV_WRITE)
-        {
-            //we can clear the WRITE event flag
-            event_del( &conn->backend_event);
-            event_set( &conn->backend_event, fd, EV_READ | EV_PERSIST, 
-                       wrap_Backend, (void *)conn);
-            event_add( &conn->backend_event, 0);
-        }
-        return true;   
-    }
+     if (len == 0)
+     {
+         logevent(NET_DEBUG, "[%d] backend socket write %d bytes\n", fd,len);
+        clear_init_event(conn,fd,EV_READ | EV_PERSIST,wrap_Backend,(void *)conn,false);
+        return true;
+     }
     const unsigned char * data = conn->request_out.raw();
 
     if (socket_write(fd, (const char *)data, len) == true)
@@ -594,18 +581,12 @@ bool Backend_write_cb(int fd, Connection * conn)
         conn->backend_event.ev_flags & EV_WRITE)
     {
         //we can clear the WRITE event flag
-        event_del( &conn->backend_event);
-        event_set( &conn->backend_event, fd, EV_READ | EV_PERSIST, 
-                   wrap_Backend, (void *)conn);
-        event_add( &conn->backend_event, 0);
+        clear_init_event(conn,fd,EV_READ | EV_PERSIST,wrap_Backend,(void *)conn,false);
     } else if (conn->request_out.size() > 0 && 
         !(conn->backend_event.ev_flags & EV_WRITE))
     {
         // we need to enable WRITE event flag
-        event_del( &conn->backend_event);
-        event_set( &conn->backend_event, fd, EV_READ | EV_WRITE | EV_PERSIST, 
-                   wrap_Backend, (void *)conn);
-        event_add( &conn->backend_event, 0);
+        clear_init_event(conn,fd,EV_READ | EV_WRITE | EV_PERSIST,wrap_Backend,(void *)conn,false);
     }
     return true;
 }

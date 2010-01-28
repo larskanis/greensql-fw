@@ -57,6 +57,14 @@ void wrap_Proxy(int fd, short which, void * arg)
     int proxy_id;
 
     Connection * con = (Connection *) arg;
+    if (which & EV_WRITE && con->response_out.size() == 0)
+    {
+        Connection * conn = (Connection *) arg;
+        //we can clear the WRITE event flag
+        clear_init_event(conn,fd,EV_READ | EV_PERSIST,wrap_Proxy,(void *)conn);
+        return;
+    }
+
     proxy_id = con->iProxyId;
 
     logevent(NET_DEBUG, "[%d]frontend socket fired %d\n", proxy_id, fd);

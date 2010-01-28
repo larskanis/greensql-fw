@@ -18,7 +18,7 @@
 #include <event.h>
 #include <string>
 #include <list>
-
+typedef void (*pt2Func)(int, short, void *);
 void Proxy_cb(int fd, short which, void * arg);
 bool Proxy_write_cb(int fd, Connection * conn);
 bool ProxyValidateClientRequest(Connection*);
@@ -28,6 +28,7 @@ bool Backend_write_cb(int fd, Connection * conn);
 bool socket_read(int fd, char * data, int & size);
 bool socket_write(int fd, const char* data, int & size);
 void CloseConnection(Connection * conn);
+void clear_init_event(Connection * conn, int fd, short flags, pt2Func func, void * params,bool proxy = true);
 
 class GreenSQL
 {
