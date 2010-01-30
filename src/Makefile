@@ -3,7 +3,7 @@ OBJS:=main.o buffer.o greensql.o config.o connection.o normalization.o log.o pro
 CPP=g++
 CFLAGS:=-g -Wall -D_REENTRANT -O2
 CXXFLAGS:=-g -Wno-deprecated -Wall -I/usr/local/include/
-LIBS:=-L/usr/local/lib -lpcre -levent -ldl
+LIBS:=-L/usr/local/lib -L/usr/lib -L/usr/lib64 -lpcre -levent -ldl
 
 greensql-fw: $(OBJS)
 	cd parser; make CXXFLAGS="$(CXXFLAGS)"
