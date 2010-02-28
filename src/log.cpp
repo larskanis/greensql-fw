@@ -22,6 +22,7 @@ static bool log_reload();
 static void printline(const unsigned char * data, int max);
 static FILE * log_file = stdout;
 static int log_level = 3;
+static char month_str[][4] = { {"Jan"}, {"Feb"}, {"Mar"}, {"Apr"}, {"May"}, {"Jun"}, {"Jul"}, {"Aug"}, {"Sep"}, {"Oct"}, {"Nov"}, {"Dec"}, {NULL} };
 
 bool log_init(std::string & file, int level)
 {
@@ -31,7 +32,7 @@ bool log_init(std::string & file, int level)
 
     if (fp == NULL)
     {
-        return false;
+      return false;
     }
     log_file = fp;
     return true;
@@ -81,7 +82,6 @@ void logevent(ErrorType type, const char * fmt, ...)
     va_list ap;
     //va_start(ap, fmt);
     const char * error;
-    char month[10];
     //int facility;
     struct tm *now;
     time_t tval;
@@ -95,40 +95,47 @@ void logevent(ErrorType type, const char * fmt, ...)
     va_start(ap, fmt);
     tval = time(NULL);
     now = localtime(&tval);
-	    
+        
     
 
     switch (type)
     {
-        case CRIT:      error = "CRIT      ";
-			//facility = LOG_CRIT;
-	                break;
-	case ERR:       error = "ERROR       ";
-		        //facility = LOG_ERR;
-			break;
-	case INFO:      error = "INFO      ";
-			//facility = LOG_INFO;
-	                break;
-        case DEBUG:     error = "DEBUG     ";
-			//facility = LOG_DEBUG;
-                        break;
-        case NET_DEBUG: error = "NET_DEBUG ";
-			//facility = LOG_NOTICE;
-                        break;
-	case SQL_DEBUG: error = "SQL_DEBUG ";
-			//facility = LOG_NOTICE;
-			break;
-	case STORAGE:   error = "STORAGE   ";
-			//facility = LOG_NOTICE;
-			break;
-        default:        error = "UNKNOWN   ";
-			//facility = LOG_NOTICE;
-                        break;
+      case CRIT:
+        error = "CRIT      ";
+        //facility = LOG_CRIT;
+        break;
+      case ERR:
+        error = "ERROR       ";
+        //facility = LOG_ERR;
+        break;
+      case INFO:
+        error = "INFO      ";
+        //facility = LOG_INFO;
+        break;
+      case DEBUG:
+        error = "DEBUG     ";
+        //facility = LOG_DEBUG;
+        break;
+      case NET_DEBUG:
+        error = "NET_DEBUG ";
+        //facility = LOG_NOTICE;
+        break;
+      case SQL_DEBUG:
+        error = "SQL_DEBUG ";
+        //facility = LOG_NOTICE;
+         break;
+      case STORAGE:
+        error = "STORAGE   ";
+        //facility = LOG_NOTICE;
+        break;
+      default:
+        error = "UNKNOWN   ";
+        //facility = LOG_NOTICE;
+        break;
     }
     
     log_reload();
-    strftime(month,10,"%b",now);
-    fprintf(log_file,"[%02d/%s/%02d %d:%02d:%02d] %s",now->tm_mday,month, now->tm_year+1900,now->tm_hour, now->tm_min, now->tm_sec, error );
+    fprintf(log_file,"[%02d/%s/%02d %d:%02d:%02d] %s",now->tm_mday, month_str[now->tm_mon], now->tm_year+1900, now->tm_hour, now->tm_min, now->tm_sec, error );
 
     // vsyslog can be used instead
     //
@@ -147,34 +154,41 @@ void loghex(ErrorType type, const unsigned char * data, int size)
     const char * error;
     struct tm *now;
     time_t tval;
-    char month[10];
 
     if (size == 0)
         return;
     if (log_level < (int) type)
-	    return;
+        return;
    
     tval = time(NULL);
     now = localtime(&tval);
  
     switch (type)
     {
-        case CRIT:      error = "CRIT      ";
-                        break;
-        case ERR:       error = "ERROR     ";
-                        break;
-        case INFO:      error = "INFO      ";
-                        break;
-        case DEBUG:     error = "DEBUG     ";
-                        break;
-        case NET_DEBUG: error = "NET_DEBUG ";
-                        break;
-        case SQL_DEBUG: error = "SQL_DEBUG ";
-                        break;
-        case STORAGE:   error = "STORAGE   ";
-                        break;
-        default:        error = "UNKNOWN   ";
-                        break;
+      case CRIT:
+        error = "CRIT      ";
+        break;
+      case ERR:
+        error = "ERROR     ";
+        break;
+      case INFO:
+        error = "INFO      ";
+        break;
+      case DEBUG:
+        error = "DEBUG     ";
+        break;
+      case NET_DEBUG:
+        error = "NET_DEBUG ";
+        break;
+      case SQL_DEBUG:
+        error = "SQL_DEBUG ";
+        break;
+      case STORAGE:
+        error = "STORAGE   ";
+        break;
+      default:
+        error = "UNKNOWN   ";
+        break;
     }
 
     int lines = size / 16;
@@ -182,20 +196,19 @@ void loghex(ErrorType type, const unsigned char * data, int size)
     
     log_reload();
 
-    strftime(month,10,"%b",now);
     for (i = 0; i < lines; i++)
     {
-       /*fprintf(log_file, error);*/
-       fprintf(log_file,"[%02d/%s/%02d %d:%02d:%02d] %s", now->tm_mday, month, now->tm_year+1900,now->tm_hour, now->tm_min, now->tm_sec, error );
-       printline(data+i*16, 16);
+      /*fprintf(log_file, error);*/
+      fprintf(log_file,"[%02d/%s/%02d %d:%02d:%02d] %s", now->tm_mday, month_str[now->tm_mon], now->tm_year+1900,now->tm_hour, now->tm_min, now->tm_sec, error );
+      printline(data+i*16, 16);
     }
     // ord(size%16)
     int ord = (((unsigned char)(size<<4)) >>4);
     if ( ord > 0)
     {
-        /*fprintf(log_file, error);*/
-	fprintf(log_file,"[%02d/%s/%02d %d:%02d:%02d] %s", now->tm_mday,month ,now->tm_year+1900,now->tm_hour, now->tm_min, now->tm_sec, error );
-        printline(data+i*16, ord);
+      /*fprintf(log_file, error);*/
+      fprintf(log_file,"[%02d/%s/%02d %d:%02d:%02d] %s", now->tm_mday, month_str[now->tm_mon], now->tm_year+1900, now->tm_hour, now->tm_min, now->tm_sec, error );
+      printline(data+i*16, ord);
     }
     fflush(log_file);
 }
@@ -211,11 +224,11 @@ static void printline(const unsigned char * data, int max)
 
     for(j = 0; j < max; j++)
     {
-       b = data[j];
-       if (isalnum(b) || b == ' ' || ispunct(b))
-           temp[j] = data[j];
-       else
-           temp[j] = '.';
+      b = data[j];
+      if (isalnum(b) || b == ' ' || ispunct(b))
+        temp[j] = data[j];
+      else
+        temp[j] = '.';
     }
     
     // print hex
@@ -223,14 +236,13 @@ static void printline(const unsigned char * data, int max)
 
     for (j = 0; j < max; j++)
     {
-       b = (data[j]>>4);
-       b += ( b > 9) ? 'A'-10 : '0';
-       temp[20+j*3] = b;
+      b = (data[j]>>4);
+      b += ( b > 9) ? 'A'-10 : '0';
+      temp[20+j*3] = b;
 
-       b = ((unsigned char)(data[j]<<4)) >>4;
-       b += ( b > 9) ? 'A'-10 : '0';
-       temp[20+j*3+1] = b;
-
+      b = ((unsigned char)(data[j]<<4)) >>4;
+      b += ( b > 9) ? 'A'-10 : '0';
+      temp[20+j*3+1] = b;
    }
    temp[20+j*3] = '\n';
    temp[20+j*3+1] = 0;
