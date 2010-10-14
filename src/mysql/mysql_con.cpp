@@ -90,12 +90,12 @@ bool MySQLConnection::checkBlacklist(std::string & query, std::string & reason)
 
 bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
 {
-    unsigned int full_size = request_in.size();
+    size_t full_size = request_in.size();
     if (full_size < 3)
         return true;
 
     const unsigned char * data = request_in.raw();
-    unsigned int request_size = (data[2]<<16 | data[1] << 8 | data[0]) + 4;
+    size_t request_size = (data[2]<<16 | data[1] << 8 | data[0]) + 4;
 	size_t start = 0;
 
     //check if we got full packet
