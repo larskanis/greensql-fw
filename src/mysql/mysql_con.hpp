@@ -84,11 +84,13 @@ public:
     bool parseResponse(std::string & response);
     bool blockResponse(std::string & response);
     SQLPatterns * getSQLPatterns();
-
+	bool ParseRequestPacket(const unsigned char* data, size_t& request_size,bool& hasResponse);
+	bool ParseResponsePacket(const unsigned char* data, size_t& response_size, size_t max_response_size,std::string& response,size_t& header_size);
     bool mysql41;
     bool longResponse;
     bool longResponseData;
     MySQLType lastCommandId;
+	bool StartResponse;
 };
 
 #endif
