@@ -6,7 +6,10 @@
 // License: GPL v2 (http://www.gnu.org/licenses/gpl.html)
 //
 
+#ifdef WIN32
 #include "compat.hpp"
+#endif
+
 #include "greensql.hpp"
 
 #include "config.hpp"
@@ -88,7 +91,7 @@ void GreenSQL::Server_cb(int fd, short which, void * arg,
     conn->location = v_conn.begin();
 
     // get db user ip address
-    getpeername(sfd,(struct sockaddr*)&ss,&len);
+    getpeername(sfd,(struct sockaddr*)&ss, (socklen_t*)&len);
     if (ss.ss_family == AF_INET)
     {
         struct sockaddr_in *s = (struct sockaddr_in *)&ss;

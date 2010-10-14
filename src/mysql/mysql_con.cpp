@@ -125,9 +125,9 @@ bool MySQLConnection::parseRequest(std::string & request, bool & hasResponse)
 
 bool MySQLConnection::parseResponse(std::string & response)
 {
-    unsigned int full_size = (unsigned int) response_in.size();
-	size_t start = 0;
-	size_t header_size;
+    size_t full_size = response_in.size();
+    size_t start = 0;
+    size_t header_size;
     if (full_size < 3)
     {
        logevent(NET_DEBUG, "received %d bytes of response\n", full_size);
@@ -135,7 +135,7 @@ bool MySQLConnection::parseResponse(std::string & response)
     }
     const unsigned char * data = response_in.raw();
     // max packet size is 16 MB
-    unsigned int response_size = (data[2]<<16 | data[1] << 8 | data[0]) + 4;
+    size_t response_size = (data[2]<<16 | data[1] << 8 | data[0]) + 4;
     unsigned int packet_id = data[3];
     unsigned int type = data[4];
 
@@ -143,43 +143,43 @@ bool MySQLConnection::parseResponse(std::string & response)
             response_size, full_size);
     logevent(SQL_DEBUG, "server packet %d\n", packet_id);
 
-	if (!((StartResponse && data[4] == MYSQL_SRV_ERROR) || lastCommandId == MYSQL_DB || first_request || SecondPacket)) //-V112
+    if (!((StartResponse && data[4] == MYSQL_SRV_ERROR) || lastCommandId == MYSQL_DB || first_request || SecondPacket)) //-V112
+    {
+        response_in.pop(response, full_size);
+        StartResponse = false;
+        return true;
+    }
+    StartResponse = false;
+
+    if (full_size < 7)
+    {
+        if (first_request || SecondPacket)
 	{
 		response_in.pop(response, full_size);
-		StartResponse = false;
 		return true;
 	}
-	StartResponse = false;
+	logevent(NET_DEBUG, "response: received %d bytes of response\n", full_size); //-V111
+	loghex(NET_DEBUG, data, full_size);
+	return false;
+    }
+    response_size = (data[2]<<16 | data[1] << 8 | data[0]) + 4;
 
-	if (full_size < 7)
+    while(start + response_size <= full_size && full_size)
+    {
+	logevent(NET_DEBUG, " response: packet size expected %d bytes (received %d)\n",start + response_size, full_size);
+	size_t header_size = 0;
+	// request's equivalent response
+	if(!ParseResponsePacket(data + start,response_size,full_size - start,response,header_size))
 	{
-		if (first_request || SecondPacket)
-		{
-			response_in.pop(response, full_size);
-			return true;
-		}
-		logevent(NET_DEBUG, "response: received %d bytes of response\n", full_size); //-V111
-		loghex(NET_DEBUG, data, full_size);
-		return false;
-	}
-	response_size = (data[2]<<16 | data[1] << 8 | data[0]) + 4;
-
-	while(start + response_size <= full_size && full_size)
-	{
-		logevent(NET_DEBUG, " response: packet size expected %d bytes (received %d)\n",start + response_size, full_size);
-		size_t header_size = 0;
-		// request's equivalent response
-		if(!ParseResponsePacket(data + start,response_size,full_size - start,response,header_size))
-		{
-			logevent(NET_DEBUG, "response: more packets...\n");
-			if(SecondPacket)
-				SecondPacket = false;
-			return true;
-		}
+		logevent(NET_DEBUG, "response: more packets...\n");
 		if(SecondPacket)
 			SecondPacket = false;
-		start += header_size? header_size : response_size;
-		if(start < full_size)
+		return true;
+	}
+	if(SecondPacket)
+	 	SecondPacket = false;
+	start += header_size? header_size : response_size;
+	if(start < full_size)
 			response_size = (data[2]<<16 | data[1] << 8 | data[0]) + 4;
 
 		if((start+ response_size) > full_size)
