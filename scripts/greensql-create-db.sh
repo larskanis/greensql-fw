@@ -5,7 +5,7 @@
 # License: GPL v2 (http://www.gnu.org/licenses/gpl.html)
 #
 
-VER=1.2.2
+VER=1.3.0
 SQL="mysql"
 GREENSQL_DB_USER="green"
 GREENSQL_DB_PWD="pwd"

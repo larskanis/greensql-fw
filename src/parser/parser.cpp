@@ -64,7 +64,9 @@ bool query_parse(struct query_risk * q_risk,
   //bzero(q_risk, sizeof(struct query_risk));
   memset(q_risk, 0, sizeof(struct query_risk));
   patterns = sql_patterns;
+#ifndef WIN32
   scan_buffer(q);
+#endif
   free_sql_strings();
   free_expressions();
   return true;

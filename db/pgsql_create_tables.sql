@@ -72,7 +72,8 @@ agroupid            int default '0',
 event_time          timestamp,
 risk                smallint NOT NULL default '0',
 block               smallint NOT NULL default '0',
-dbuser              varchar(50) NULL default '',
+dbuser              varchar(50) NOT NULL default '',
+userip              varchar(50) NOT NULL default '',
 query               text NOT NULL,
 reason              text NOT NULL
 );

@@ -1,3 +1,12 @@
+greensql-fw (1.3.0) unstable; urgency=low
+
+  * Network code improvements
+  * Speed optimization
+  * Management bugs
+  * Add user ip to alers
+
+ -- Yuli Stremovsky <stremovsky@gmail.com> Oct, 12 Te 2010 10:10:00 +0300
+
 greensql-fw (1.2.2) unstable; urgency=low
 
   * Bug Fixes

@@ -1,2 +1,2 @@
 misc:Depends=debconf (>= 0.5) | debconf-2.0
-shlibs:Depends=libc6 (>= 2.4), libevent1 (>= 1.3e), libgcc1 (>= 1:4.1.1), libpcre3 (>= 7.4), libstdc++6 (>= 4.1.1)
+shlibs:Depends=libgcc1 (>= 1:4.1.1-21), libpcre3 (>= 7.4), libstdc++6 (>= 4.1.1-21), libc6 (>= 2.4), libevent1 (>= 1.3e)

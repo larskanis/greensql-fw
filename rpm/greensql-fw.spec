@@ -1,7 +1,7 @@
 Summary: GreenSQL open source database firewall solution.
 Name: greensql-fw
 Vendor: GreenSQL
-Version: 1.2.2
+Version: 1.3.0
 Release: 1
 License: GPL
 Group: Applications/Databases
