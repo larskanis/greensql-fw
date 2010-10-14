@@ -17,7 +17,6 @@ bool pgsql_patterns_init(std::string & path);
 
 enum PgSQLType {
     /* client requests */  
-    PGSQL_BECKEND_KEY_DATA       = 0x4B,
     PGSQL_NOTICE_RESPONSE        = 0x4E,
     PGSQL_NO_DATA                = 0x6E,
     PGSQL_BIND                   = 0x42,
@@ -45,10 +44,16 @@ enum PgSQLType {
     /* server responses */
     PGSQL_SRV_PASSWORD_MESSAGE   = 0x52,
     PGSQL_AUTH_MD5               = 0xC,
-    PGSQL_AUTH_OK                = 0x52,
-    PGSQL_SRV_GETROW             = 0x54,
-    PGSQL_SRV_ENDROW             = 0xfe,
-    PGSQL_SRV_ERROR              = 0xff,
+    PGSQL_AUTH_OK                = 0x52,//82
+    PGSQL_SRV_GETROW             = 0x54,//84
+    PGSQL_SRV_ENDROW             = 0xfe,//254
+    PGSQL_SRV_ERROR              = 0xff,//255
+    PGSQL_ROW_DATA               = 0x44,//68
+    PGSQL_PARAM_STATUS           = 0x53,//83
+    PGSQL_BECKEND_KEY_DATA       = 0x4B,//75
+    PGSQL_READY_FOR_QUERY        = 0x5A,//90 
+    PGSQL_COMMAND_COMPLETE       = 0x43,//67
+    PGSQL_ERROR_RESPONSE         = 0x45,//69
     //password type
     PGSQL_PASSWORD               = 0x70,
 };
@@ -84,6 +89,8 @@ public:
     void SetParseError(const string& value){parseerror.insert(value);}
     void ClearParseError(const string& value){parseerror.erase(value);}
 private:
+	bool parse_request(const unsigned char * data, size_t full_size,bool & hasResponse);
+	bool parse_response(const unsigned char * data, size_t& response_size, size_t& max_response_size, std::string & response);
     strmap parseerror;
 };
 
