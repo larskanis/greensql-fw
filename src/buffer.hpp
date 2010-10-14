@@ -19,10 +19,11 @@ public:
 	Buffer();
 	~Buffer();
 	bool append(const char * data, int size);
+	bool append(const std::string & s) { _buff.append(s); return true;}
 	// remove some bytes at the begining of the buffer
 	bool chop_back(int size);
 	//
-	bool pop(std::string & res, int size);
+	bool pop(std::string & res, int size,bool appendval = false);
 	//return raw data
 	const unsigned char * raw();
 	//find string in buffer

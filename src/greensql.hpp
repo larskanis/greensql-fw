@@ -51,11 +51,11 @@ public:
     
     //proxy
     bool ProxyInit(int proxyId, std::string & proxyIp, int proxyPort,
-                   std::string & backendIp, int backendPort,
+                   std::string & backendName, std::string & backendIp, int backendPort,
 		   std::string & dbType);
-    bool ProxyReInit(int proxyId, std::string & proxyIp, 
-		    int proxyPort, std::string & bIp, int bPort,
-		    std::string & dbType);
+    bool ProxyReInit(int proxyId, std::string & proxyIp, int proxyPort, 
+                   std::string & backendName, std::string & bIp, int bPort,
+		   std::string & dbType);
     bool ServerInitialized();
     bool HasActiveConnections();
     bool PrepareNewConn(int, int &, int &);

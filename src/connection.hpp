@@ -32,7 +32,9 @@ public:
     bool close();
     bool check_query(std::string & query);
     struct event proxy_event;
+    struct event proxy_event_writer;
     struct event backend_event;
+    struct event backend_event_writer;
     Buffer request_in;
     Buffer request_out;
     Buffer response_in;    
@@ -54,6 +56,9 @@ public:
     DBProxyType dbType;
     std::list<Connection*>::iterator location;
     std::list<Connection*> * connections;
+    bool SecondPacket;
+    std::string original_query;
+    bool first_response;
 private:
     unsigned int calculateRisk(std::string & query, std::string &reason);
     

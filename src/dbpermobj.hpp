@@ -90,6 +90,7 @@ public:
     {
         return perms;
     }
+	std::string db_name;
 private: 
     long long perms;
     bool create_perm;
@@ -99,7 +100,7 @@ private:
     bool block_q_perm;
     bool bruteforce_perm;
     DBBlockStatus block_status;
-    std::string db_name;
+    
     std::string db_type;
     unsigned int proxy_id;
     std::map<std::string, int, std::less<std::string>  > exceptions;

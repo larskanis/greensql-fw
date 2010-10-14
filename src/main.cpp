@@ -141,17 +141,18 @@ int main(int argc, char *argv[])
         initWin();
 #else
         initLinux();
-#endif
-
         event_init();
+#endif
 
         struct event tEvent;
         memset(&tEvent,0, sizeof(struct event));
         struct timeval delay;
         delay.tv_sec=1;
         delay.tv_usec=0;
+#ifndef WIN32
         evtimer_set(&tEvent, clb_timeout, &tEvent);
         evtimer_add(&tEvent, &delay);
+#endif
        
         if (proxymap_init() == false)
         {
@@ -160,8 +161,9 @@ int main(int argc, char *argv[])
         }
         dbmap_init();
 	agroupmap_init();
-		
+#ifndef WIN32	
         event_loop(0);
+#endif
         //logevent(DEBUG, "end of the event loop\n");
 	
 //the followint function must clear memory used by event system
@@ -174,13 +176,13 @@ int main(int argc, char *argv[])
         log_close(); 
 	GreenSQLConfig::free();
 
-#ifdef WIN32
-        _CrtMemCheckpoint(&s2);
-        if(_CrtMemDifference(&s3,&s1, &s2))
-       	    _CrtMemDumpStatistics(&s3);
-        _CrtDumpMemoryLeaks();
-        Beep( 440, 300 );
-#endif
+// #ifdef WIN32
+//         _CrtMemCheckpoint(&s2);
+//         if(_CrtMemDifference(&s3,&s1, &s2))
+//        	    _CrtMemDumpStatistics(&s3);
+//         _CrtDumpMemoryLeaks();
+//         Beep( 440, 300 );
+// #endif
 	//std::cout << "quit:" << std::endl; 
         
     }
@@ -225,8 +227,9 @@ void clb_timeout(int fd, short which, void * arg)
     delay.tv_usec=0;
 
     struct event * tEvent = (struct event*) arg;
-
+#ifndef WIN32
     event_del(tEvent);
+#endif
 
     GreenSQLConfig * cfg = GreenSQLConfig::getInstance();
 
@@ -235,8 +238,10 @@ void clb_timeout(int fd, short which, void * arg)
     {
         proxymap_close();
     } else {
+#ifndef WIN32
         evtimer_set(tEvent, clb_timeout, tEvent);
         evtimer_add(tEvent, &delay);
+#endif
 	counter++;
 	if (counter == 5)
 	{

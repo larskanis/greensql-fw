@@ -14,7 +14,7 @@
 
 static unsigned int agroup_get(int p_id, std::string & dbn, std::string & p);
 static unsigned int agroup_add(int p_id, std::string & dbn, std::string & p);
-static int alert_add(unsigned int agroupid, char * user, char * query, 
+static int alert_add(unsigned int agroupid, char * user, const char * userip, char * query, 
                      char * reason, int risk, int block);
 static bool agroup_update(unsigned int agroupid);
 static bool agroup_update_status(unsigned int agroupid);
@@ -27,7 +27,7 @@ static unsigned int agroupmap_get( int p_id, std::string & dbn,std::string & p);
 static const int alert_query_size = 1024*1024;
 static char alert_query[alert_query_size]; // default size - 1MB.
 
-bool logalert(int proxy_id, std::string & dbname,  std::string & dbuser,
+bool logalert(int proxy_id, std::string & dbname,  std::string & dbuser, std::string & dbuserip,
         std::string & query, std::string & pattern, 
         std::string & reason, int risk, int block)
 {
@@ -58,7 +58,7 @@ bool logalert(int proxy_id, std::string & dbname,  std::string & dbuser,
     delete [] tmp_u;
         return false;
     }
-    alert_add(agroupid, tmp_u, tmp_q, tmp_r, risk, block);
+    alert_add(agroupid, tmp_u, dbuserip.c_str(), tmp_q, tmp_r, risk, block);
     agroup_update(agroupid);
     delete [] tmp_q;
     delete [] tmp_r;
@@ -66,7 +66,7 @@ bool logalert(int proxy_id, std::string & dbname,  std::string & dbuser,
     return true;    
 }
 
-bool logwhitelist(int proxy_id, std::string & dbname,  std::string & dbuser,
+bool logwhitelist(int proxy_id, std::string & dbname, std::string & dbuser, std::string & dbuserip,
         std::string & query, std::string & pattern,
         std::string & reason, int risk, int block)
 {
@@ -97,7 +97,7 @@ bool logwhitelist(int proxy_id, std::string & dbname,  std::string & dbuser,
         delete [] tmp_u;
         return false;
     }
-    alert_add(agroupid,tmp_u, tmp_q, tmp_r, risk, block);
+    alert_add(agroupid, tmp_u, dbuserip.c_str(), tmp_q, tmp_r, risk, block);
     agroup_update_status(agroupid);
     delete [] tmp_q;
     delete [] tmp_r;
@@ -309,7 +309,7 @@ agroup_add(int proxy_id, std::string & dbname, std::string & pattern)
     return agroupid; 
 }
 
-static int alert_add(unsigned int agroupid, char * user, char * query, 
+static int alert_add(unsigned int agroupid, char * user, const char * userip, char * query, 
                      char * reason, int risk, int block)
 {
     char * q;
@@ -333,16 +333,16 @@ static int alert_add(unsigned int agroupid, char * user, char * query,
     {
         snprintf(q, requred_query_size,
                 "INSERT into alert "
-                "(agroupid, event_time, risk, block, dbuser, query, reason) "
-                "VALUES (%u,now(),%d,%d,'%s','%s','%s')",
-                agroupid, risk, block, user, query, reason);
+                "(agroupid, event_time, risk, block, dbuser, userip, query, reason) "
+                "VALUES (%u,now(),%d,%d,'%s','%s','%s','%s')",
+                agroupid, risk, block, user, userip, query, reason);
     }
     else if (conf->sDbType == DB_PGSQL)
     {
         snprintf(q, requred_query_size,
             "INSERT into alert "
-            "(agroupid, event_time, risk, block, dbuser, query, reason) "
-            "VALUES (%u,now(),%d,%d,'%s','%s','%s')",
+            "(agroupid, event_time, risk, block, dbuser, userip, query, reason) "
+            "VALUES (%u,now(),%d,%d,'%s','%s','%s','%s')",
             agroupid, risk, block, user, query, reason);
     }
 

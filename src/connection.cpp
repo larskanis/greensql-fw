@@ -25,21 +25,30 @@ Connection::Connection(int proxy_id)
     db_user = "";
     db_type = "";
     db_user_ip = "";
+	SecondPacket = false;
+	first_response = true;
 }
 
 bool Connection::close()
 {
+#ifndef WIN32
     logevent(NET_DEBUG, "connection close(), proxy socket %d, backend socket %d\n", 
               proxy_event.ev_fd, backend_event.ev_fd);
     GreenSQL::socket_close(proxy_event.ev_fd);
     GreenSQL::socket_close(backend_event.ev_fd);
-    if (proxy_event.ev_fd != 0 && proxy_event.ev_fd != -1 && 
-		proxy_event.ev_flags & EVLIST_INIT)
+    if (proxy_event.ev_fd != 0 && proxy_event.ev_fd != -1 && proxy_event.ev_flags & EVLIST_INIT)
         event_del(&proxy_event);
-    if (backend_event.ev_fd != 0 && backend_event.ev_fd != -1 && 
-		backend_event.ev_flags & EVLIST_INIT)
+    if (proxy_event_writer.ev_fd != 0 && proxy_event_writer.ev_fd != -1 &&
+                proxy_event_writer.ev_flags & EVLIST_INIT && proxy_event_writer.ev_flags & EVLIST_INSERTED)
+        event_del(&proxy_event_writer);
+
+    if (backend_event.ev_fd != 0 && backend_event.ev_fd != -1 && backend_event.ev_flags & EVLIST_INIT)
         event_del(&backend_event);
+    if (backend_event_writer.ev_fd != 0 && backend_event_writer.ev_fd != -1 &&
+                backend_event_writer.ev_flags & EVLIST_INIT && backend_event_writer.ev_flags & EVLIST_INSERTED )
+        event_del(&backend_event_writer);
     connections->erase(location);
+#endif
     return true;
 }
 
@@ -93,7 +102,7 @@ bool Connection::check_query(std::string & query)
     {
         reason += "Query blocked because it is not in whitelist.\n";
         logevent(DEBUG, "Query blocked because it is not in whitelist.\n");
-        logalert(iProxyId, db_name, db_user, original_query,
+        logalert(iProxyId, db_name, db_user, db_user_ip, original_query,
                  pattern, reason, risk, (int)BLOCKED);
         // block this query
         return false;
@@ -104,7 +113,7 @@ bool Connection::check_query(std::string & query)
 	risk = conf->re_block_level+1;
         if (block_status == PRIVILEGE_BLOCK || block_status == RISK_BLOCK)
         {
-            logalert(iProxyId, db_name, db_user, original_query,
+            logalert(iProxyId, db_name, db_user, db_user_ip, original_query,
                      pattern, reason, risk, (int)BLOCKED);
             // block this query
             return false;
@@ -113,13 +122,13 @@ bool Connection::check_query(std::string & query)
 		   block_status == LEARNING_MODE_7DAYS)
 	{
 	    db->AddToWhitelist(db_user, pattern);
-            logwhitelist(iProxyId, db_name, db_user, original_query,
+            logwhitelist(iProxyId, db_name, db_user, db_user_ip, original_query,
                          pattern, reason, risk, (int)HIGH_RISK);
 	    return true;
         } else {
             // block_status == RISK_SIMULATION 
             // block_status == LEARNING_MODE
-            logalert(iProxyId, db_name, db_user, original_query,
+            logalert(iProxyId, db_name, db_user, db_user_ip, original_query,
                      pattern, reason, risk, (int)HIGH_RISK);
             return true;
         }
@@ -132,14 +141,14 @@ bool Connection::check_query(std::string & query)
         db->AddToWhitelist(db_user, pattern);
         if (risk >= conf->re_block_level)
         {
-            logwhitelist(iProxyId, db_name,db_user,original_query,
+            logwhitelist(iProxyId, db_name, db_user, db_user_ip, original_query,
                      pattern, reason, risk, (int)HIGH_RISK);
         } else if (risk >= conf->re_warn_level)
         {
-            logwhitelist(iProxyId, db_name, db_user,original_query,
+            logwhitelist(iProxyId, db_name, db_user, db_user_ip, original_query,
                      pattern, reason, risk, (int)WARN);
         } else {
-            logwhitelist(iProxyId, db_name, db_user,original_query,
+            logwhitelist(iProxyId, db_name, db_user, db_user_ip, original_query,
                      pattern, reason, risk, (int)LOW);
 	}
 
@@ -154,7 +163,7 @@ bool Connection::check_query(std::string & query)
 
     if (risk >= conf->re_block_level) 
     {
-        logalert(iProxyId, db_name, db_user,original_query,
+        logalert(iProxyId, db_name, db_user, db_user_ip, original_query,
                  pattern, reason, risk, (int)risk_block_level);
         if (risk_block_level == BLOCKED)
             return false;
@@ -162,7 +171,7 @@ bool Connection::check_query(std::string & query)
     else if (risk >= conf->re_warn_level)
     {
         //warn level
-        logalert(iProxyId, db_name,db_user, original_query,
+        logalert(iProxyId, db_name, db_user, db_user_ip, original_query,
                  pattern, reason, risk, (int)WARN);
     }
 

@@ -53,6 +53,7 @@ public:
     backend_db sDbType;
 
 private:
+    size_t iProxyId;
     std::string sDbHost;
     int iDbPort;
     std::string sDbName;

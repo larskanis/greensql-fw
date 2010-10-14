@@ -1,4 +1,6 @@
+#ifndef WIN32
 #include <dlfcn.h>
+#endif
 #include "config.hpp"
 #include "log.hpp"
 #include "sql_api.hpp"
@@ -27,6 +29,9 @@ extern "C" {
 
 int db_init(const std::string& type)
 {
+#ifdef WIN32
+	return 1;
+#else
   if (type == "mysql") {
     lib_handle = dlopen("/usr/lib/libgsql-mysql.so", RTLD_LAZY);
     if (!lib_handle) 
@@ -126,7 +131,7 @@ int db_init(const std::string& type)
     logevent(ERR, "failed to load function db_error: %s\n", dlerror());
     return 0;
   }
-
+#endif
   return 1;
 }
 
@@ -188,8 +193,10 @@ void db_cleanup(db_struct *db) {
 int db_close() {
   if (p_db_close == NULL)
     return 0;
+#ifndef WIN32
   (*p_db_close)();
   dlclose(lib_handle);
+#endif
   return 1;
 }
 

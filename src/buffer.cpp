@@ -38,12 +38,14 @@ bool Buffer::chop_back(int size)
         return true;
 }
 
-bool Buffer::pop(std::string & res, int size)
+bool Buffer::pop(std::string & res, int size,bool appendval)
 {
-        //res.append( _buff.substr(0, size) );
-	res.assign( _buff, 0, size);
-        _buff.erase(0, size);
-        return true;
+	if(appendval)
+		res.append( _buff.substr(0, size) );
+	else
+		res.assign( _buff, 0, size);
+	_buff.erase(0, size);
+	return true;
 }
 
 //return raw data

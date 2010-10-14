@@ -54,18 +54,8 @@ void wrap_Server(int fd, short which, void * arg)
 
 void wrap_Proxy(int fd, short which, void * arg)
 {
-    int proxy_id;
-
     Connection * con = (Connection *) arg;
-    if (which & EV_WRITE && con->response_out.size() == 0)
-    {
-        Connection * conn = (Connection *) arg;
-        //we can clear the WRITE event flag
-        clear_init_event(conn,fd,EV_READ | EV_PERSIST,wrap_Proxy,(void *)conn);
-        return;
-    }
-
-    proxy_id = con->iProxyId;
+    int proxy_id = con->iProxyId;
 
     logevent(NET_DEBUG, "[%d]frontend socket fired %d\n", proxy_id, fd);
     GreenSQLConfig * conf = GreenSQLConfig::getInstance();
@@ -80,7 +70,6 @@ void wrap_Proxy(int fd, short which, void * arg)
     {
         Proxy_cb(fd, which, arg);
     }
-
 }
 
 void wrap_Backend(int fd, short which, void * arg)
@@ -143,6 +132,7 @@ bool proxymap_reload()
     bool ret;
 
     std::string backendIP;
+    std::string backendName;
     int backendPort;
     std::string proxyIP;
     int proxyPort;
@@ -168,6 +158,7 @@ bool proxymap_reload()
         proxy_id = db_col_int(&db,0);
         proxyIP = (char *) db_col_text(&db,1);
         proxyPort = db_col_int(&db,2);
+        backendName = (char *) db_col_text(&db,3);
         backendIP = (char *) db_col_text(&db,4);
         backendPort = db_col_int(&db,5);
         dbType = (char *) db_col_text(&db,6);
@@ -178,9 +169,8 @@ bool proxymap_reload()
         if (itr == proxies.end())
         {
             /** proxy doesnt exist in memory so create a new one **/
-            cls = new GreenSQL();
-
-            bool ret = cls->ProxyInit(proxy_id, proxyIP, proxyPort, backendIP, backendPort, dbType);
+            cls = new GreenSQL();		
+            bool ret = cls->ProxyInit(proxy_id, proxyIP, proxyPort, backendName, backendIP, backendPort, dbType);
             if (ret == false)
             {
                 // failed to init proxy
@@ -202,7 +192,7 @@ bool proxymap_reload()
         // check whether the proxy details were altered
         if (cls->sProxyIP != proxyIP || cls->iProxyPort != proxyPort || cls->sDBType != dbType)
         {
-            ret = cls->ProxyReInit(proxy_id, proxyIP, proxyPort, backendIP, backendPort, dbType);
+            ret = cls->ProxyReInit(proxy_id, proxyIP, proxyPort, backendName, backendIP, backendPort, dbType);
             if (ret == false)
             {
                 proxymap_set_db_status(proxy_id, 2);
@@ -211,39 +201,22 @@ bool proxymap_reload()
             }
             continue;
 			
-        } else if (cls->sBackendIP != backendIP ||
+        } else if (cls->sBackendName != backendName ||
+                   cls->sBackendIP != backendIP ||
                    cls->iBackendPort != backendPort)
         {
             /**
               check maybe only the proxy backend details were altered
               in that case only updating the data in memory is required for when someone tries to connect
             **/
+            cls->sBackendName = backendName;
             cls->sBackendIP = backendIP;
-            cls->iBackendPort = backendPort;
+            cls->iBackendPort = backendPort;  
         }
-    } /** EOF while **/
 
-    if (cls == NULL)
-    {
-        // nothing found
-        db_cleanup(&db);
-        return false;
-    }
-
-    if (cls->ServerInitialized() == true)
-    {
+        // either the backend parameters were modified or no change was done at all, yet the status=0 due to management status
         proxymap_set_db_status(proxy_id, 1);
-    } else {
-        // we failed to open this server object, try once again
-        ret = cls->ProxyReInit(proxy_id, proxyIP, proxyPort,
-                               backendIP, backendPort, dbType);
-        if (ret == false)
-        {
-            proxymap_set_db_status(proxy_id, 2);
-        } else {
-            proxymap_set_db_status(proxy_id, 1);
-        }
-    }
+    } /** EOF while **/
 
     /* Release memory used to store results. */
     db_cleanup(&db);  
@@ -252,8 +225,7 @@ bool proxymap_reload()
     if (new_proxies.size() == proxies.size())
         return true;
 
-	/* new_proxies.size() != proxies.size() */
-
+    /* new_proxies.size() != proxies.size() */
     logevent(DEBUG, "We have deleted proxies\n");
     for (itr = proxies.begin(); itr != proxies.end() && new_proxies.size() != proxies.size(); itr++)
     {
