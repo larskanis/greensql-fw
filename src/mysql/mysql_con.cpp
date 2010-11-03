@@ -128,7 +128,7 @@ bool MySQLConnection::parseResponse(std::string & response)
     size_t full_size = response_in.size();
     size_t start = 0;
     size_t header_size;
-    if (full_size < 3)
+    if (full_size < 5)
     {
        logevent(NET_DEBUG, "received %d bytes of response\n", full_size);
        return false;
@@ -145,7 +145,16 @@ bool MySQLConnection::parseResponse(std::string & response)
 
     if (!((StartResponse && data[4] == MYSQL_SRV_ERROR) || lastCommandId == MYSQL_DB || first_request || SecondPacket)) //-V112
     {
-        response_in.pop(response, full_size);
+		while((start + response_size) <= full_size)
+		{
+			start += response_size;
+			if(start + 5 < full_size)
+				response_size = (data[start+2]<<16 | data[start+1] << 8 | data[start]) + 4;
+			else
+				break;
+		}
+
+        response_in.pop(response, start);
         StartResponse = false;
         return true;
     }
@@ -164,7 +173,7 @@ bool MySQLConnection::parseResponse(std::string & response)
     }
     response_size = (data[2]<<16 | data[1] << 8 | data[0]) + 4;
 
-    while(start + response_size <= full_size && full_size)
+    while(start + response_size <= full_size)
     {
 	logevent(NET_DEBUG, " response: packet size expected %d bytes (received %d)\n",start + response_size, full_size);
 	size_t header_size = 0;
@@ -179,10 +188,9 @@ bool MySQLConnection::parseResponse(std::string & response)
 	if(SecondPacket)
 	 	SecondPacket = false;
 	start += header_size? header_size : response_size;
-	if(start < full_size)
-			response_size = (data[2]<<16 | data[1] << 8 | data[0]) + 4;
-
-		if((start+ response_size) > full_size)
+		if((start + 5) < full_size)
+			response_size = (data[start+2]<<16 | data[start+1] << 8 | data[start]) + 4;
+		else
 			break;
 	}
 
