@@ -185,6 +185,9 @@ bool PgSQLConnection::parseResponse(std::string & response)
 
 	if (!( first_request || data[0] == PGSQL_SRV_PASSWORD_MESSAGE || data[0] == PGSQL_ERROR_RESPONSE || SecondPacket))
 	{
+        if (full_size < 5) 
+            return true;
+			
 		response_size = (data[1+start] << 24 | data[2+start] << 16 | data[3+start] << 8 | data[4+start]) + 1;
 		while(start + response_size <= full_size)
 		{
