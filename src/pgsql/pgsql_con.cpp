@@ -176,7 +176,8 @@ bool PgSQLConnection::parseResponse(std::string & response)
 	size_t full_size = response_in.size();
 	const unsigned char * data = response_in.raw();
 	size_t used = 0;
-
+	size_t start = 0;
+	size_t response_size;
 	first_response = false;
 
 	logevent(NET_DEBUG, "response: full size %d bytes\n", full_size); //-V111
@@ -184,7 +185,16 @@ bool PgSQLConnection::parseResponse(std::string & response)
 
 	if (!( first_request || data[0] == PGSQL_SRV_PASSWORD_MESSAGE || data[0] == PGSQL_ERROR_RESPONSE || SecondPacket))
 	{
-		response_in.pop(response, full_size);
+		response_size = (data[1+start] << 24 | data[2+start] << 16 | data[3+start] << 8 | data[4+start]) + 1;
+		while(start + response_size <= full_size)
+		{
+			start += response_size;
+			if(start + 4 < full_size)
+				response_size = (data[1+start] << 24 | data[2+start] << 16 | data[3+start] << 8 | data[4+start])+1;
+			else
+				break;
+		}
+		response_in.pop(response, start);
 		return true;
 	}
 	if(!parse_response(data, used, full_size, response))
@@ -534,7 +544,7 @@ bool PgSQLConnection::parse_response(const unsigned char * data, size_t& used_si
 			break;
 		case PGSQL_BECKEND_KEY_DATA: 
 			logevent(error_type, "response: PGSQL BECKEND KEY DATA command\n");
-			logevent(error_type, "Backend process ID: %d\n", data[5+start] << 24 | data[6+start] << 16 | data[7+start] << 8 | data[8+start]);
+			logevent(error_type, "Backend process ID: %u\n", data[5+start] << 24 | data[6+start] << 16 | data[7+start] << 8 | data[8+start]);
 			break;
 		case PGSQL_BIND_COMPLETE:
 			logevent(error_type, "response: PGSQL BIND COMPLETE command\n");
