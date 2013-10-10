@@ -6,9 +6,9 @@ PGSQL_LIBS:=-lpq
 
 api:
 	cc $(CXXFLAGS) $(MYSQL_INC) -DHAVE_MYSQL_CLIENT -fPIC -c -Wall sql_api.c
-	cc $(CXXFLAGS) $(MYSQL_LIBS) -shared -Wl,-soname,libgsql-mysql.so.1  -DHAVE_MYSQL_CLIENT -o libgsql-mysql.so.1 sql_api.o
+	cc $(CXXFLAGS) -shared -Wl,-soname,libgsql-mysql.so.1  -DHAVE_MYSQL_CLIENT -o libgsql-mysql.so.1 sql_api.o $(MYSQL_LIBS)
 	cc $(CXXFLAGS) $(PGSQL_INC) -DHAVE_PGSQL_CLIENT -fPIC -c -Wall sql_api.c
-	cc $(CXXFLAGS) $(PGSQL_LIBS) -shared -Wl,-soname,libgsql-pgsql.so.1  -DHAVE_PGSQL_CLIENT -o libgsql-pgsql.so.1 sql_api.o
+	cc $(CXXFLAGS) -shared -Wl,-soname,libgsql-pgsql.so.1  -DHAVE_PGSQL_CLIENT -o libgsql-pgsql.so.1 sql_api.o $(PGSQL_LIBS)
 
 clean:
 	rm -rf *.so.1

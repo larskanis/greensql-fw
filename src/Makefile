@@ -8,14 +8,14 @@ LIBS:=-L/usr/local/lib -L/usr/lib -L/usr/lib64 -lpcre -levent -ldl
 greensql-fw: $(OBJS)
 	cd parser; make CXXFLAGS="$(CXXFLAGS)"
 	cd lib; make;
-	$(CXX) ${LIBS} $(CXXFLAGS) -o greensql-fw $(OBJS) parser/parser.o parser/sql.o parser/sql.tab.o
+	$(CXX) $(CXXFLAGS) -o greensql-fw $(OBJS) parser/parser.o parser/sql.o parser/sql.tab.o ${LIBS}
 
 mysql/mysql_con.o:
 	$(CXX) $(CXXFLAGS) -c mysql/mysql_con.cpp -o mysql/mysql_con.o
 
 pgsql/pgsql_con.o:
 	$(CXX) $(CXXFLAGS) -c pgsql/pgsql_con.cpp -o pgsql/pgsql_con.o
-	
+
 clean:
 	rm -rf greensql-fw *.o mysql/*.o pgsql/*.o
 	cd parser; make clean; cd ..
